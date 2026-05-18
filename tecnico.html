@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Técnico</title>
+    <style>
+        body { font-family: system-ui; max-width: 400px; margin: 50px auto; padding: 20px; }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 40px; border: 1px solid #ccc; }
+        button { background: #0066cc; color: white; font-weight: bold; border: none; cursor: pointer; }
+        .mensaje { margin-top: 20px; padding: 12px; border-radius: 20px; text-align: center; }
+        .correcto { background: #d4edda; color: #155724; }
+        .incorrecto { background: #f8d7da; color: #721c24; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<h2>🔐 Acceso Técnico</h2>
+<input type="email" id="email" placeholder="tecnico@example.com">
+<input type="password" id="password" placeholder="123456">
+<button id="btnLogin">Iniciar sesión</button>
+<div id="mensaje"></div>
+
+<script>
+    // Configuración de Supabase (misma que usaste en test2)
+    const SUPABASE_URL = "https://zlaatodfoulhhhvoyrrr.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.getElementById('btnLogin').onclick = async function() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const mensajeDiv = document.getElementById('mensaje');
+
+        // Consultar Supabase
+        const { data, error } = await supabase
+            .from('tecnicos')
+            .select('*')
+            .eq('email', email)
+            .eq('password', password)
+            .maybeSingle();
+
+        if (error) {
+            mensajeDiv.innerHTML = `❌ Error: ${error.message}`;
+            mensajeDiv.className = "mensaje incorrecto";
+            return;
+        }
+        if (data) {
+            mensajeDiv.innerHTML = `✅ Usuario correcto. Bienvenido ${data.nombre}`;
+            mensajeDiv.className = "mensaje correcto";
+        } else {
+            mensajeDiv.innerHTML = "❌ Usuario o contraseña incorrectos";
+            mensajeDiv.className = "mensaje incorrecto";
+        }
+    };
+</script>
+
+</body>
+</html>
