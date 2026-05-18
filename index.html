@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Piscina Los Pinos · Estado en directo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            background: #f0f7ff;
+            padding: 20px;
+            color: #1e2a3e;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .estado {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .abierta { background: #e0f7e8; color: #1e7b48; }
+        .cerrada { background: #ffe6e5; color: #c2410c; }
+        .dato {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 12px 0;
+            border-bottom: 1px solid #eef2f6;
+        }
+        .dato-label {
+            font-weight: 500;
+            color: #5b6e8c;
+        }
+        .dato-valor {
+            font-weight: 700;
+            font-size: 1.3rem;
+        }
+        .normal { color: #1e7b48; }
+        .alerta { color: #e67e22; }
+        .critico { color: #c2410c; }
+        .btn {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 1rem;
+            width: 100%;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn:hover { background: #0052a3; }
+        .input-group {
+            margin-bottom: 16px;
+        }
+        label {
+            font-weight: 500;
+            display: block;
+            margin-bottom: 6px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccd7e6;
+            border-radius: 24px;
+            font-size: 1rem;
+        }
+        .incidencia-form {
+            background: #f9fbfe;
+            border-radius: 28px;
+            padding: 20px;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #8a99b0;
+            margin-top: 30px;
+        }
+        .ultima-act {
+            font-size: 0.75rem;
+            color: #5b6e8c;
+            text-align: right;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>🏊 Piscina Los Pinos</h2>
+            <span id="estado-badge" class="estado abierta">🟢 ABIERTA</span>
+        </div>
+        <p style="margin-top: 6px; color: #5b6e8c;">Urbanización Los Pinos · Última medición hoy</p>
+
+        <div style="margin: 20px 0 10px 0;">
+            <div class="dato">
+                <span class="dato-label">🧪 Cloro (ppm)</span>
+                <span id="cloro-valor" class="dato-valor normal">1.2</span>
+            </div>
+            <div class="dato">
+                <span class="dato-label">⚗️ pH</span>
+                <span id="ph-valor" class="dato-valor normal">7.4</span>
+            </div>
+            <div class="dato">
+                <span class="dato-label">🌡️ Temperatura</span>
+                <span id="temp-valor" class="dato-valor">26°C</span>
+            </div>
+            <div class="dato">
+                <span class="dato-label">💧 Turbidez</span>
+                <span>Clara</span>
+            </div>
+        </div>
+        <div class="ultima-act" id="ultima-act">Actualizado hace 5 minutos</div>
+    </div>
+
+    <!-- Panel de simulación (solo para pruebas, lo puedes ocultar después) -->
+    <div class="card" style="background: #fff7e5;">
+        <details>
+            <summary style="font-weight:600;">🔧 Simular medición (prueba)</summary>
+            <div style="margin-top: 12px;">
+                <input type="number" id="sim-cloro" placeholder="Cloro (ppm)" step="0.1" value="1.2">
+                <input type="number" id="sim-ph" placeholder="pH" step="0.1" value="7.4">
+                <input type="number" id="sim-temp" placeholder="Temp °C" value="26">
+                <button class="btn" style="background:#8a99b0; margin-top:10px;" id="simular-btn">Actualizar datos ficticios</button>
+            </div>
+        </details>
+    </div>
+
+    <!-- Reporte de incidencias -->
+    <div class="card">
+        <h3>📢 Reportar problema</h3>
+        <div class="incidencia-form">
+            <div class="input-group">
+                <label>Tipo de incidencia</label>
+                <select id="tipo-incidencia">
+                    <option>Ducha fuera de servicio</option>
+                    <option>Limpieza de vaso</option>
+                    <option>Iluminación defectuosa</option>
+                    <option>Acceso / cerradura</option>
+                    <option>Otro</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Descripción (opcional)</label>
+                <textarea rows="2" id="desc-incidencia" placeholder="Ej: El grifo no cierra bien..."></textarea>
+            </div>
+            <div class="input-group">
+                <label>📸 Foto (opcional) - pega una URL</label>
+                <input type="text" id="foto-url" placeholder="https://... o déjalo vacío">
+            </div>
+            <button class="btn" id="reportar-btn">📨 Enviar al encargado</button>
+            <div id="mensaje-envio" style="margin-top:12px; font-size:0.85rem; text-align:center;"></div>
+        </div>
+    </div>
+
+    <footer>
+        Escanea el QR en la puerta de la piscina · Datos en tiempo real
+    </footer>
+</div>
+
+<script>
+    // Datos simulados (después los traerás de una API)
+    let datosPiscina = {
+        cloro: 1.2,
+        ph: 7.4,
+        temperatura: 26,
+        turbidez: "clara",
+        estado: "abierta",
+        ultimaActualizacion: new Date()
+    };
+
+    const cloroSpan = document.getElementById('cloro-valor');
+    const phSpan = document.getElementById('ph-valor');
+    const tempSpan = document.getElementById('temp-valor');
+    const estadoBadge = document.getElementById('estado-badge');
+    const ultimaSpan = document.getElementById('ultima-act');
+
+    function actualizarUI() {
+        cloroSpan.innerText = datosPiscina.cloro;
+        phSpan.innerText = datosPiscina.ph;
+        tempSpan.innerText = datosPiscina.temperatura + '°C';
+
+        if (datosPiscina.cloro < 0.5) cloroSpan.className = "dato-valor critico";
+        else if (datosPiscina.cloro < 0.8) cloroSpan.className = "dato-valor alerta";
+        else cloroSpan.className = "dato-valor normal";
+
+        if (datosPiscina.ph < 7.0 || datosPiscina.ph > 8.0) phSpan.className = "dato-valor critico";
+        else if (datosPiscina.ph < 7.2 || datosPiscina.ph > 7.6) phSpan.className = "dato-valor alerta";
+        else phSpan.className = "dato-valor normal";
+
+        if (datosPiscina.cloro < 0.5 || datosPiscina.ph < 7.0 || datosPiscina.ph > 8.0) {
+            datosPiscina.estado = "cerrada";
+            estadoBadge.innerHTML = "🔴 CERRADA (fuera de normativa)";
+            estadoBadge.className = "estado cerrada";
+        } else {
+            datosPiscina.estado = "abierta";
+            estadoBadge.innerHTML = "🟢 ABIERTA";
+            estadoBadge.className = "estado abierta";
+        }
+
+        const ahora = new Date();
+        const diffMin = Math.floor((ahora - datosPiscina.ultimaActualizacion) / 60000);
+        ultimaSpan.innerText = `Actualizado hace ${diffMin} minutos`;
+    }
+
+    document.getElementById('simular-btn')?.addEventListener('click', () => {
+        const nuevoCloro = parseFloat(document.getElementById('sim-cloro').value);
+        const nuevoPh = parseFloat(document.getElementById('sim-ph').value);
+        const nuevaTemp = parseInt(document.getElementById('sim-temp').value);
+        if (!isNaN(nuevoCloro)) datosPiscina.cloro = nuevoCloro;
+        if (!isNaN(nuevoPh)) datosPiscina.ph = nuevoPh;
+        if (!isNaN(nuevaTemp)) datosPiscina.temperatura = nuevaTemp;
+        datosPiscina.ultimaActualizacion = new Date();
+        actualizarUI();
+    });
+
+    document.getElementById('reportar-btn').addEventListener('click', () => {
+        const tipo = document.getElementById('tipo-incidencia').value;
+        const desc = document.getElementById('desc-incidencia').value;
+        const fotoUrl = document.getElementById('foto-url').value;
+        const mensajeDiv = document.getElementById('mensaje-envio');
+
+        if (!desc && tipo === "Otro") {
+            mensajeDiv.innerHTML = "⚠️ Por favor, escribe una descripción.";
+            return;
+        }
+
+        mensajeDiv.innerHTML = "📤 Enviando aviso...";
+        setTimeout(() => {
+            mensajeDiv.innerHTML = "✅ Aviso enviado al encargado. Recibirás respuesta pronto.";
+            document.getElementById('desc-incidencia').value = "";
+            document.getElementById('foto-url').value = "";
+        }, 1000);
+
+        console.log({ tipo, desc, fotoUrl, piscina: "Los Pinos", timestamp: new Date().toISOString() });
+    });
+
+    actualizarUI();
+</script>
+</body>
+</html>
