@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Panel del Técnico</title>
+    <style>
+        body { font-family: system-ui; max-width: 500px; margin: auto; padding: 20px; background: #eef2ff; }
+        .card { background: white; border-radius: 28px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        button { background: #0066cc; color: white; border: none; padding: 12px; border-radius: 60px; width: 100%; font-size: 1rem; margin-top: 12px; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 40px; box-sizing: border-box; }
+        .oculto { display: none; }
+        .medicion-item { background: #f9f9f9; margin: 8px 0; padding: 10px; border-radius: 16px; }
+        .log { background: black; color: lime; font-family: monospace; font-size: 10px; padding: 8px; border-radius: 12px; margin-top: 16px; max-height: 200px; overflow: auto; white-space: pre-wrap; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
+</head>
+<body>
+
+<!-- Panel de login -->
+<div id="loginPanel" class="card">
+    <h2>🔐 Acceso Técnico</h2>
+    <input type="email" id="email" placeholder="tecnico@example.com">
+    <input type="password" id="password" placeholder="Contraseña (123456)">
+    <button id="btnLogin">Iniciar sesión</button>
+    <div id="loginError" style="color:red; margin-top:10px;"></div>
+</div>
+
+<!-- Panel del técnico (oculto al inicio) -->
+<div id="dashboardPanel" class="card oculto">
+    <h2>📋 Panel de Control</h2>
+    <p>Bienvenido, <span id="nombreTecnico"></span></p>
+    <hr>
+    <h3>📝 Nueva medición</h3>
+    <input type="number" step="0.1" id="nuevoCloro" placeholder="Cloro (ppm)">
+    <input type="number" step="0.1" id="nuevoPh" placeholder="pH">
+    <input type="number" id="nuevaTemp" placeholder="Temperatura (°C)">
+    <button id="btnRegistrar">💾 Registrar</button>
+    <div id="mensajeExito" style="color:green; margin-top:10px;"></div>
+    <h3>📜 Últimas mediciones</h3>
+    <ul id="listaMediciones" style="list-style: none; padding: 0;"></ul>
+    <button id="btnLogout">🚪 Cerrar sesión</button>
+</div>
+
+<!-- Área de logs (como en test2) -->
+<div class="log" id="resultado">Logs:</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    // ========== MISMA CONFIGURACIÓN QUE EN test2.html ==========
+    const SUPABASE_URL = "https://zlaatodfoulhhhvoyrrr.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL"; // la que funciona en test2
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let tecnicoActual = null;
+
+    function log(msg) {
+        const logDiv = document.getElementById('resultado');
+        logDiv.innerHTML += `<br>▶ ${new Date().toLocaleTimeString()} - ${msg}`;
+        console.log(msg);
+    }
+
+    log("Script iniciado, cliente creado");
+
+    async function cargarMediciones() {
+        if (!tecnicoActual) return;
+        log(`Cargando mediciones para técnico ${tecnicoActual.id}`);
+        const { data, error } = await supabase
+            .from('mediciones')
+            .select('*')
+            .eq('tecnico_id', tecnicoActual.id)
+            .order('created_at', { ascending: false })
+            .limit(10);
+        if (error) { log("Error mediciones: " + error.message); return; }
+        log(`Recibidas ${data.length} mediciones`);
+        const lista = document.getElementById('listaMediciones');
+        lista.innerHTML = '';
+        data.forEach(m => {
+            const li = document.createElement('li');
+            li.className = 'medicion-item';
+            li.innerHTML = `🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br><small>${new Date(m.created_at).toLocaleString()}</small>`;
+            lista.appendChild(li);
+        });
+    }
+
+    // Evento login (exactamente igual que en test2)
+    document.getElementById('btnLogin').onclick = async () => {
+        log("Botón Login clicado");
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        log(`Buscando técnico: ${email} / ${password}`);
+        
+        const { data, error } = await supabase
+            .from('tecnicos')
+            .select('*')
+            .eq('email', email)
+            .eq('password', password)
+            .maybeSingle();
+        
+        if (error) {
+            log("Error en consulta: " + error.message);
+            document.getElementById('loginError').innerText = "Error de conexión: " + error.message;
+            return;
+        }
+        if (!data) {
+            log("Credenciales incorrectas");
+            document.getElementById('loginError').innerText = "Email o contraseña incorrectos";
+            return;
+        }
+        log("Login exitoso: " + JSON.stringify(data));
+        tecnicoActual = data;
+        document.getElementById('nombreTecnico').innerText = tecnicoActual.nombre;
+        document.getElementById('loginPanel').classList.add('oculto');
+        document.getElementById('dashboardPanel').classList.remove('oculto');
+        cargarMediciones();
+    };
+
+    // Registrar medición
+    document.getElementById('btnRegistrar').onclick = async () => {
+        if (!tecnicoActual) return;
+        const cloro = parseFloat(document.getElementById('nuevoCloro').value);
+        const ph = parseFloat(document.getElementById('nuevoPh').value);
+        const temperatura = parseInt(document.getElementById('nuevaTemp').value);
+        if (isNaN(cloro) || isNaN(ph) || isNaN(temperatura)) {
+            document.getElementById('mensajeExito').innerText = '⚠️ Rellena todos los campos';
+            return;
+        }
+        log(`Insertar medición: cloro=${cloro}, ph=${ph}, temp=${temperatura}`);
+        const { error } = await supabase.from('mediciones').insert({
+            tecnico_id: tecnicoActual.id,
+            cloro, ph, temperatura
+        });
+        if (error) {
+            log("Error insert: " + error.message);
+            document.getElementById('mensajeExito').innerText = '❌ Error al guardar';
+        } else {
+            log("Medición guardada");
+            document.getElementById('mensajeExito').innerText = '✅ Guardada';
+            document.getElementById('nuevoCloro').value = '';
+            document.getElementById('nuevoPh').value = '';
+            document.getElementById('nuevaTemp').value = '';
+            cargarMediciones();
+        }
+    };
+
+    document.getElementById('btnLogout').onclick = () => {
+        tecnicoActual = null;
+        document.getElementById('loginPanel').classList.remove('oculto');
+        document.getElementById('dashboardPanel').classList.add('oculto');
+        document.getElementById('loginError').innerText = '';
+        log("Sesión cerrada");
+    };
+</script>
+</body>
+</html>
