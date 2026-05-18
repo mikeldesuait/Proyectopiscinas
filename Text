@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = "https://zlaatodfoulhhhvoyrrr.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL"; // Cópiala exacta de Supabase
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function test() {
+            const { data, error } = await supabase.from('tecnicos').select('*');
+            if (error) {
+                document.body.innerHTML = `<h3>❌ Error: ${error.message}</h3><pre>${JSON.stringify(error, null, 2)}</pre>`;
+            } else {
+                document.body.innerHTML = `<h3>✅ Conexión OK. Técnicos:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+        }
+        test();
+    </script>
+</head>
+<body>Probando conexión...</body>
+</html>
