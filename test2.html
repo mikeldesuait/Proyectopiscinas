@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Supabase definitivo</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Consola flotante para ver errores en iPad -->
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
+</head>
+<body>
+    <h2>Probando conexión a Supabase...</h2>
+    <pre id="resultado"></pre>
+
+    <script>
+        (async function() {
+            const SUPABASE_URL = "https://zlaatodfoulhhhvoyrrr.supabase.co";
+            // ⚠️ REEMPLAZA ESTA LÍNEA CON LA CLAVE DEFAULT DE TU CAPTURA (empieza por sb_publishable_0w6HY...)
+            const SUPABASE_ANON_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL";  // <-- Cópiala exacta
+
+            const output = document.getElementById('resultado');
+            output.textContent = "Creando cliente...\n";
+
+            try {
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                output.textContent += "Cliente creado. Consultando tabla 'tecnicos'...\n";
+
+                const { data, error } = await supabase.from('tecnicos').select('*');
+
+                if (error) {
+                    output.textContent += "❌ ERROR de Supabase:\n" + JSON.stringify(error, null, 2);
+                    console.error(error);
+                } else {
+                    output.textContent += "✅ CONEXIÓN EXITOSA. Datos:\n" + JSON.stringify(data, null, 2);
+                }
+            } catch (err) {
+                output.textContent += "⚠️ EXCEPCIÓN CAPTURADA:\n" + err.message + "\n" + JSON.stringify(err, null, 2);
+                console.error(err);
+            }
+        })();
+    </script>
+</body>
+</html>
