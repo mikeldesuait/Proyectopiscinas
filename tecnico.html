@@ -2,61 +2,72 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Panel Técnico</title>
+    <title>Panel Técnico - Depuración</title>
     <style>
         body { font-family: system-ui; max-width: 400px; margin: 50px auto; padding: 20px; }
         input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 40px; border: 1px solid #ccc; box-sizing: border-box; }
         button { background: #0066cc; color: white; font-weight: bold; border: none; cursor: pointer; }
-        .mensaje { margin-top: 20px; padding: 12px; border-radius: 20px; text-align: center; }
-        .ok { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
+        #log { background: #f0f0f0; padding: 12px; border-radius: 20px; margin-top: 20px; font-family: monospace; font-size: 14px; white-space: pre-wrap; }
+        .ok { color: green; }
+        .error { color: red; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-<h2>🔐 Acceso Técnico</h2>
-<input type="email" id="email" placeholder="tecnico@example.com">
-<input type="password" id="password" placeholder="Contraseña">
+<h2>🔐 Acceso Técnico (modo depuración)</h2>
+<input type="email" id="email" placeholder="tecnico@example.com" value="tecnico@example.com">
+<input type="password" id="password" placeholder="123456" value="123456">
 <button id="btnLogin">Iniciar sesión</button>
-<div id="mensaje"></div>
+<div id="log">Esperando acción...</div>
 
 <script>
-    // MISMOS DATOS QUE EN test2.html (los que funcionaron)
+    // --- CONFIGURACIÓN ---
     const SUPABASE_URL = "https://zlaatodfoulhhhvoyrrr.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL";  // O mayúscula
+    const SUPABASE_ANON_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL"; // O mayúscula
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    document.getElementById('btnLogin').onclick = async () => {
+    const logDiv = document.getElementById('log');
+
+    function escribirLog(mensaje, esError = false) {
+        const p = document.createElement('div');
+        p.textContent = new Date().toLocaleTimeString() + " - " + mensaje;
+        p.style.color = esError ? 'red' : 'black';
+        logDiv.appendChild(p);
+        logDiv.scrollTop = logDiv.scrollHeight;
+        console.log(mensaje);
+    }
+
+    escribirLog("Script cargado. Cliente Supabase creado.");
+
+    document.getElementById('btnLogin').onclick = async function() {
+        escribirLog("Botón pulsado. Iniciando login...");
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const mensajeDiv = document.getElementById('mensaje');
-        
-        // Misma consulta que en test2.html (sin .single())
-        const { data, error } = await supabase
-            .from('tecnicos')
-            .select('*')
-            .eq('email', email)
-            .eq('password', password);
-        
-        if (error) {
-            mensajeDiv.innerHTML = `❌ Error de conexión: ${error.message}`;
-            mensajeDiv.className = "mensaje error";
-            return;
-        }
-        
-        if (data && data.length > 0) {
-            // Usuario correcto
-            mensajeDiv.innerHTML = `✅ Usuario correcto. Bienvenido ${data[0].nombre}`;
-            mensajeDiv.className = "mensaje ok";
-            // Aquí después puedes cargar el panel de mediciones
-        } else {
-            mensajeDiv.innerHTML = "❌ Usuario o contraseña incorrectos";
-            mensajeDiv.className = "mensaje error";
+        escribirLog(`Email: ${email}, Password: ${password ? '****' : '(vacío)'}`);
+
+        try {
+            escribirLog("Consultando Supabase...");
+            const { data, error } = await supabase
+                .from('tecnicos')
+                .select('*')
+                .eq('email', email)
+                .eq('password', password);
+
+            if (error) {
+                escribirLog(`Error de Supabase: ${error.message}`, true);
+                return;
+            }
+
+            if (data && data.length > 0) {
+                escribirLog(`✅ Usuario correcto: ${data[0].nombre} (ID ${data[0].id})`, false);
+            } else {
+                escribirLog("❌ Usuario o contraseña incorrectos", true);
+            }
+        } catch (err) {
+            escribirLog(`Excepción capturada: ${err.message}`, true);
         }
     };
 </script>
-
 </body>
 </html>
