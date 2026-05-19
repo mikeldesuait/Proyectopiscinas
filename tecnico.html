@@ -39,13 +39,10 @@
 </div>
 
 <script>
-    // === CONFIGURACIÓN ===
     const SUPABASE_URL = "https://zlaatodfoulhhhvoyrrr.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL"; // O mayúscula
-    
+    const SUPABASE_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL";
     let tecnicoActual = null;
-    
-    // Función para llamar a la API REST de Supabase
+
     async function callSupabase(endpoint, options = {}) {
         const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
         const headers = {
@@ -53,20 +50,30 @@
             'Authorization': `Bearer ${SUPABASE_KEY}`,
             'Content-Type': 'application/json'
         };
+        // Para POST, pedimos que devuelva la representación (opcional, pero evita respuestas vacías)
+        if (options.method === 'POST') {
+            headers['Prefer'] = 'return=representation';
+        }
         const response = await fetch(url, { ...options, headers });
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+        if (!response.ok) {
+            let errText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errText}`);
+        }
+        // Si no hay contenido (204 o content-length cero) o es POST con respuesta vacía
+        const contentType = response.headers.get('content-type');
+        if (response.status === 204 || response.headers.get('content-length') === '0' || !contentType || !contentType.includes('application/json')) {
+            return null;
+        }
         return response.json();
     }
-    
-    // Login
+
     document.getElementById('btnLogin').onclick = async () => {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const mensajeDiv = document.getElementById('loginMensaje');
-        
         try {
             const data = await callSupabase(`tecnicos?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}`);
-            if (data.length === 0) {
+            if (!data || data.length === 0) {
                 mensajeDiv.innerHTML = "❌ Usuario o contraseña incorrectos";
                 mensajeDiv.className = "mensaje incorrecto";
                 return;
@@ -82,11 +89,12 @@
             mensajeDiv.className = "mensaje incorrecto";
         }
     };
-    
+
     async function cargarMediciones() {
         if (!tecnicoActual) return;
         try {
             const data = await callSupabase(`mediciones?tecnico_id=eq.${tecnicoActual.id}&order=created_at.desc&limit=10`);
+            if (!data) return;
             const lista = document.getElementById('listaMediciones');
             lista.innerHTML = '';
             data.forEach(m => {
@@ -102,7 +110,7 @@
             console.error(err);
         }
     }
-    
+
     document.getElementById('btnRegistrar').onclick = async () => {
         if (!tecnicoActual) return;
         const cloro = parseFloat(document.getElementById('nuevoCloro').value);
@@ -127,9 +135,10 @@
             cargarMediciones();
         } catch (err) {
             document.getElementById('mensajeExito').innerText = '❌ Error: ' + err.message;
+            console.error(err);
         }
     };
-    
+
     document.getElementById('btnLogout').onclick = () => {
         tecnicoActual = null;
         document.getElementById('loginPanel').classList.remove('oculto');
