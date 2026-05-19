@@ -2,427 +2,101 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Panel Técnico · Aqua Garden</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
-            min-height: 100vh;
-            padding: 32px 20px;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .oculto {
-            display: none;
-        }
-
-        /* Tarjetas principales */
-        .card {
-            background: #ffffff;
-            border-radius: 28px;
-            padding: 0;
-            margin-bottom: 28px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.05);
-            border: 1px solid rgba(0,119,182,0.08);
-            overflow: hidden;
-        }
-        .card-header {
-            font-size: 1.5rem;
-            font-weight: 600;
-            padding: 24px 32px 16px 32px;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            color: #1a3e50;
-            border-left: 4px solid #0077b6;
-            background: white;
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.2s;
-        }
-        .card-header:hover {
-            background: #f8fafc;
-        }
-        .card-content {
-            padding: 0 32px 28px 32px;
-            transition: all 0.2s;
-        }
-        /* Área de jornada (siempre visible) */
-        .card-simple {
-            background: white;
-            border-radius: 28px;
-            padding: 24px 32px;
-            margin-bottom: 28px;
-            border: 1px solid rgba(0,119,182,0.08);
-        }
-        .card-simple .card-header {
-            padding: 0 0 16px 0;
-            cursor: default;
-        }
-        .card-simple .card-header:hover {
-            background: none;
-        }
-
-        /* Estado jornada */
-        .estado-jornada {
-            background: #f0f4f9;
-            padding: 14px 18px;
-            border-radius: 60px;
-            text-align: center;
-            font-weight: 500;
-            margin-bottom: 20px;
-            font-size: 0.95rem;
-            border: 1px solid #e2e8f0;
-        }
-        .estado-activa {
-            background: #e0f2e9;
-            color: #1f6e43;
-            border-color: #b8e0cc;
-        }
-        .estado-inactiva {
-            background: #fee9e6;
-            color: #b13e2a;
-            border-color: #fdd0c8;
-        }
-
-        /* Formularios */
-        input, select, textarea, button {
-            width: 100%;
-            padding: 14px 18px;
-            margin: 10px 0 6px 0;
-            border-radius: 60px;
-            border: 1px solid #cad2db;
-            font-size: 0.95rem;
-            font-family: inherit;
-            background: #fff;
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #0077b6;
-            box-shadow: 0 0 0 3px rgba(0,119,182,0.1);
-        }
-        button {
-            background: #0077b6;
-            color: white;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            margin-top: 12px;
-        }
-        button:hover {
-            background: #005f8c;
-            transform: translateY(-1px);
-        }
-        .btn-jornada {
-            background: #2c7a4d;
-        }
-        .btn-jornada:hover {
-            background: #1f5e3a;
-        }
-        .btn-fin {
-            background: #c2410c;
-        }
-        .btn-fin:hover {
-            background: #9a330a;
-        }
-
-        /* Productos */
-        .producto-item {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-            background: #f8fafc;
-            padding: 12px 16px;
-            border-radius: 60px;
-            margin-bottom: 12px;
-        }
-        .producto-item select, .producto-item input {
-            width: auto;
-            flex: 1;
-            margin: 0;
-            min-width: 110px;
-        }
-        .quitar-producto {
-            background: #c2410c;
-            width: auto;
-            padding: 8px 20px;
-            margin: 0;
-        }
-
-        /* Últimas mediciones y jornadas (tarjetas pequeñas) */
-        .mediciones-lista, .jornadas-lista {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .medicion-card, .jornada-card {
-            background: #f8fafc;
-            border-radius: 24px;
-            padding: 18px 20px;
-            border-left: 6px solid #0077b6;
-            transition: 0.1s ease;
-        }
-        .medicion-card strong, .jornada-card strong {
-            font-size: 1.1rem;
-            color: #1e4663;
-        }
-        .fecha-buscar, .buscar-container {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .fecha-buscar input, .buscar-container input {
-            flex: 2;
-            margin: 0;
-        }
-        .fecha-buscar button, .buscar-container button {
-            width: auto;
-            padding: 12px 24px;
-            margin: 0;
-        }
-
-        /* Listas históricos */
-        .lista-historico {
-            list-style: none;
-            padding: 0;
-        }
-        .lista-historico li {
-            background: #f8fafc;
-            border-radius: 20px;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-            border-left: 4px solid #0077b6;
-        }
-        .logout-btn {
-            background: #475569;
-            margin-top: 20px;
-        }
-        .logout-btn:hover {
-            background: #334155;
-        }
-
-        @media (max-width: 780px) {
-            .card-header, .card-content {
-                padding: 20px;
-            }
-            .card-simple {
-                padding: 20px;
-            }
-            .producto-item {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .producto-item select, .producto-item input {
-                width: 100%;
-            }
-        }
+        body { font-family: system-ui; max-width: 600px; margin: auto; padding: 20px; background: #eef2ff; }
+        .card { background: white; border-radius: 28px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        input, button, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border-radius: 40px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background: #0066cc; color: white; font-weight: bold; border: none; cursor: pointer; }
+        .oculto { display: none; }
+        .estado-jornada { background: #f0f0f0; padding: 12px; border-radius: 24px; text-align: center; margin-bottom: 16px; }
+        .activa { background: #d4edda; color: #155724; }
+        .inactiva { background: #f8d7da; color: #721c24; }
+        .producto-item { display: flex; gap: 8px; align-items: center; background: #f9f9f9; padding: 8px; border-radius: 40px; margin-bottom: 8px; }
+        .quitar-producto { background: #c2410c; width: auto; padding: 8px 12px; margin: 0; }
+        .medicion-card { background: #f8fafc; padding: 12px; border-radius: 16px; margin-bottom: 8px; border-left: 4px solid #0077b6; }
     </style>
 </head>
 <body>
-<div class="container">
-    <!-- Login -->
-    <div id="loginPanel" class="card-simple">
-        <div class="card-header" style="cursor:default; padding:0 0 16px 0;">🔐 Acceso Técnico Aqua Garden</div>
-        <input type="text" id="nick" placeholder="Nick (ej: tecnico)" value="tecnico">
-        <input type="password" id="password" placeholder="Contraseña" value="123456">
-        <button id="btnLogin">Iniciar sesión</button>
-        <div id="errorMsg" style="color:#c2410c; margin-top:16px; font-weight:500;"></div>
+<div id="loginPanel" class="card">
+    <h2>🔐 Acceso Técnico</h2>
+    <input type="text" id="nick" placeholder="Nick (ej: tecnico)" value="tecnico">
+    <input type="password" id="password" placeholder="Contraseña" value="123456">
+    <button id="btnLogin">Iniciar sesión</button>
+    <div id="errorMsg" style="color:red;"></div>
+</div>
+
+<div id="dashboardPanel" class="oculto">
+    <div class="card">
+        <h3>🕒 Jornada</h3>
+        <div id="estadoJornada" class="estado-jornada inactiva">⚠️ Jornada no iniciada</div>
+        <button id="btnIniciarJornada">🟢 Iniciar jornada</button>
+        <button id="btnFinalizarJornada" class="oculto">🔴 Finalizar jornada</button>
     </div>
-
-    <!-- Dashboard principal (oculto hasta login) -->
-    <div id="dashboardPanel" class="oculto">
-        <!-- Tarjeta Jornada (siempre visible) -->
-        <div class="card-simple">
-            <div class="card-header" style="cursor:default;">🕒 Registro de jornada</div>
-            <div id="estadoJornada" class="estado-jornada estado-inactiva">⚠️ Jornada no iniciada</div>
-            <div style="display: flex; gap: 16px;">
-                <button id="btnIniciarJornada" class="btn-jornada" style="flex:1;">🟢 Iniciar jornada</button>
-                <button id="btnFinalizarJornada" class="btn-fin oculto" style="flex:1;">🔴 Finalizar jornada</button>
-            </div>
-        </div>
-
-        <!-- Registrar mantenimiento (solo si jornada activa) -->
-        <div id="medicionesContainer" class="card-simple oculto">
-            <div class="card-header" style="cursor:default;">🧪 Registrar mantenimiento</div>
-            <label>🏊 Piscina</label>
-            <div class="buscar-container">
-                <input type="text" id="buscarPiscina" placeholder="Escribe el nombre...">
-                <button id="btnBuscarPiscina">🔍 Buscar</button>
-            </div>
-            <select id="piscinaSelect"></select>
-            <input type="number" step="0.1" id="cloro" placeholder="Cloro (ppm)">
-            <input type="number" step="0.1" id="ph" placeholder="pH">
-            <input type="number" id="temp" placeholder="Temperatura (°C)">
-            <textarea id="obs" rows="2" placeholder="Observaciones (opcional)"></textarea>
-
-            <label style="font-weight: 600; margin-top: 8px;">🧴 Productos químicos usados</label>
-            <div id="listaProductos"></div>
-            <button type="button" id="agregarProducto" style="background:#2c7a4d;">➕ Añadir producto</button>
-            <button id="btnGuardar" style="margin-top: 20px;">💾 Guardar medición</button>
-            <div id="mensaje" style="margin-top: 16px;"></div>
-
-            <!-- Botón de incidencia (inoperativo, solo aviso futuro) -->
-            <hr style="margin: 24px 0 16px 0;">
-            <label style="font-weight: 600;">🚨 ¿Algo fuera de lo común?</label>
-            <textarea id="incidenciaTexto" rows="2" placeholder="Describe el problema (ej: cloro muy bajo, bombas sin funcionar, etc.)"></textarea>
-            <button id="btnReportarIncidencia" style="background: #e67e22;">📱 Reportar incidencia al gerente</button>
-            <div id="incidenciaMsg" style="margin-top: 8px; font-size:0.85rem; color:#e67e22;"></div>
-        </div>
-
-        <!-- Sección Últimas mediciones (colapsable) -->
-        <div id="ultimasMedicionesCard" class="card">
-            <div class="card-header" id="ultimasMedicionesHeader">
-                📜 Últimas 4 mediciones <span style="margin-left: auto;">▼</span>
-            </div>
-            <div id="ultimasMedicionesContent" class="card-content oculto">
-                <div id="listaUltimasMediciones" class="mediciones-lista"></div>
-            </div>
-        </div>
-
-        <!-- Sección Histórico de mediciones (colapsable) -->
-        <div id="historicoMedicionesCard" class="card">
-            <div class="card-header" id="historicoMedicionesHeader">
-                📅 Histórico de mediciones <span style="margin-left: auto;">▼</span>
-            </div>
-            <div id="historicoMedicionesContent" class="card-content oculto">
-                <div class="fecha-buscar">
-                    <input type="date" id="fechaConsulta">
-                    <button id="btnBuscarFecha">Buscar mediciones</button>
-                </div>
-                <ul id="listaPorFecha" class="lista-historico"></ul>
-            </div>
-        </div>
-
-        <!-- Sección Histórico de jornadas (colapsable) -->
-        <div id="historicoJornadasCard" class="card">
-            <div class="card-header" id="historicoJornadasHeader">
-                📋 Histórico de jornadas <span style="margin-left: auto;">▼</span>
-            </div>
-            <div id="historicoJornadasContent" class="card-content oculto">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px;">
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 12px;">📆 Esta semana (lunes a domingo)</div>
-                        <div id="listaJornadasSemana" class="jornadas-lista"></div>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 12px;">🔍 Buscar por fecha</div>
-                        <div class="fecha-buscar" style="margin-bottom: 16px;">
-                            <input type="date" id="fechaConsultaJornada">
-                            <button id="btnBuscarJornadaPorFecha">Buscar jornadas</button>
-                        </div>
-                        <div id="listaJornadasPorFecha" class="jornadas-lista"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <button id="btnLogout" class="logout-btn">🚪 Cerrar sesión</button>
+    <div id="medicionesContainer" class="card oculto">
+        <h3>📝 Registrar medición</h3>
+        <select id="piscinaSelect"></select>
+        <input type="number" step="0.1" id="cloro" placeholder="Cloro (ppm)">
+        <input type="number" step="0.1" id="ph" placeholder="pH">
+        <input type="number" id="temp" placeholder="Temperatura (°C)">
+        <textarea id="obs" rows="2" placeholder="Observaciones"></textarea>
+        <div id="productosContainer"></div>
+        <button id="agregarProducto" style="background:#2c7a4d;">➕ Añadir producto</button>
+        <button id="btnGuardar">💾 Guardar medición</button>
+        <div id="mensaje"></div>
     </div>
+    <div class="card">
+        <h3>📜 Últimas 4 mediciones</h3>
+        <div id="listaMediciones"></div>
+    </div>
+    <button id="btnLogout" style="background:#c2410c; margin-top:20px;">🚪 Cerrar sesión</button>
 </div>
 
 <script>
-    const sb = window.supabase.createClient(
-        "https://zlaatodfoulhhhvoyrrr.supabase.co",
-        "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL"
-    );
+    const SUPABASE_URL = "https://vvdyofbapqttcvczokiw.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_MwuazhcxSJGc04eS2vttZA_SEcGjhVT";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const DOMINIO = "@mipiscina.com";
 
     let currentUserId = null;
     let jornadaActiva = null;
     let productosTemp = [];
 
-    const productosDisponibles = [
-        "Cloro granulado", "Cloro pastillas", "pH+ (aumentador)", "pH- (disminuidor)",
-        "Floculante", "Alguicida", "Aclarante", "Anticalcáreo", "Oxígeno activo", "Otro"
-    ];
-
-    // ========== LOGIN ==========
     async function hacerLogin() {
         const nick = document.getElementById('nick').value.trim();
         const password = document.getElementById('password').value;
-        if (!nick || !password) {
-            document.getElementById('errorMsg').innerText = "Introduce nick y contraseña";
-            return false;
-        }
+        if (!nick || !password) { document.getElementById('errorMsg').innerText = "Introduce nick y contraseña"; return false; }
         const email = nick + DOMINIO;
         const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
-        if (authError) {
-            document.getElementById('errorMsg').innerText = "Error: " + authError.message;
-            return false;
-        }
-        const { data: perfil, error: perfilError } = await sb
-            .from('perfiles')
-            .select('*')
-            .eq('id', authData.user.id)
-            .single();
-        if (perfilError || !perfil) {
-            await sb.auth.signOut();
-            document.getElementById('errorMsg').innerText = "Usuario no tiene perfil";
-            return false;
-        }
+        if (authError) { document.getElementById('errorMsg').innerText = authError.message; return false; }
+        const { data: perfil, error: perfilError } = await sb.from('perfiles').select('*').eq('id', authData.user.id).single();
+        if (perfilError || !perfil) { await sb.auth.signOut(); document.getElementById('errorMsg').innerText = "Usuario sin perfil"; return false; }
+        if (perfil.rol !== 'tecnico') { await sb.auth.signOut(); document.getElementById('errorMsg').innerText = "Acceso solo para técnicos"; return false; }
         currentUserId = authData.user.id;
         return true;
     }
 
     document.getElementById('btnLogin').onclick = async () => {
-        const ok = await hacerLogin();
-        if (ok) {
+        if (await hacerLogin()) {
             document.getElementById('loginPanel').classList.add('oculto');
             document.getElementById('dashboardPanel').classList.remove('oculto');
-            await cargarPiscinas();
-            await cargarJornadaActiva();
-            await cargarUltimasMediciones();
-            await cargarJornadasSemanaActual();
+            cargarPiscinas();
+            cargarJornadaActiva();
+            cargarUltimasMediciones();
             actualizarUIJornada();
         }
     };
 
-    // ========== PISCINAS ==========
     async function cargarPiscinas() {
-        const { data, error } = await sb.from('piscinas').select('*').order('nombre');
-        if (error) return console.error(error);
+        const { data } = await sb.from('piscinas').select('*').order('nombre');
         const select = document.getElementById('piscinaSelect');
         select.innerHTML = '<option value="">Selecciona piscina</option>';
-        data.forEach(p => {
-            const option = document.createElement('option');
-            option.value = p.id;
-            option.textContent = `${p.nombre} (${p.ubicacion || ''})`;
-            select.appendChild(option);
-        });
+        data.forEach(p => { const opt = document.createElement('option'); opt.value = p.id; opt.textContent = p.nombre; select.appendChild(opt); });
     }
 
-    document.getElementById('btnBuscarPiscina').onclick = () => {
-        const texto = document.getElementById('buscarPiscina').value.toLowerCase();
-        const select = document.getElementById('piscinaSelect');
-        for (let i = 0; i < select.options.length; i++) {
-            if (select.options[i].text.toLowerCase().includes(texto)) {
-                select.selectedIndex = i;
-                break;
-            }
-        }
-    };
-
-    // ========== JORNADA ==========
     async function cargarJornadaActiva() {
-        const { data, error } = await sb
-            .from('jornadas')
-            .select('*')
-            .eq('tecnico_id', currentUserId)
-            .is('fin', null)
-            .maybeSingle();
-        if (error) return console.error(error);
+        const { data } = await sb.from('jornadas').select('*').eq('tecnico_id', currentUserId).is('fin', null).maybeSingle();
         jornadaActiva = data || null;
         actualizarUIJornada();
     }
@@ -433,15 +107,14 @@
         const btnFinalizar = document.getElementById('btnFinalizarJornada');
         const medicionesContainer = document.getElementById('medicionesContainer');
         if (jornadaActiva) {
-            const inicioStr = new Date(jornadaActiva.inicio).toLocaleString();
-            estadoDiv.innerHTML = `✅ Jornada activa desde ${inicioStr}`;
-            estadoDiv.className = "estado-jornada estado-activa";
+            estadoDiv.innerHTML = `✅ Jornada activa desde ${new Date(jornadaActiva.inicio).toLocaleString()}`;
+            estadoDiv.className = "estado-jornada activa";
             btnIniciar.classList.add('oculto');
             btnFinalizar.classList.remove('oculto');
             medicionesContainer.classList.remove('oculto');
         } else {
             estadoDiv.innerHTML = "⚠️ Jornada no iniciada";
-            estadoDiv.className = "estado-jornada estado-inactiva";
+            estadoDiv.className = "estado-jornada inactiva";
             btnIniciar.classList.remove('oculto');
             btnFinalizar.classList.add('oculto');
             medicionesContainer.classList.add('oculto');
@@ -450,49 +123,32 @@
 
     document.getElementById('btnIniciarJornada').onclick = async () => {
         if (jornadaActiva) return;
-        const { data, error } = await sb
-            .from('jornadas')
-            .insert({ tecnico_id: currentUserId, inicio: new Date().toISOString() })
-            .select();
-        if (error) {
-            document.getElementById('mensaje').innerText = "❌ Error: " + error.message;
-        } else if (data && data[0]) {
-            jornadaActiva = data[0];
-            actualizarUIJornada();
-            document.getElementById('mensaje').innerText = "✅ Jornada iniciada";
-            await cargarJornadasSemanaActual();
-        }
+        const { data, error } = await sb.from('jornadas').insert({ tecnico_id: currentUserId, inicio: new Date().toISOString() }).select();
+        if (error) { document.getElementById('mensaje').innerText = "Error: " + error.message; return; }
+        jornadaActiva = data[0];
+        actualizarUIJornada();
+        document.getElementById('mensaje').innerText = "✅ Jornada iniciada";
     };
 
     document.getElementById('btnFinalizarJornada').onclick = async () => {
         if (!jornadaActiva) return;
-        const { error } = await sb
-            .from('jornadas')
-            .update({ fin: new Date().toISOString() })
-            .eq('id', jornadaActiva.id);
-        if (error) {
-            document.getElementById('mensaje').innerText = "❌ Error: " + error.message;
-        } else {
-            jornadaActiva = null;
-            actualizarUIJornada();
-            document.getElementById('mensaje').innerText = "✅ Jornada finalizada";
-            await cargarJornadasSemanaActual();
-        }
+        const { error } = await sb.from('jornadas').update({ fin: new Date().toISOString() }).eq('id', jornadaActiva.id);
+        if (error) { document.getElementById('mensaje').innerText = "Error: " + error.message; return; }
+        jornadaActiva = null;
+        actualizarUIJornada();
+        document.getElementById('mensaje').innerText = "✅ Jornada finalizada";
     };
 
-    // ========== PRODUCTOS ==========
     function renderizarProductos() {
-        const contenedor = document.getElementById('listaProductos');
+        const contenedor = document.getElementById('productosContainer');
         contenedor.innerHTML = '';
         productosTemp.forEach((prod, idx) => {
             const div = document.createElement('div');
             div.className = 'producto-item';
             div.innerHTML = `
-                <select data-idx="${idx}" class="prod-nombre">
-                    ${productosDisponibles.map(p => `<option value="${p}" ${prod.nombre===p?'selected':''}>${p}</option>`).join('')}
-                </select>
-                <input type="number" step="0.01" data-idx="${idx}" class="prod-cantidad" placeholder="Cantidad" value="${prod.cantidad || ''}">
-                <select data-idx="${idx}" class="prod-unidad">
+                <input type="text" class="prod-nombre" placeholder="Producto" value="${prod.nombre}">
+                <input type="number" step="0.01" class="prod-cantidad" placeholder="Cantidad" value="${prod.cantidad}">
+                <select class="prod-unidad">
                     <option value="gramos" ${prod.unidad==='gramos'?'selected':''}>gramos</option>
                     <option value="pastillas" ${prod.unidad==='pastillas'?'selected':''}>pastillas</option>
                     <option value="litros" ${prod.unidad==='litros'?'selected':''}>litros</option>
@@ -502,284 +158,43 @@
             `;
             contenedor.appendChild(div);
         });
-        document.querySelectorAll('.prod-nombre').forEach(sel => {
-            sel.addEventListener('change', (e) => productosTemp[e.target.dataset.idx].nombre = e.target.value);
-        });
-        document.querySelectorAll('.prod-cantidad').forEach(inp => {
-            inp.addEventListener('input', (e) => productosTemp[e.target.dataset.idx].cantidad = parseFloat(e.target.value) || 0);
-        });
-        document.querySelectorAll('.prod-unidad').forEach(sel => {
-            sel.addEventListener('change', (e) => productosTemp[e.target.dataset.idx].unidad = e.target.value);
-        });
-        document.querySelectorAll('.quitar-producto').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                productosTemp.splice(parseInt(e.target.dataset.idx), 1);
-                renderizarProductos();
-            });
-        });
+        document.querySelectorAll('.prod-nombre').forEach((inp, i) => inp.addEventListener('change', (e) => productosTemp[i].nombre = e.target.value));
+        document.querySelectorAll('.prod-cantidad').forEach((inp, i) => inp.addEventListener('input', (e) => productosTemp[i].cantidad = parseFloat(e.target.value) || 0));
+        document.querySelectorAll('.prod-unidad').forEach((sel, i) => sel.addEventListener('change', (e) => productosTemp[i].unidad = e.target.value));
+        document.querySelectorAll('.quitar-producto').forEach(btn => btn.addEventListener('click', (e) => { productosTemp.splice(parseInt(e.target.dataset.idx), 1); renderizarProductos(); }));
     }
 
-    document.getElementById('agregarProducto').onclick = () => {
-        productosTemp.push({ nombre: "Cloro granulado", cantidad: 0, unidad: "gramos" });
-        renderizarProductos();
-    };
-
-    // ========== GUARDAR MEDICIÓN ==========
+    document.getElementById('agregarProducto').onclick = () => { productosTemp.push({ nombre: "Cloro", cantidad: 0, unidad: "gramos" }); renderizarProductos(); };
     document.getElementById('btnGuardar').onclick = async () => {
-        if (!jornadaActiva) {
-            document.getElementById('mensaje').innerText = "⚠️ Debes iniciar la jornada primero.";
-            return;
-        }
+        if (!jornadaActiva) { document.getElementById('mensaje').innerText = "Inicia jornada primero"; return; }
         const piscinaId = document.getElementById('piscinaSelect').value;
-        if (!piscinaId) {
-            document.getElementById('mensaje').innerText = "⚠️ Selecciona una piscina";
-            return;
-        }
         const cloro = parseFloat(document.getElementById('cloro').value);
         const ph = parseFloat(document.getElementById('ph').value);
         const temperatura = parseInt(document.getElementById('temp').value);
-        const observaciones = document.getElementById('obs').value.trim() || null;
-        if (isNaN(cloro) || isNaN(ph) || isNaN(temperatura)) {
-            document.getElementById('mensaje').innerText = "⚠️ Rellena cloro, pH y temperatura";
-            return;
-        }
-        const { data: medicion, error: errMed } = await sb
-            .from('mediciones')
-            .insert({
-                tecnico_id: currentUserId,
-                piscina_id: piscinaId,
-                jornada_id: jornadaActiva.id,
-                cloro, ph, temperatura, observaciones
-            })
-            .select();
-        if (errMed) {
-            document.getElementById('mensaje').innerText = "❌ Error: " + errMed.message;
-            return;
-        }
+        if (!piscinaId || isNaN(cloro) || isNaN(ph) || isNaN(temperatura)) { document.getElementById('mensaje').innerText = "Completa todos los campos"; return; }
+        const { data: medicion, error: errMed } = await sb.from('mediciones').insert({ tecnico_id: currentUserId, piscina_id: piscinaId, jornada_id: jornadaActiva.id, cloro, ph, temperatura, observaciones: document.getElementById('obs').value }).select();
+        if (errMed) { document.getElementById('mensaje').innerText = errMed.message; return; }
         const medicionId = medicion[0].id;
-        for (const prod of productosTemp) {
-            if (prod.cantidad && prod.cantidad > 0) {
-                await sb.from('productos_utilizados').insert({
-                    medicion_id: medicionId,
-                    producto_nombre: prod.nombre,
-                    cantidad: prod.cantidad,
-                    unidad: prod.unidad
-                });
-            }
-        }
-        document.getElementById('mensaje').innerText = "✅ Medición y productos guardados";
-        document.getElementById('cloro').value = '';
-        document.getElementById('ph').value = '';
-        document.getElementById('temp').value = '';
-        document.getElementById('obs').value = '';
-        productosTemp = [];
-        renderizarProductos();
-        cargarUltimasMediciones();
+        for (const prod of productosTemp) { if (prod.cantidad) await sb.from('productos_utilizados').insert({ medicion_id: medicionId, producto_nombre: prod.nombre, cantidad: prod.cantidad, unidad: prod.unidad }); }
+        document.getElementById('mensaje').innerText = "✅ Guardado";
+        document.getElementById('cloro').value = ''; document.getElementById('ph').value = ''; document.getElementById('temp').value = ''; document.getElementById('obs').value = '';
+        productosTemp = []; renderizarProductos(); cargarUltimasMediciones();
     };
 
-    // ========== ÚLTIMAS 4 MEDICIONES ==========
     async function cargarUltimasMediciones() {
-        const { data, error } = await sb
-            .from('mediciones')
-            .select('*, piscinas(nombre)')
-            .eq('tecnico_id', currentUserId)
-            .order('created_at', { ascending: false })
-            .limit(4);
-        if (error) return console.error(error);
-        const contenedor = document.getElementById('listaUltimasMediciones');
+        const { data } = await sb.from('mediciones').select('*, piscinas(nombre)').eq('tecnico_id', currentUserId).order('created_at', { ascending: false }).limit(4);
+        const contenedor = document.getElementById('listaMediciones');
         contenedor.innerHTML = '';
-        if (!data || data.length === 0) {
-            contenedor.innerHTML = '<div class="medicion-card">No hay mediciones</div>';
-            return;
-        }
+        if (!data || data.length === 0) { contenedor.innerHTML = '<div class="medicion-card">No hay mediciones</div>'; return; }
         for (const m of data) {
-            const { data: productos } = await sb
-                .from('productos_utilizados')
-                .select('producto_nombre, cantidad, unidad')
-                .eq('medicion_id', m.id);
-            let productosHtml = '';
-            if (productos && productos.length) {
-                productosHtml = `<div style="margin-top: 10px; font-size:0.85rem;">🧴 ${productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ')}</div>`;
-            }
-            const nombrePiscina = m.piscinas ? m.piscinas.nombre : '?';
             const card = document.createElement('div');
             card.className = 'medicion-card';
-            card.innerHTML = `
-                <strong>🏊 ${nombrePiscina}</strong>
-                <div style="margin-top: 8px;">🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C</div>
-                <div style="font-size:0.85rem; color:#5b6e8c;">📝 ${m.observaciones || 'Sin observaciones'}</div>
-                <div style="font-size:0.75rem; color:#8a99b0; margin-top: 8px;">🕒 ${new Date(m.created_at).toLocaleString()}</div>
-                ${productosHtml}
-            `;
+            card.innerHTML = `<strong>🏊 ${m.piscinas?.nombre || '?'}</strong><br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || ''}<br><small>${new Date(m.created_at).toLocaleString()}</small>`;
             contenedor.appendChild(card);
         }
     }
 
-    // ========== HISTÓRICO DE MEDICIONES POR FECHA ==========
-    document.getElementById('btnBuscarFecha').onclick = async () => {
-        const fecha = document.getElementById('fechaConsulta').value;
-        if (!fecha) { alert("Selecciona una fecha"); return; }
-        const startLocal = new Date(`${fecha}T00:00:00`);
-        const endLocal = new Date(`${fecha}T23:59:59`);
-        const startUTC = new Date(startLocal.getTime() - startLocal.getTimezoneOffset() * 60000).toISOString();
-        const endUTC = new Date(endLocal.getTime() - endLocal.getTimezoneOffset() * 60000).toISOString();
-        const { data, error } = await sb
-            .from('mediciones')
-            .select('*, piscinas(nombre)')
-            .eq('tecnico_id', currentUserId)
-            .gte('created_at', startUTC)
-            .lte('created_at', endUTC)
-            .order('created_at', { ascending: false });
-        if (error) return console.error(error);
-        const lista = document.getElementById('listaPorFecha');
-        lista.innerHTML = '';
-        if (!data || data.length === 0) {
-            lista.innerHTML = '<li>No hay mediciones en esa fecha</li>';
-            return;
-        }
-        for (const m of data) {
-            const { data: productos } = await sb.from('productos_utilizados').select('*').eq('medicion_id', m.id);
-            let prodHtml = '';
-            if (productos && productos.length) prodHtml = `<div style="margin-top:8px;"><small>🧴 ${productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ')}</small></div>`;
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>${m.piscinas?.nombre || '?'}</strong><br>
-                            🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
-                            📝 ${m.observaciones || ''}<br>
-                            <small>${new Date(m.created_at).toLocaleString()}</small>${prodHtml}`;
-            lista.appendChild(li);
-        }
-    };
-
-    // ========== JORNADAS SEMANA ACTUAL ==========
-    async function cargarJornadasSemanaActual() {
-        const hoy = new Date();
-        const diaSemana = hoy.getDay();
-        const diffLunes = diaSemana === 0 ? 6 : diaSemana - 1;
-        const lunes = new Date(hoy);
-        lunes.setDate(hoy.getDate() - diffLunes);
-        lunes.setHours(0, 0, 0, 0);
-        const domingo = new Date(lunes);
-        domingo.setDate(lunes.getDate() + 6);
-        domingo.setHours(23, 59, 59, 999);
-        const startUTC = new Date(lunes.getTime() - lunes.getTimezoneOffset() * 60000).toISOString();
-        const endUTC = new Date(domingo.getTime() - domingo.getTimezoneOffset() * 60000).toISOString();
-        const { data, error } = await sb
-            .from('jornadas')
-            .select('*')
-            .eq('tecnico_id', currentUserId)
-            .gte('inicio', startUTC)
-            .lte('inicio', endUTC)
-            .order('inicio', { ascending: false });
-        if (error) return console.error(error);
-        const contenedor = document.getElementById('listaJornadasSemana');
-        contenedor.innerHTML = '';
-        if (!data || data.length === 0) {
-            contenedor.innerHTML = '<div class="jornada-card">No hay jornadas esta semana</div>';
-            return;
-        }
-        for (const j of data) {
-            const inicio = new Date(j.inicio);
-            const fin = j.fin ? new Date(j.fin) : null;
-            let duracion = '';
-            if (fin) {
-                const diffMs = fin - inicio;
-                const horas = Math.floor(diffMs / 3600000);
-                const minutos = Math.floor((diffMs % 3600000) / 60000);
-                duracion = ` (${horas}h ${minutos}m)`;
-            } else {
-                duracion = ' (en curso)';
-            }
-            const card = document.createElement('div');
-            card.className = 'jornada-card';
-            card.innerHTML = `<strong>📅 ${inicio.toLocaleDateString()}</strong><br>
-                              🕒 Inicio: ${inicio.toLocaleTimeString()}<br>
-                              🕔 Fin: ${fin ? fin.toLocaleTimeString() : '—'}<br>
-                              ⏱️ Duración: ${duracion}`;
-            contenedor.appendChild(card);
-        }
-    }
-
-    // ========== JORNADAS POR FECHA ==========
-    document.getElementById('btnBuscarJornadaPorFecha').onclick = async () => {
-        const fecha = document.getElementById('fechaConsultaJornada').value;
-        if (!fecha) { alert("Selecciona una fecha"); return; }
-        const startLocal = new Date(`${fecha}T00:00:00`);
-        const endLocal = new Date(`${fecha}T23:59:59`);
-        const startUTC = new Date(startLocal.getTime() - startLocal.getTimezoneOffset() * 60000).toISOString();
-        const endUTC = new Date(endLocal.getTime() - endLocal.getTimezoneOffset() * 60000).toISOString();
-        const { data, error } = await sb
-            .from('jornadas')
-            .select('*')
-            .eq('tecnico_id', currentUserId)
-            .gte('inicio', startUTC)
-            .lte('inicio', endUTC)
-            .order('inicio', { ascending: false });
-        if (error) return console.error(error);
-        const contenedor = document.getElementById('listaJornadasPorFecha');
-        contenedor.innerHTML = '';
-        if (!data || data.length === 0) {
-            contenedor.innerHTML = '<div class="jornada-card">No hay jornadas en esa fecha</div>';
-            return;
-        }
-        for (const j of data) {
-            const inicio = new Date(j.inicio);
-            const fin = j.fin ? new Date(j.fin) : null;
-            let duracion = '';
-            if (fin) {
-                const diffMs = fin - inicio;
-                const horas = Math.floor(diffMs / 3600000);
-                const minutos = Math.floor((diffMs % 3600000) / 60000);
-                duracion = ` (${horas}h ${minutos}m)`;
-            } else {
-                duracion = ' (en curso)';
-            }
-            const card = document.createElement('div');
-            card.className = 'jornada-card';
-            card.innerHTML = `<strong>📅 ${inicio.toLocaleDateString()}</strong><br>
-                              🕒 Inicio: ${inicio.toLocaleTimeString()}<br>
-                              🕔 Fin: ${fin ? fin.toLocaleTimeString() : '—'}<br>
-                              ⏱️ Duración: ${duracion}`;
-            contenedor.appendChild(card);
-        }
-    };
-
-    // ========== BOTÓN REPORTAR INCIDENCIA (INOPERATIVO - FUTURO) ==========
-    document.getElementById('btnReportarIncidencia').onclick = () => {
-        const texto = document.getElementById('incidenciaTexto').value.trim();
-        if (!texto) {
-            document.getElementById('incidenciaMsg').innerHTML = "⚠️ Escribe una descripción antes de reportar.";
-            setTimeout(() => document.getElementById('incidenciaMsg').innerHTML = "", 3000);
-            return;
-        }
-        // Simulación: aviso de que estará disponible próximamente
-        document.getElementById('incidenciaMsg').innerHTML = "🔔 Función en desarrollo. Próximamente se enviará al gerente.";
-        console.log("INCIDENCIA (simulada):", texto, "Técnico ID:", currentUserId);
-        // Limpiar campo y mensaje después de unos segundos
-        document.getElementById('incidenciaTexto').value = "";
-        setTimeout(() => document.getElementById('incidenciaMsg').innerHTML = "", 4000);
-    };
-
-    // ========== ACORDEONES (colapsar/expandir) ==========
-    function initAccordion(headerId, contentId) {
-        const header = document.getElementById(headerId);
-        const content = document.getElementById(contentId);
-        if (!header || !content) return;
-        header.addEventListener('click', () => {
-            content.classList.toggle('oculto');
-            const span = header.querySelector('span');
-            if (span) span.innerHTML = content.classList.contains('oculto') ? '▼' : '▲';
-        });
-    }
-
-    initAccordion('ultimasMedicionesHeader', 'ultimasMedicionesContent');
-    initAccordion('historicoMedicionesHeader', 'historicoMedicionesContent');
-    initAccordion('historicoJornadasHeader', 'historicoJornadasContent');
-
-    // ========== LOGOUT ==========
-    document.getElementById('btnLogout').onclick = async () => {
-        await sb.auth.signOut();
-        location.reload();
-    };
+    document.getElementById('btnLogout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
 </script>
 </body>
 </html>
