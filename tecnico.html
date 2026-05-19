@@ -2,106 +2,213 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Panel Técnico - Jornada, Productos, Históricos</title>
+    <title>Panel Técnico - Piscinas</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: system-ui; max-width: 800px; margin: auto; padding: 20px; background: #eef2ff; }
-        .card { background: white; border-radius: 28px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        input, button, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border-radius: 40px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { background: #0066cc; color: white; font-weight: bold; border: none; cursor: pointer; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            background: #f0f7ff;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        /* Tarjetas */
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .card-header {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 5px solid #0066cc;
+            padding-left: 16px;
+        }
+        h2, h3 { margin: 0 0 12px 0; }
+        input, button, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 40px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { opacity: 0.9; }
         .btn-jornada { background: #2c7a4d; }
         .btn-fin { background: #c2410c; }
-        .estado-jornada { background: #f0f0f0; padding: 12px; border-radius: 24px; margin: 16px 0; text-align: center; font-weight: bold; }
+        .oculto { display: none; }
+        .estado-jornada {
+            background: #f0f0f0;
+            padding: 12px;
+            border-radius: 24px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
         .activa { background: #d4edda; color: #155724; }
         .inactiva { background: #f8d7da; color: #721c24; }
-        .oculto { display: none; }
-        .producto-item { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #f9f9f9; padding: 12px; border-radius: 24px; margin-bottom: 12px; }
-        .producto-item select, .producto-item input { width: auto; flex: 1; margin: 0; min-width: 100px; }
-        .quitar-producto { background: #c2410c; width: auto; padding: 8px 16px; margin: 0; }
-        .agregar-producto { background: #2c7a4d; margin-top: 8px; }
-        .buscar-container { display: flex; gap: 8px; align-items: center; }
-        .buscar-container input { flex: 1; margin: 0; }
-        .buscar-container button { width: auto; padding: 12px 16px; }
-        .fecha-buscar { display: flex; gap: 8px; margin: 16px 0; align-items: center; }
-        .fecha-buscar input { flex: 1; margin: 0; }
-        .fecha-buscar button { width: auto; padding: 12px 20px; }
+        /* Layout de dos columnas para históricos */
+        .historico-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 700px) {
+            .historico-grid { grid-template-columns: 1fr; }
+        }
+        .producto-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 24px;
+            margin-bottom: 12px;
+        }
+        .producto-item select, .producto-item input {
+            width: auto;
+            flex: 1;
+            margin: 0;
+            min-width: 100px;
+        }
+        .quitar-producto {
+            background: #c2410c;
+            width: auto;
+            padding: 8px 16px;
+            margin: 0;
+        }
+        .agregar-producto {
+            background: #2c7a4d;
+            margin-top: 8px;
+        }
+        .buscar-container, .fecha-buscar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .buscar-container input, .fecha-buscar input {
+            flex: 1;
+            margin: 0;
+        }
+        .buscar-container button, .fecha-buscar button {
+            width: auto;
+            padding: 12px 20px;
+            margin: 0;
+        }
         hr { margin: 20px 0; }
+        .medicion-item, .jornada-item {
+            background: #f9f9f9;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 20px;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
-
-<div id="loginPanel" class="card">
-    <h2>🔐 Acceso Técnico</h2>
-    <input type="text" id="nick" placeholder="Nick (ej: tecnico)" value="tecnico">
-    <input type="password" id="password" placeholder="Contraseña" value="123456">
-    <button id="btnLogin">Iniciar sesión</button>
-    <div id="errorMsg" style="color:red;"></div>
-</div>
-
-<div id="dashboardPanel" class="card oculto">
-    <h2>📋 Panel de Control</h2>
-    <p>Bienvenido, <span id="nombreTecnico"></span></p>
-    <button id="btnLogout">Cerrar sesión</button>
-    <hr>
-
-    <!-- Jornada -->
-    <div id="jornadaContainer">
-        <div id="estadoJornada" class="estado-jornada inactiva">⚠️ Jornada no iniciada</div>
-        <button id="btnIniciarJornada" class="btn-jornada">🟢 Iniciar jornada</button>
-        <button id="btnFinalizarJornada" class="btn-fin oculto">🔴 Finalizar jornada</button>
+<div class="container">
+    <!-- Login -->
+    <div id="loginPanel" class="card">
+        <div class="card-header">🔐 Acceso Técnico</div>
+        <input type="text" id="nick" placeholder="Nick (ej: tecnico)" value="tecnico">
+        <input type="password" id="password" placeholder="Contraseña" value="123456">
+        <button id="btnLogin">Iniciar sesión</button>
+        <div id="errorMsg" style="color:red; margin-top:12px;"></div>
     </div>
 
-    <!-- Formulario nueva medición (solo si jornada activa) -->
-    <div id="medicionesContainer" class="oculto">
-        <h3>📝 Registrar medición</h3>
-        <label>🏊 Piscina</label>
-        <div class="buscar-container">
-            <input type="text" id="buscarPiscina" placeholder="Escribe el nombre...">
-            <button id="btnBuscarPiscina">🔍 Buscar</button>
+    <!-- Dashboard (oculto hasta login) -->
+    <div id="dashboardPanel" class="oculto">
+        <!-- Tarjeta de Jornada (compacta) -->
+        <div class="card">
+            <div class="card-header">🕒 Registro de Jornada</div>
+            <div id="estadoJornada" class="estado-jornada inactiva">⚠️ Jornada no iniciada</div>
+            <div class="flex-between" style="gap: 12px;">
+                <button id="btnIniciarJornada" class="btn-jornada" style="flex:1;">🟢 Iniciar jornada</button>
+                <button id="btnFinalizarJornada" class="btn-fin oculto" style="flex:1;">🔴 Finalizar jornada</button>
+            </div>
         </div>
-        <select id="piscinaSelect"></select>
 
-        <input type="number" step="0.1" id="cloro" placeholder="Cloro (ppm)">
-        <input type="number" step="0.1" id="ph" placeholder="pH">
-        <input type="number" id="temp" placeholder="Temperatura (°C)">
-        <textarea id="obs" rows="2" placeholder="Observaciones"></textarea>
+        <!-- Tarjeta de Mantenimiento (solo si jornada activa) -->
+        <div id="medicionesContainer" class="card oculto">
+            <div class="card-header">🧪 Registrar mantenimiento</div>
+            <label>🏊 Piscina</label>
+            <div class="buscar-container">
+                <input type="text" id="buscarPiscina" placeholder="Escribe el nombre...">
+                <button id="btnBuscarPiscina">🔍 Buscar</button>
+            </div>
+            <select id="piscinaSelect"></select>
+            <input type="number" step="0.1" id="cloro" placeholder="Cloro (ppm)">
+            <input type="number" step="0.1" id="ph" placeholder="pH">
+            <input type="number" id="temp" placeholder="Temperatura (°C)">
+            <textarea id="obs" rows="2" placeholder="Observaciones"></textarea>
 
-        <label style="font-weight: bold;">🧴 Productos químicos usados</label>
-        <div id="productosContainer">
+            <label style="font-weight: bold;">🧴 Productos químicos usados</label>
             <div id="listaProductos"></div>
             <button type="button" id="agregarProducto" class="agregar-producto">➕ Añadir producto</button>
+            <button id="btnGuardar" style="margin-top: 16px;">💾 Guardar medición</button>
+            <div id="mensaje" style="margin-top:12px;"></div>
         </div>
 
-        <button id="btnGuardar">💾 Guardar medición</button>
-        <div id="mensaje"></div>
+        <!-- Tarjeta de últimas mediciones -->
+        <div class="card">
+            <div class="card-header">📜 Últimas 5 mediciones</div>
+            <ul id="listaUltimasMediciones" style="list-style: none; padding: 0;"></ul>
+        </div>
+
+        <!-- Históricos (dos columnas) -->
+        <div class="historico-grid">
+            <!-- Histórico mediciones por fecha -->
+            <div class="card">
+                <div class="card-header">📅 Histórico de mediciones por fecha</div>
+                <div class="fecha-buscar">
+                    <input type="date" id="fechaConsulta">
+                    <button id="btnBuscarFecha">Buscar</button>
+                </div>
+                <ul id="listaPorFecha" style="list-style: none; padding: 0;"></ul>
+            </div>
+
+            <!-- Historial jornadas semana actual -->
+            <div class="card">
+                <div class="card-header">📋 Jornadas de esta semana (lunes a domingo)</div>
+                <ul id="listaJornadasSemana" style="list-style: none; padding: 0;"></ul>
+            </div>
+
+            <!-- Historial jornadas por fecha (selector) -->
+            <div class="card">
+                <div class="card-header">📋 Historial de jornadas por fecha</div>
+                <div class="fecha-buscar">
+                    <input type="date" id="fechaConsultaJornada">
+                    <button id="btnBuscarJornadaPorFecha">Buscar jornadas</button>
+                </div>
+                <ul id="listaJornadasPorFecha" style="list-style: none; padding: 0;"></ul>
+            </div>
+        </div>
     </div>
-
-    <hr>
-    <!-- Histórico de mediciones por fecha -->
-    <h3>📅 Consultar mediciones por fecha</h3>
-    <div class="fecha-buscar">
-        <input type="date" id="fechaConsulta">
-        <button id="btnBuscarFecha">Ver mediciones del día</button>
-    </div>
-    <ul id="listaPorFecha" style="list-style: none; padding: 0;"></ul>
-
-    <hr>
-    <!-- Últimas 5 mediciones -->
-    <h3>📜 Últimas 5 mediciones</h3>
-    <ul id="listaUltimasMediciones" style="list-style: none; padding: 0;"></ul>
-
-    <hr>
-    <!-- Historial de jornadas (todas, últimas) -->
-    <h3>📋 Historial de jornadas (fichajes)</h3>
-    <ul id="listaJornadas" style="list-style: none; padding: 0;"></ul>
-
-    <!-- Historial de jornadas por fecha -->
-    <h3>📋 Historial de jornadas por fecha</h3>
-    <div class="fecha-buscar">
-        <input type="date" id="fechaConsultaJornada">
-        <button id="btnBuscarJornadaPorFecha">Ver jornadas de ese día</button>
-    </div>
-    <ul id="listaJornadasPorFecha" style="list-style: none; padding: 0;"></ul>
 </div>
 
 <script>
@@ -129,13 +236,11 @@
             return false;
         }
         const email = nick + DOMINIO;
-
         const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
         if (authError) {
             document.getElementById('errorMsg').innerText = "Error: " + authError.message;
             return false;
         }
-
         const { data: perfil, error: perfilError } = await sb
             .from('perfiles')
             .select('*')
@@ -146,9 +251,8 @@
             document.getElementById('errorMsg').innerText = "Usuario no tiene perfil";
             return false;
         }
-
         currentUserId = authData.user.id;
-        document.getElementById('nombreTecnico').innerText = perfil.nombre;
+        document.getElementById('nombreTecnico')?.remove(); // no usamos ese span
         return true;
     }
 
@@ -160,17 +264,14 @@
             await cargarPiscinas();
             await cargarJornadaActiva();
             await cargarUltimasMediciones();
-            await cargarHistorialJornadas();
+            await cargarJornadasSemanaActual();
             actualizarUIJornada();
         }
     };
 
     // ================= PISCINAS =================
     async function cargarPiscinas() {
-        const { data, error } = await sb
-            .from('piscinas')
-            .select('*')
-            .order('nombre');
+        const { data, error } = await sb.from('piscinas').select('*').order('nombre');
         if (error) return console.error(error);
         const select = document.getElementById('piscinaSelect');
         select.innerHTML = '<option value="">Selecciona piscina</option>';
@@ -185,7 +286,7 @@
     document.getElementById('btnBuscarPiscina').onclick = () => {
         const texto = document.getElementById('buscarPiscina').value.toLowerCase();
         const select = document.getElementById('piscinaSelect');
-        for (let i=0; i<select.options.length; i++) {
+        for (let i = 0; i < select.options.length; i++) {
             if (select.options[i].text.toLowerCase().includes(texto)) {
                 select.selectedIndex = i;
                 break;
@@ -234,12 +335,12 @@
             .insert({ tecnico_id: currentUserId, inicio: new Date().toISOString() })
             .select();
         if (error) {
-            document.getElementById('mensaje').innerText = "❌ Error al iniciar jornada: " + error.message;
+            document.getElementById('mensaje').innerText = "❌ Error: " + error.message;
         } else if (data && data[0]) {
             jornadaActiva = data[0];
             actualizarUIJornada();
             document.getElementById('mensaje').innerText = "✅ Jornada iniciada";
-            await cargarHistorialJornadas();
+            await cargarJornadasSemanaActual();
         }
     };
 
@@ -250,12 +351,12 @@
             .update({ fin: new Date().toISOString() })
             .eq('id', jornadaActiva.id);
         if (error) {
-            document.getElementById('mensaje').innerText = "❌ Error al finalizar jornada: " + error.message;
+            document.getElementById('mensaje').innerText = "❌ Error: " + error.message;
         } else {
             jornadaActiva = null;
             actualizarUIJornada();
             document.getElementById('mensaje').innerText = "✅ Jornada finalizada";
-            await cargarHistorialJornadas();
+            await cargarJornadasSemanaActual();
         }
     };
 
@@ -306,7 +407,7 @@
     // ================= GUARDAR MEDICIÓN =================
     document.getElementById('btnGuardar').onclick = async () => {
         if (!jornadaActiva) {
-            document.getElementById('mensaje').innerText = "⚠️ Debes iniciar la jornada antes de registrar mediciones.";
+            document.getElementById('mensaje').innerText = "⚠️ Debes iniciar la jornada primero.";
             return;
         }
         const piscinaId = document.getElementById('piscinaSelect').value;
@@ -322,7 +423,6 @@
             document.getElementById('mensaje').innerText = "⚠️ Rellena cloro, pH y temperatura";
             return;
         }
-
         const { data: medicion, error: errMed } = await sb
             .from('mediciones')
             .insert({
@@ -337,7 +437,6 @@
             return;
         }
         const medicionId = medicion[0].id;
-
         for (const prod of productosTemp) {
             if (prod.cantidad && prod.cantidad > 0) {
                 await sb.from('productos_utilizados').insert({
@@ -348,7 +447,6 @@
                 });
             }
         }
-
         document.getElementById('mensaje').innerText = "✅ Medición y productos guardados";
         document.getElementById('cloro').value = '';
         document.getElementById('ph').value = '';
@@ -381,14 +479,11 @@
                 .eq('medicion_id', m.id);
             let productosHtml = '';
             if (productos && productos.length) {
-                productosHtml = `<br><small>🧴 Productos: ${productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ')}</small>`;
+                productosHtml = `<br><small>🧴 ${productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ')}</small>`;
             }
             const nombrePiscina = m.piscinas ? m.piscinas.nombre : '?';
             const li = document.createElement('li');
-            li.style.background = '#f9f9f9';
-            li.style.margin = '8px 0';
-            li.style.padding = '10px';
-            li.style.borderRadius = '16px';
+            li.className = 'medicion-item';
             li.innerHTML = `<strong>${nombrePiscina}</strong><br>
                             🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
                             📝 ${m.observaciones || 'Sin observaciones'}<br>
@@ -398,18 +493,14 @@
         }
     }
 
-    // ================= HISTÓRICO DE MEDICIONES POR FECHA =================
+    // ================= HISTÓRICO MEDICIONES POR FECHA =================
     document.getElementById('btnBuscarFecha').onclick = async () => {
         const fecha = document.getElementById('fechaConsulta').value;
-        if (!fecha) {
-            alert("Selecciona una fecha");
-            return;
-        }
+        if (!fecha) { alert("Selecciona una fecha"); return; }
         const startLocal = new Date(`${fecha}T00:00:00`);
         const endLocal = new Date(`${fecha}T23:59:59`);
         const startUTC = new Date(startLocal.getTime() - startLocal.getTimezoneOffset() * 60000).toISOString();
         const endUTC = new Date(endLocal.getTime() - endLocal.getTimezoneOffset() * 60000).toISOString();
-
         const { data, error } = await sb
             .from('mediciones')
             .select('*, piscinas(nombre)')
@@ -421,46 +512,52 @@
         const lista = document.getElementById('listaPorFecha');
         lista.innerHTML = '';
         if (!data || data.length === 0) {
-            lista.innerHTML = '<li>No hay mediciones en esta fecha</li>';
+            lista.innerHTML = '<li>No hay mediciones en esa fecha</li>';
             return;
         }
         for (const m of data) {
-            const { data: productos } = await sb
-                .from('productos_utilizados')
-                .select('producto_nombre, cantidad, unidad')
-                .eq('medicion_id', m.id);
-            let productosHtml = '';
-            if (productos && productos.length) {
-                productosHtml = `<br><small>🧴 Productos: ${productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ')}</small>`;
-            }
-            const nombrePiscina = m.piscinas ? m.piscinas.nombre : '?';
+            const { data: productos } = await sb.from('productos_utilizados').select('*').eq('medicion_id', m.id);
+            let prodHtml = '';
+            if (productos && productos.length) prodHtml = `<br><small>🧴 ${productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ')}</small>`;
             const li = document.createElement('li');
-            li.style.background = '#f9f9f9';
-            li.style.margin = '8px 0';
-            li.style.padding = '10px';
-            li.style.borderRadius = '16px';
-            li.innerHTML = `<strong>${nombrePiscina}</strong><br>
+            li.className = 'medicion-item';
+            li.innerHTML = `<strong>${m.piscinas?.nombre || '?'}</strong><br>
                             🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
-                            📝 ${m.observaciones || 'Sin observaciones'}<br>
-                            <small>${new Date(m.created_at).toLocaleString()}</small>
-                            ${productosHtml}`;
+                            📝 ${m.observaciones || ''}<br>
+                            <small>${new Date(m.created_at).toLocaleString()}</small>${prodHtml}`;
             lista.appendChild(li);
         }
     };
 
-    // ================= HISTORIAL DE JORNADAS (todas) =================
-    async function cargarHistorialJornadas() {
+    // ================= JORNADAS: SEMANA ACTUAL (lunes a domingo) =================
+    async function cargarJornadasSemanaActual() {
+        // Calcular lunes y domingo de la semana actual en zona local
+        const hoy = new Date();
+        const diaSemana = hoy.getDay(); // 0 domingo, 1 lunes...
+        const diffLunes = diaSemana === 0 ? 6 : diaSemana - 1; // días atrás hasta lunes
+        const lunes = new Date(hoy);
+        lunes.setDate(hoy.getDate() - diffLunes);
+        lunes.setHours(0, 0, 0, 0);
+        const domingo = new Date(lunes);
+        domingo.setDate(lunes.getDate() + 6);
+        domingo.setHours(23, 59, 59, 999);
+
+        // Convertir a UTC para consulta
+        const startUTC = new Date(lunes.getTime() - lunes.getTimezoneOffset() * 60000).toISOString();
+        const endUTC = new Date(domingo.getTime() - domingo.getTimezoneOffset() * 60000).toISOString();
+
         const { data, error } = await sb
             .from('jornadas')
             .select('*')
             .eq('tecnico_id', currentUserId)
-            .order('inicio', { ascending: false })
-            .limit(10);
+            .gte('inicio', startUTC)
+            .lte('inicio', endUTC)
+            .order('inicio', { ascending: false });
         if (error) return console.error(error);
-        const lista = document.getElementById('listaJornadas');
+        const lista = document.getElementById('listaJornadasSemana');
         lista.innerHTML = '';
         if (!data || data.length === 0) {
-            lista.innerHTML = '<li>No hay jornadas registradas</li>';
+            lista.innerHTML = '<li>No hay jornadas esta semana</li>';
             return;
         }
         for (const j of data) {
@@ -476,10 +573,7 @@
                 duracion = ' (en curso)';
             }
             const li = document.createElement('li');
-            li.style.background = '#f9f9f9';
-            li.style.margin = '8px 0';
-            li.style.padding = '10px';
-            li.style.borderRadius = '16px';
+            li.className = 'jornada-item';
             li.innerHTML = `<strong>📅 ${inicio.toLocaleDateString()}</strong><br>
                             🕒 Inicio: ${inicio.toLocaleTimeString()}<br>
                             🕔 Fin: ${fin ? fin.toLocaleTimeString() : '—'}<br>
@@ -488,18 +582,14 @@
         }
     }
 
-    // ================= HISTORIAL DE JORNADAS POR FECHA =================
+    // ================= JORNADAS POR FECHA (selector) =================
     document.getElementById('btnBuscarJornadaPorFecha').onclick = async () => {
         const fecha = document.getElementById('fechaConsultaJornada').value;
-        if (!fecha) {
-            alert("Selecciona una fecha");
-            return;
-        }
+        if (!fecha) { alert("Selecciona una fecha"); return; }
         const startLocal = new Date(`${fecha}T00:00:00`);
         const endLocal = new Date(`${fecha}T23:59:59`);
         const startUTC = new Date(startLocal.getTime() - startLocal.getTimezoneOffset() * 60000).toISOString();
         const endUTC = new Date(endLocal.getTime() - endLocal.getTimezoneOffset() * 60000).toISOString();
-
         const { data, error } = await sb
             .from('jornadas')
             .select('*')
@@ -527,10 +617,7 @@
                 duracion = ' (en curso)';
             }
             const li = document.createElement('li');
-            li.style.background = '#f9f9f9';
-            li.style.margin = '8px 0';
-            li.style.padding = '10px';
-            li.style.borderRadius = '16px';
+            li.className = 'jornada-item';
             li.innerHTML = `<strong>📅 ${inicio.toLocaleDateString()}</strong><br>
                             🕒 Inicio: ${inicio.toLocaleTimeString()}<br>
                             🕔 Fin: ${fin ? fin.toLocaleTimeString() : '—'}<br>
@@ -540,10 +627,17 @@
     };
 
     // ================= LOGOUT =================
-    document.getElementById('btnLogout').onclick = async () => {
+    document.getElementById('btnLogout')?.remove(); // no hay logout explícito, pero puedes añadirlo
+    // Añadimos un botón de logout dentro del dashboard por si acaso
+    const logoutBtn = document.createElement('button');
+    logoutBtn.textContent = "🚪 Cerrar sesión";
+    logoutBtn.style.background = "#c2410c";
+    logoutBtn.style.marginTop = "20px";
+    logoutBtn.onclick = async () => {
         await sb.auth.signOut();
         location.reload();
     };
+    document.getElementById('dashboardPanel')?.appendChild(logoutBtn);
 </script>
 </body>
 </html>
