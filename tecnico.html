@@ -16,8 +16,8 @@
 
 <div id="loginPanel" class="card">
     <h2>🔐 Acceso Técnico</h2>
-    <input type="text" id="nick" placeholder="Nick (ej: tecnico)">
-    <input type="password" id="password" placeholder="Contraseña">
+    <input type="text" id="nick" placeholder="Nick (ej: tecnico)" value="tecnico">
+    <input type="password" id="password" placeholder="Contraseña" value="123456">
     <button id="btnLogin">Iniciar sesión</button>
     <div id="errorMsg" style="color:red;"></div>
 </div>
@@ -40,35 +40,68 @@
 </div>
 
 <script>
-    // Configuración
+    // CONFIGURACIÓN
     const SUPABASE_URL = "https://zlaatodfoulhhhvoyrrr.supabase.co";
     const SUPABASE_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL";
     const DOMINIO = "@mipiscina.com";
 
-    // Creamos UNA SOLA instancia del cliente
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    let currentUser = null;
-    let currentUserId = null;
+    // Cliente Supabase
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Función para llamar a la API REST (opcional, pero útil si prefieres fetch)
-    async function callAPI(endpoint, method = 'GET', body = null) {
-        const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
-        const headers = {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-        };
-        const options = { method, headers };
-        if (body) options.body = JSON.stringify(body);
-        const res = await fetch(url, options);
-        if (!res.ok) throw new Error(await res.text());
-        if (res.status === 204) return null;
-        return res.json();
+    let currentUserId = null;
+    let currentNick = null;
+
+    // ================= LOGIN =================
+    async function hacerLogin() {
+        const nick = document.getElementById('nick').value.trim();
+        const password = document.getElementById('password').value;
+        if (!nick || !password) {
+            document.getElementById('errorMsg').innerText = "Introduce nick y contraseña";
+            return false;
+        }
+        const email = nick + DOMINIO;
+        document.getElementById('errorMsg').innerText = "Conectando...";
+
+        // Autenticación
+        const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
+        if (authError) {
+            document.getElementById('errorMsg').innerText = "Error auth: " + authError.message;
+            return false;
+        }
+
+        // Obtener perfil (RLS desactivado en perfiles por ahora)
+        const { data: perfil, error: perfilError } = await sb
+            .from('perfiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .single();
+        if (perfilError) {
+            document.getElementById('errorMsg').innerText = "Error perfil: " + perfilError.message;
+            await sb.auth.signOut();
+            return false;
+        }
+
+        // Guardar datos
+        currentUserId = authData.user.id;
+        currentNick = perfil.nick;
+        document.getElementById('nombreTecnico').innerText = perfil.nombre;
+        document.getElementById('errorMsg').innerText = "";
+        return true;
     }
 
-    // Cargar piscinas en el select
+    document.getElementById('btnLogin').onclick = async () => {
+        const ok = await hacerLogin();
+        if (ok) {
+            document.getElementById('loginPanel').classList.add('oculto');
+            document.getElementById('dashboardPanel').classList.remove('oculto');
+            cargarPiscinas();
+            cargarUltimasMediciones();
+        }
+    };
+
+    // ================= PISCINAS =================
     async function cargarPiscinas() {
-        const { data, error } = await supabase
+        const { data, error } = await sb
             .from('piscinas')
             .select('*')
             .order('nombre');
@@ -83,9 +116,9 @@
         });
     }
 
-    // Cargar últimas 5 mediciones del técnico
+    // ================= ÚLTIMAS MEDICIONES =================
     async function cargarUltimasMediciones() {
-        const { data, error } = await supabase
+        const { data, error } = await sb
             .from('mediciones')
             .select('*, piscinas(nombre)')
             .eq('tecnico_id', currentUserId)
@@ -112,41 +145,7 @@
         }
     }
 
-    // Login
-    document.getElementById('btnLogin').onclick = async () => {
-        const nick = document.getElementById('nick').value.trim();
-        const password = document.getElementById('password').value;
-        if (!nick || !password) {
-            document.getElementById('errorMsg').innerText = "Introduce nick y contraseña";
-            return;
-        }
-        const email = nick + DOMINIO;
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-            document.getElementById('errorMsg').innerText = "Error: " + error.message;
-            return;
-        }
-        // Obtener perfil
-        const { data: perfil, error: perfilError } = await supabase
-            .from('perfiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-        if (perfilError || !perfil) {
-            await supabase.auth.signOut();
-            document.getElementById('errorMsg').innerText = "Usuario no tiene perfil";
-            return;
-        }
-        currentUser = perfil;
-        currentUserId = data.user.id;
-        document.getElementById('nombreTecnico').innerText = currentUser.nombre;
-        document.getElementById('loginPanel').classList.add('oculto');
-        document.getElementById('dashboardPanel').classList.remove('oculto');
-        await cargarPiscinas();
-        await cargarUltimasMediciones();
-    };
-
-    // Guardar medición
+    // ================= REGISTRAR MEDICIÓN =================
     document.getElementById('btnGuardar').onclick = async () => {
         const piscinaId = document.getElementById('piscinaSelect').value;
         const cloro = parseFloat(document.getElementById('cloro').value);
@@ -157,7 +156,7 @@
             document.getElementById('mensaje').innerText = "Completa todos los campos";
             return;
         }
-        const { error } = await supabase
+        const { error } = await sb
             .from('mediciones')
             .insert({
                 tecnico_id: currentUserId,
@@ -179,9 +178,9 @@
         }
     };
 
-    // Logout
+    // ================= CERRAR SESIÓN =================
     document.getElementById('btnLogout').onclick = async () => {
-        await supabase.auth.signOut();
+        await sb.auth.signOut();
         location.reload();
     };
 </script>
