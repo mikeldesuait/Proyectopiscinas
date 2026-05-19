@@ -99,6 +99,11 @@
             text-align: right;
             margin-top: 8px;
         }
+        .cargando {
+            text-align: center;
+            padding: 20px;
+            color: #5b6e8c;
+        }
     </style>
 </head>
 <body>
@@ -108,40 +113,27 @@
             <h2>🏊 Piscina Los Pinos</h2>
             <span id="estado-badge" class="estado abierta">🟢 ABIERTA</span>
         </div>
-        <p style="margin-top: 6px; color: #5b6e8c;">Urbanización Los Pinos · Última medición hoy</p>
+        <p style="margin-top: 6px; color: #5b6e8c;">Urbanización Los Pinos · Datos reales del técnico</p>
 
         <div style="margin: 20px 0 10px 0;">
             <div class="dato">
                 <span class="dato-label">🧪 Cloro (ppm)</span>
-                <span id="cloro-valor" class="dato-valor normal">1.2</span>
+                <span id="cloro-valor" class="dato-valor">--</span>
             </div>
             <div class="dato">
                 <span class="dato-label">⚗️ pH</span>
-                <span id="ph-valor" class="dato-valor normal">7.4</span>
+                <span id="ph-valor" class="dato-valor">--</span>
             </div>
             <div class="dato">
                 <span class="dato-label">🌡️ Temperatura</span>
-                <span id="temp-valor" class="dato-valor">26°C</span>
+                <span id="temp-valor" class="dato-valor">--°C</span>
             </div>
             <div class="dato">
                 <span class="dato-label">💧 Turbidez</span>
                 <span>Clara</span>
             </div>
         </div>
-        <div class="ultima-act" id="ultima-act">Actualizado hace 5 minutos</div>
-    </div>
-
-    <!-- Panel de simulación (solo para pruebas, lo puedes ocultar después) -->
-    <div class="card" style="background: #fff7e5;">
-        <details>
-            <summary style="font-weight:600;">🔧 Simular medición (prueba)</summary>
-            <div style="margin-top: 12px;">
-                <input type="number" id="sim-cloro" placeholder="Cloro (ppm)" step="0.1" value="1.2">
-                <input type="number" id="sim-ph" placeholder="pH" step="0.1" value="7.4">
-                <input type="number" id="sim-temp" placeholder="Temp °C" value="26">
-                <button class="btn" style="background:#8a99b0; margin-top:10px;" id="simular-btn">Actualizar datos ficticios</button>
-            </div>
-        </details>
+        <div class="ultima-act" id="ultima-act">Cargando datos...</div>
     </div>
 
     <!-- Reporte de incidencias -->
@@ -172,66 +164,117 @@
     </div>
 
     <footer>
-        Escanea el QR en la puerta de la piscina · Datos en tiempo real
+        Escanea el QR en la puerta de la piscina · Datos actualizados automáticamente
     </footer>
 </div>
 
 <script>
-    // Datos simulados (después los traerás de una API)
-    let datosPiscina = {
-        cloro: 1.2,
-        ph: 7.4,
-        temperatura: 26,
-        turbidez: "clara",
-        estado: "abierta",
-        ultimaActualizacion: new Date()
-    };
+    // ================= CONFIGURACIÓN SUPABASE =================
+    const SUPABASE_URL = "https://zlaatodfoulhhhvoyrrr.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL"; // misma clave que funciona
 
-    const cloroSpan = document.getElementById('cloro-valor');
-    const phSpan = document.getElementById('ph-valor');
-    const tempSpan = document.getElementById('temp-valor');
-    const estadoBadge = document.getElementById('estado-badge');
-    const ultimaSpan = document.getElementById('ultima-act');
-
-    function actualizarUI() {
-        cloroSpan.innerText = datosPiscina.cloro;
-        phSpan.innerText = datosPiscina.ph;
-        tempSpan.innerText = datosPiscina.temperatura + '°C';
-
-        if (datosPiscina.cloro < 0.5) cloroSpan.className = "dato-valor critico";
-        else if (datosPiscina.cloro < 0.8) cloroSpan.className = "dato-valor alerta";
-        else cloroSpan.className = "dato-valor normal";
-
-        if (datosPiscina.ph < 7.0 || datosPiscina.ph > 8.0) phSpan.className = "dato-valor critico";
-        else if (datosPiscina.ph < 7.2 || datosPiscina.ph > 7.6) phSpan.className = "dato-valor alerta";
-        else phSpan.className = "dato-valor normal";
-
-        if (datosPiscina.cloro < 0.5 || datosPiscina.ph < 7.0 || datosPiscina.ph > 8.0) {
-            datosPiscina.estado = "cerrada";
-            estadoBadge.innerHTML = "🔴 CERRADA (fuera de normativa)";
-            estadoBadge.className = "estado cerrada";
-        } else {
-            datosPiscina.estado = "abierta";
-            estadoBadge.innerHTML = "🟢 ABIERTA";
-            estadoBadge.className = "estado abierta";
-        }
-
-        const ahora = new Date();
-        const diffMin = Math.floor((ahora - datosPiscina.ultimaActualizacion) / 60000);
-        ultimaSpan.innerText = `Actualizado hace ${diffMin} minutos`;
+    // Función para llamar a la API REST de Supabase
+    async function callSupabase(endpoint, options = {}) {
+        const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+        const headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+        };
+        const response = await fetch(url, { ...options, headers });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
     }
 
-    document.getElementById('simular-btn')?.addEventListener('click', () => {
-        const nuevoCloro = parseFloat(document.getElementById('sim-cloro').value);
-        const nuevoPh = parseFloat(document.getElementById('sim-ph').value);
-        const nuevaTemp = parseInt(document.getElementById('sim-temp').value);
-        if (!isNaN(nuevoCloro)) datosPiscina.cloro = nuevoCloro;
-        if (!isNaN(nuevoPh)) datosPiscina.ph = nuevoPh;
-        if (!isNaN(nuevaTemp)) datosPiscina.temperatura = nuevaTemp;
-        datosPiscina.ultimaActualizacion = new Date();
-        actualizarUI();
-    });
+    // Obtener la última medición (la más reciente de toda la tabla)
+    async function obtenerUltimaMedicion() {
+        try {
+            const data = await callSupabase('mediciones?order=created_at.desc&limit=1');
+            if (data && data.length > 0) {
+                return data[0];
+            } else {
+                return null; // No hay mediciones aún
+            }
+        } catch (error) {
+            console.error("Error al cargar medición:", error);
+            return null;
+        }
+    }
 
+    // Actualizar la interfaz con los datos de la última medición
+    function actualizarUI(medicion) {
+        const cloroSpan = document.getElementById('cloro-valor');
+        const phSpan = document.getElementById('ph-valor');
+        const tempSpan = document.getElementById('temp-valor');
+        const estadoBadge = document.getElementById('estado-badge');
+        const ultimaSpan = document.getElementById('ultima-act');
+
+        if (!medicion) {
+            // No hay datos aún
+            cloroSpan.innerText = '--';
+            phSpan.innerText = '--';
+            tempSpan.innerText = '--°C';
+            estadoBadge.innerHTML = '❓ SIN DATOS';
+            estadoBadge.className = 'estado cerrada';
+            ultimaSpan.innerText = 'Aún no hay mediciones registradas';
+            return;
+        }
+
+        const cloro = medicion.cloro;
+        const ph = medicion.ph;
+        const temperatura = medicion.temperatura;
+        const fecha = new Date(medicion.created_at);
+
+        // Mostrar valores
+        cloroSpan.innerText = cloro;
+        phSpan.innerText = ph;
+        tempSpan.innerHTML = `${temperatura}°C`;
+
+        // Colores según normativa
+        if (cloro < 0.5) cloroSpan.className = "dato-valor critico";
+        else if (cloro < 0.8) cloroSpan.className = "dato-valor alerta";
+        else cloroSpan.className = "dato-valor normal";
+
+        if (ph < 7.0 || ph > 8.0) phSpan.className = "dato-valor critico";
+        else if (ph < 7.2 || ph > 7.6) phSpan.className = "dato-valor alerta";
+        else phSpan.className = "dato-valor normal";
+
+        // Determinar si la piscina está abierta o cerrada
+        const cloroOK = cloro >= 0.5;
+        const phOK = (ph >= 7.2 && ph <= 7.6);
+        const abierta = cloroOK && phOK;
+
+        if (abierta) {
+            estadoBadge.innerHTML = "🟢 ABIERTA";
+            estadoBadge.className = "estado abierta";
+        } else {
+            estadoBadge.innerHTML = "🔴 CERRADA (fuera de normativa)";
+            estadoBadge.className = "estado cerrada";
+        }
+
+        // Mostrar fecha/hora de la medición
+        const ahora = new Date();
+        const diffHoras = Math.floor((ahora - fecha) / 3600000);
+        if (diffHoras < 1) {
+            ultimaSpan.innerText = `Actualizado hace ${Math.floor((ahora - fecha) / 60000)} minutos`;
+        } else {
+            ultimaSpan.innerText = `Última medición: ${fecha.toLocaleString()}`;
+        }
+    }
+
+    // Cargar datos al inicio y cada 30 segundos
+    async function cargarYActualizar() {
+        const medicion = await obtenerUltimaMedicion();
+        actualizarUI(medicion);
+    }
+
+    // Cargar al inicio
+    cargarYActualizar();
+
+    // Actualizar automáticamente cada 30 segundos
+    setInterval(cargarYActualizar, 30000);
+
+    // ========== INCIDENCIAS (igual que antes) ==========
     document.getElementById('reportar-btn').addEventListener('click', () => {
         const tipo = document.getElementById('tipo-incidencia').value;
         const desc = document.getElementById('desc-incidencia').value;
@@ -252,8 +295,6 @@
 
         console.log({ tipo, desc, fotoUrl, piscina: "Los Pinos", timestamp: new Date().toISOString() });
     });
-
-    actualizarUI();
 </script>
 </body>
 </html>
