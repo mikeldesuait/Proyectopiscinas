@@ -1,161 +1,261 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel Técnico - Piscinas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Panel Técnico · Aqua Garden</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
-            background: #f0f7ff;
+        * {
             margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        /* Tarjetas */
-        .card {
-            background: white;
-            border-radius: 32px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        .card-header {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-left: 5px solid #0066cc;
-            padding-left: 16px;
-        }
-        h2, h3 { margin: 0 0 12px 0; }
-        input, button, select, textarea {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 40px;
-            border: 1px solid #ccc;
-            font-size: 1rem;
+            padding: 0;
             box-sizing: border-box;
         }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+            min-height: 100vh;
+            padding: 32px 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .oculto {
+            display: none;
+        }
+
+        /* Tarjetas principales */
+        .card {
+            background: #ffffff;
+            border-radius: 28px;
+            padding: 0;
+            margin-bottom: 28px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,119,182,0.08);
+            overflow: hidden;
+        }
+        .card-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            padding: 24px 32px 16px 32px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #1a3e50;
+            border-left: 4px solid #0077b6;
+            background: white;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        .card-header:hover {
+            background: #f8fafc;
+        }
+        .card-content {
+            padding: 0 32px 28px 32px;
+            transition: all 0.2s;
+        }
+        /* Área de jornada (siempre visible) */
+        .card-simple {
+            background: white;
+            border-radius: 28px;
+            padding: 24px 32px;
+            margin-bottom: 28px;
+            border: 1px solid rgba(0,119,182,0.08);
+        }
+        .card-simple .card-header {
+            padding: 0 0 16px 0;
+            cursor: default;
+        }
+        .card-simple .card-header:hover {
+            background: none;
+        }
+
+        /* Estado jornada */
+        .estado-jornada {
+            background: #f0f4f9;
+            padding: 14px 18px;
+            border-radius: 60px;
+            text-align: center;
+            font-weight: 500;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            border: 1px solid #e2e8f0;
+        }
+        .estado-activa {
+            background: #e0f2e9;
+            color: #1f6e43;
+            border-color: #b8e0cc;
+        }
+        .estado-inactiva {
+            background: #fee9e6;
+            color: #b13e2a;
+            border-color: #fdd0c8;
+        }
+
+        /* Formularios */
+        input, select, textarea, button {
+            width: 100%;
+            padding: 14px 18px;
+            margin: 10px 0 6px 0;
+            border-radius: 60px;
+            border: 1px solid #cad2db;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: #fff;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #0077b6;
+            box-shadow: 0 0 0 3px rgba(0,119,182,0.1);
+        }
         button {
-            background: #0066cc;
+            background: #0077b6;
             color: white;
-            font-weight: bold;
+            font-weight: 600;
             border: none;
             cursor: pointer;
-            transition: 0.2s;
+            margin-top: 12px;
         }
-        button:hover { opacity: 0.9; }
-        .btn-jornada { background: #2c7a4d; }
-        .btn-fin { background: #c2410c; }
-        .oculto { display: none; }
-        .estado-jornada {
-            background: #f0f0f0;
-            padding: 12px;
-            border-radius: 24px;
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 16px;
+        button:hover {
+            background: #005f8c;
+            transform: translateY(-1px);
         }
-        .activa { background: #d4edda; color: #155724; }
-        .inactiva { background: #f8d7da; color: #721c24; }
-        /* Layout de dos columnas para históricos */
-        .historico-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
+        .btn-jornada {
+            background: #2c7a4d;
         }
-        @media (max-width: 700px) {
-            .historico-grid { grid-template-columns: 1fr; }
+        .btn-jornada:hover {
+            background: #1f5e3a;
         }
+        .btn-fin {
+            background: #c2410c;
+        }
+        .btn-fin:hover {
+            background: #9a330a;
+        }
+
+        /* Productos */
         .producto-item {
             display: flex;
-            gap: 8px;
+            gap: 12px;
             align-items: center;
             flex-wrap: wrap;
-            background: #f9f9f9;
-            padding: 12px;
-            border-radius: 24px;
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 60px;
             margin-bottom: 12px;
         }
         .producto-item select, .producto-item input {
             width: auto;
             flex: 1;
             margin: 0;
-            min-width: 100px;
+            min-width: 110px;
         }
         .quitar-producto {
             background: #c2410c;
             width: auto;
-            padding: 8px 16px;
+            padding: 8px 20px;
             margin: 0;
         }
-        .agregar-producto {
-            background: #2c7a4d;
-            margin-top: 8px;
-        }
-        .buscar-container, .fecha-buscar {
+
+        /* Últimas mediciones y jornadas (tarjetas pequeñas) */
+        .mediciones-lista, .jornadas-lista {
             display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 12px;
+            flex-direction: column;
+            gap: 12px;
         }
-        .buscar-container input, .fecha-buscar input {
-            flex: 1;
+        .medicion-card, .jornada-card {
+            background: #f8fafc;
+            border-radius: 24px;
+            padding: 18px 20px;
+            border-left: 6px solid #0077b6;
+            transition: 0.1s ease;
+        }
+        .medicion-card strong, .jornada-card strong {
+            font-size: 1.1rem;
+            color: #1e4663;
+        }
+        .fecha-buscar, .buscar-container {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .fecha-buscar input, .buscar-container input {
+            flex: 2;
             margin: 0;
         }
-        .buscar-container button, .fecha-buscar button {
+        .fecha-buscar button, .buscar-container button {
             width: auto;
-            padding: 12px 20px;
+            padding: 12px 24px;
             margin: 0;
         }
-        hr { margin: 20px 0; }
-        .medicion-item, .jornada-item {
-            background: #f9f9f9;
-            margin: 8px 0;
-            padding: 12px;
-            border-radius: 20px;
+
+        /* Listas históricos */
+        .lista-historico {
+            list-style: none;
+            padding: 0;
         }
-        .flex-between {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .lista-historico li {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #0077b6;
+        }
+        .logout-btn {
+            background: #475569;
+            margin-top: 20px;
+        }
+        .logout-btn:hover {
+            background: #334155;
+        }
+
+        @media (max-width: 780px) {
+            .card-header, .card-content {
+                padding: 20px;
+            }
+            .card-simple {
+                padding: 20px;
+            }
+            .producto-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .producto-item select, .producto-item input {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
 <div class="container">
     <!-- Login -->
-    <div id="loginPanel" class="card">
-        <div class="card-header">🔐 Acceso Técnico</div>
+    <div id="loginPanel" class="card-simple">
+        <div class="card-header" style="cursor:default; padding:0 0 16px 0;">🔐 Acceso Técnico Aqua Garden</div>
         <input type="text" id="nick" placeholder="Nick (ej: tecnico)" value="tecnico">
         <input type="password" id="password" placeholder="Contraseña" value="123456">
         <button id="btnLogin">Iniciar sesión</button>
-        <div id="errorMsg" style="color:red; margin-top:12px;"></div>
+        <div id="errorMsg" style="color:#c2410c; margin-top:16px; font-weight:500;"></div>
     </div>
 
-    <!-- Dashboard (oculto hasta login) -->
+    <!-- Dashboard principal (oculto hasta login) -->
     <div id="dashboardPanel" class="oculto">
-        <!-- Tarjeta de Jornada (compacta) -->
-        <div class="card">
-            <div class="card-header">🕒 Registro de Jornada</div>
-            <div id="estadoJornada" class="estado-jornada inactiva">⚠️ Jornada no iniciada</div>
-            <div class="flex-between" style="gap: 12px;">
+        <!-- Tarjeta Jornada (siempre visible) -->
+        <div class="card-simple">
+            <div class="card-header" style="cursor:default;">🕒 Registro de jornada</div>
+            <div id="estadoJornada" class="estado-jornada estado-inactiva">⚠️ Jornada no iniciada</div>
+            <div style="display: flex; gap: 16px;">
                 <button id="btnIniciarJornada" class="btn-jornada" style="flex:1;">🟢 Iniciar jornada</button>
                 <button id="btnFinalizarJornada" class="btn-fin oculto" style="flex:1;">🔴 Finalizar jornada</button>
             </div>
         </div>
 
-        <!-- Tarjeta de Mantenimiento (solo si jornada activa) -->
-        <div id="medicionesContainer" class="card oculto">
-            <div class="card-header">🧪 Registrar mantenimiento</div>
+        <!-- Registrar mantenimiento (solo si jornada activa) -->
+        <div id="medicionesContainer" class="card-simple oculto">
+            <div class="card-header" style="cursor:default;">🧪 Registrar mantenimiento</div>
             <label>🏊 Piscina</label>
             <div class="buscar-container">
                 <input type="text" id="buscarPiscina" placeholder="Escribe el nombre...">
@@ -165,49 +265,70 @@
             <input type="number" step="0.1" id="cloro" placeholder="Cloro (ppm)">
             <input type="number" step="0.1" id="ph" placeholder="pH">
             <input type="number" id="temp" placeholder="Temperatura (°C)">
-            <textarea id="obs" rows="2" placeholder="Observaciones"></textarea>
+            <textarea id="obs" rows="2" placeholder="Observaciones (opcional)"></textarea>
 
-            <label style="font-weight: bold;">🧴 Productos químicos usados</label>
+            <label style="font-weight: 600; margin-top: 8px;">🧴 Productos químicos usados</label>
             <div id="listaProductos"></div>
-            <button type="button" id="agregarProducto" class="agregar-producto">➕ Añadir producto</button>
-            <button id="btnGuardar" style="margin-top: 16px;">💾 Guardar medición</button>
-            <div id="mensaje" style="margin-top:12px;"></div>
+            <button type="button" id="agregarProducto" style="background:#2c7a4d;">➕ Añadir producto</button>
+            <button id="btnGuardar" style="margin-top: 20px;">💾 Guardar medición</button>
+            <div id="mensaje" style="margin-top: 16px;"></div>
+
+            <!-- Botón de incidencia (inoperativo, solo aviso futuro) -->
+            <hr style="margin: 24px 0 16px 0;">
+            <label style="font-weight: 600;">🚨 ¿Algo fuera de lo común?</label>
+            <textarea id="incidenciaTexto" rows="2" placeholder="Describe el problema (ej: cloro muy bajo, bombas sin funcionar, etc.)"></textarea>
+            <button id="btnReportarIncidencia" style="background: #e67e22;">📱 Reportar incidencia al gerente</button>
+            <div id="incidenciaMsg" style="margin-top: 8px; font-size:0.85rem; color:#e67e22;"></div>
         </div>
 
-        <!-- Tarjeta de últimas mediciones -->
-        <div class="card">
-            <div class="card-header">📜 Últimas 5 mediciones</div>
-            <ul id="listaUltimasMediciones" style="list-style: none; padding: 0;"></ul>
+        <!-- Sección Últimas mediciones (colapsable) -->
+        <div id="ultimasMedicionesCard" class="card">
+            <div class="card-header" id="ultimasMedicionesHeader">
+                📜 Últimas 4 mediciones <span style="margin-left: auto;">▼</span>
+            </div>
+            <div id="ultimasMedicionesContent" class="card-content oculto">
+                <div id="listaUltimasMediciones" class="mediciones-lista"></div>
+            </div>
         </div>
 
-        <!-- Históricos (dos columnas) -->
-        <div class="historico-grid">
-            <!-- Histórico mediciones por fecha -->
-            <div class="card">
-                <div class="card-header">📅 Histórico de mediciones por fecha</div>
+        <!-- Sección Histórico de mediciones (colapsable) -->
+        <div id="historicoMedicionesCard" class="card">
+            <div class="card-header" id="historicoMedicionesHeader">
+                📅 Histórico de mediciones <span style="margin-left: auto;">▼</span>
+            </div>
+            <div id="historicoMedicionesContent" class="card-content oculto">
                 <div class="fecha-buscar">
                     <input type="date" id="fechaConsulta">
-                    <button id="btnBuscarFecha">Buscar</button>
+                    <button id="btnBuscarFecha">Buscar mediciones</button>
                 </div>
-                <ul id="listaPorFecha" style="list-style: none; padding: 0;"></ul>
-            </div>
-
-            <!-- Historial jornadas semana actual -->
-            <div class="card">
-                <div class="card-header">📋 Jornadas de esta semana (lunes a domingo)</div>
-                <ul id="listaJornadasSemana" style="list-style: none; padding: 0;"></ul>
-            </div>
-
-            <!-- Historial jornadas por fecha (selector) -->
-            <div class="card">
-                <div class="card-header">📋 Historial de jornadas por fecha</div>
-                <div class="fecha-buscar">
-                    <input type="date" id="fechaConsultaJornada">
-                    <button id="btnBuscarJornadaPorFecha">Buscar jornadas</button>
-                </div>
-                <ul id="listaJornadasPorFecha" style="list-style: none; padding: 0;"></ul>
+                <ul id="listaPorFecha" class="lista-historico"></ul>
             </div>
         </div>
+
+        <!-- Sección Histórico de jornadas (colapsable) -->
+        <div id="historicoJornadasCard" class="card">
+            <div class="card-header" id="historicoJornadasHeader">
+                📋 Histórico de jornadas <span style="margin-left: auto;">▼</span>
+            </div>
+            <div id="historicoJornadasContent" class="card-content oculto">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px;">
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 12px;">📆 Esta semana (lunes a domingo)</div>
+                        <div id="listaJornadasSemana" class="jornadas-lista"></div>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 12px;">🔍 Buscar por fecha</div>
+                        <div class="fecha-buscar" style="margin-bottom: 16px;">
+                            <input type="date" id="fechaConsultaJornada">
+                            <button id="btnBuscarJornadaPorFecha">Buscar jornadas</button>
+                        </div>
+                        <div id="listaJornadasPorFecha" class="jornadas-lista"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button id="btnLogout" class="logout-btn">🚪 Cerrar sesión</button>
     </div>
 </div>
 
@@ -227,7 +348,7 @@
         "Floculante", "Alguicida", "Aclarante", "Anticalcáreo", "Oxígeno activo", "Otro"
     ];
 
-    // ================= LOGIN =================
+    // ========== LOGIN ==========
     async function hacerLogin() {
         const nick = document.getElementById('nick').value.trim();
         const password = document.getElementById('password').value;
@@ -252,7 +373,6 @@
             return false;
         }
         currentUserId = authData.user.id;
-        document.getElementById('nombreTecnico')?.remove(); // no usamos ese span
         return true;
     }
 
@@ -269,7 +389,7 @@
         }
     };
 
-    // ================= PISCINAS =================
+    // ========== PISCINAS ==========
     async function cargarPiscinas() {
         const { data, error } = await sb.from('piscinas').select('*').order('nombre');
         if (error) return console.error(error);
@@ -294,7 +414,7 @@
         }
     };
 
-    // ================= JORNADA =================
+    // ========== JORNADA ==========
     async function cargarJornadaActiva() {
         const { data, error } = await sb
             .from('jornadas')
@@ -315,13 +435,13 @@
         if (jornadaActiva) {
             const inicioStr = new Date(jornadaActiva.inicio).toLocaleString();
             estadoDiv.innerHTML = `✅ Jornada activa desde ${inicioStr}`;
-            estadoDiv.className = "estado-jornada activa";
+            estadoDiv.className = "estado-jornada estado-activa";
             btnIniciar.classList.add('oculto');
             btnFinalizar.classList.remove('oculto');
             medicionesContainer.classList.remove('oculto');
         } else {
             estadoDiv.innerHTML = "⚠️ Jornada no iniciada";
-            estadoDiv.className = "estado-jornada inactiva";
+            estadoDiv.className = "estado-jornada estado-inactiva";
             btnIniciar.classList.remove('oculto');
             btnFinalizar.classList.add('oculto');
             medicionesContainer.classList.add('oculto');
@@ -360,7 +480,7 @@
         }
     };
 
-    // ================= PRODUCTOS TEMPORALES =================
+    // ========== PRODUCTOS ==========
     function renderizarProductos() {
         const contenedor = document.getElementById('listaProductos');
         contenedor.innerHTML = '';
@@ -404,7 +524,7 @@
         renderizarProductos();
     };
 
-    // ================= GUARDAR MEDICIÓN =================
+    // ========== GUARDAR MEDICIÓN ==========
     document.getElementById('btnGuardar').onclick = async () => {
         if (!jornadaActiva) {
             document.getElementById('mensaje').innerText = "⚠️ Debes iniciar la jornada primero.";
@@ -457,19 +577,19 @@
         cargarUltimasMediciones();
     };
 
-    // ================= ÚLTIMAS 5 MEDICIONES =================
+    // ========== ÚLTIMAS 4 MEDICIONES ==========
     async function cargarUltimasMediciones() {
         const { data, error } = await sb
             .from('mediciones')
             .select('*, piscinas(nombre)')
             .eq('tecnico_id', currentUserId)
             .order('created_at', { ascending: false })
-            .limit(5);
+            .limit(4);
         if (error) return console.error(error);
-        const lista = document.getElementById('listaUltimasMediciones');
-        lista.innerHTML = '';
+        const contenedor = document.getElementById('listaUltimasMediciones');
+        contenedor.innerHTML = '';
         if (!data || data.length === 0) {
-            lista.innerHTML = '<li>No hay mediciones</li>';
+            contenedor.innerHTML = '<div class="medicion-card">No hay mediciones</div>';
             return;
         }
         for (const m of data) {
@@ -479,21 +599,23 @@
                 .eq('medicion_id', m.id);
             let productosHtml = '';
             if (productos && productos.length) {
-                productosHtml = `<br><small>🧴 ${productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ')}</small>`;
+                productosHtml = `<div style="margin-top: 10px; font-size:0.85rem;">🧴 ${productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ')}</div>`;
             }
             const nombrePiscina = m.piscinas ? m.piscinas.nombre : '?';
-            const li = document.createElement('li');
-            li.className = 'medicion-item';
-            li.innerHTML = `<strong>${nombrePiscina}</strong><br>
-                            🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
-                            📝 ${m.observaciones || 'Sin observaciones'}<br>
-                            <small>${new Date(m.created_at).toLocaleString()}</small>
-                            ${productosHtml}`;
-            lista.appendChild(li);
+            const card = document.createElement('div');
+            card.className = 'medicion-card';
+            card.innerHTML = `
+                <strong>🏊 ${nombrePiscina}</strong>
+                <div style="margin-top: 8px;">🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C</div>
+                <div style="font-size:0.85rem; color:#5b6e8c;">📝 ${m.observaciones || 'Sin observaciones'}</div>
+                <div style="font-size:0.75rem; color:#8a99b0; margin-top: 8px;">🕒 ${new Date(m.created_at).toLocaleString()}</div>
+                ${productosHtml}
+            `;
+            contenedor.appendChild(card);
         }
     }
 
-    // ================= HISTÓRICO MEDICIONES POR FECHA =================
+    // ========== HISTÓRICO DE MEDICIONES POR FECHA ==========
     document.getElementById('btnBuscarFecha').onclick = async () => {
         const fecha = document.getElementById('fechaConsulta').value;
         if (!fecha) { alert("Selecciona una fecha"); return; }
@@ -518,9 +640,8 @@
         for (const m of data) {
             const { data: productos } = await sb.from('productos_utilizados').select('*').eq('medicion_id', m.id);
             let prodHtml = '';
-            if (productos && productos.length) prodHtml = `<br><small>🧴 ${productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ')}</small>`;
+            if (productos && productos.length) prodHtml = `<div style="margin-top:8px;"><small>🧴 ${productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ')}</small></div>`;
             const li = document.createElement('li');
-            li.className = 'medicion-item';
             li.innerHTML = `<strong>${m.piscinas?.nombre || '?'}</strong><br>
                             🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
                             📝 ${m.observaciones || ''}<br>
@@ -529,23 +650,19 @@
         }
     };
 
-    // ================= JORNADAS: SEMANA ACTUAL (lunes a domingo) =================
+    // ========== JORNADAS SEMANA ACTUAL ==========
     async function cargarJornadasSemanaActual() {
-        // Calcular lunes y domingo de la semana actual en zona local
         const hoy = new Date();
-        const diaSemana = hoy.getDay(); // 0 domingo, 1 lunes...
-        const diffLunes = diaSemana === 0 ? 6 : diaSemana - 1; // días atrás hasta lunes
+        const diaSemana = hoy.getDay();
+        const diffLunes = diaSemana === 0 ? 6 : diaSemana - 1;
         const lunes = new Date(hoy);
         lunes.setDate(hoy.getDate() - diffLunes);
         lunes.setHours(0, 0, 0, 0);
         const domingo = new Date(lunes);
         domingo.setDate(lunes.getDate() + 6);
         domingo.setHours(23, 59, 59, 999);
-
-        // Convertir a UTC para consulta
         const startUTC = new Date(lunes.getTime() - lunes.getTimezoneOffset() * 60000).toISOString();
         const endUTC = new Date(domingo.getTime() - domingo.getTimezoneOffset() * 60000).toISOString();
-
         const { data, error } = await sb
             .from('jornadas')
             .select('*')
@@ -554,10 +671,10 @@
             .lte('inicio', endUTC)
             .order('inicio', { ascending: false });
         if (error) return console.error(error);
-        const lista = document.getElementById('listaJornadasSemana');
-        lista.innerHTML = '';
+        const contenedor = document.getElementById('listaJornadasSemana');
+        contenedor.innerHTML = '';
         if (!data || data.length === 0) {
-            lista.innerHTML = '<li>No hay jornadas esta semana</li>';
+            contenedor.innerHTML = '<div class="jornada-card">No hay jornadas esta semana</div>';
             return;
         }
         for (const j of data) {
@@ -572,17 +689,17 @@
             } else {
                 duracion = ' (en curso)';
             }
-            const li = document.createElement('li');
-            li.className = 'jornada-item';
-            li.innerHTML = `<strong>📅 ${inicio.toLocaleDateString()}</strong><br>
-                            🕒 Inicio: ${inicio.toLocaleTimeString()}<br>
-                            🕔 Fin: ${fin ? fin.toLocaleTimeString() : '—'}<br>
-                            ⏱️ Duración: ${duracion}`;
-            lista.appendChild(li);
+            const card = document.createElement('div');
+            card.className = 'jornada-card';
+            card.innerHTML = `<strong>📅 ${inicio.toLocaleDateString()}</strong><br>
+                              🕒 Inicio: ${inicio.toLocaleTimeString()}<br>
+                              🕔 Fin: ${fin ? fin.toLocaleTimeString() : '—'}<br>
+                              ⏱️ Duración: ${duracion}`;
+            contenedor.appendChild(card);
         }
     }
 
-    // ================= JORNADAS POR FECHA (selector) =================
+    // ========== JORNADAS POR FECHA ==========
     document.getElementById('btnBuscarJornadaPorFecha').onclick = async () => {
         const fecha = document.getElementById('fechaConsultaJornada').value;
         if (!fecha) { alert("Selecciona una fecha"); return; }
@@ -598,10 +715,10 @@
             .lte('inicio', endUTC)
             .order('inicio', { ascending: false });
         if (error) return console.error(error);
-        const lista = document.getElementById('listaJornadasPorFecha');
-        lista.innerHTML = '';
+        const contenedor = document.getElementById('listaJornadasPorFecha');
+        contenedor.innerHTML = '';
         if (!data || data.length === 0) {
-            lista.innerHTML = '<li>No hay jornadas en esa fecha</li>';
+            contenedor.innerHTML = '<div class="jornada-card">No hay jornadas en esa fecha</div>';
             return;
         }
         for (const j of data) {
@@ -616,28 +733,53 @@
             } else {
                 duracion = ' (en curso)';
             }
-            const li = document.createElement('li');
-            li.className = 'jornada-item';
-            li.innerHTML = `<strong>📅 ${inicio.toLocaleDateString()}</strong><br>
-                            🕒 Inicio: ${inicio.toLocaleTimeString()}<br>
-                            🕔 Fin: ${fin ? fin.toLocaleTimeString() : '—'}<br>
-                            ⏱️ Duración: ${duracion}`;
-            lista.appendChild(li);
+            const card = document.createElement('div');
+            card.className = 'jornada-card';
+            card.innerHTML = `<strong>📅 ${inicio.toLocaleDateString()}</strong><br>
+                              🕒 Inicio: ${inicio.toLocaleTimeString()}<br>
+                              🕔 Fin: ${fin ? fin.toLocaleTimeString() : '—'}<br>
+                              ⏱️ Duración: ${duracion}`;
+            contenedor.appendChild(card);
         }
     };
 
-    // ================= LOGOUT =================
-    document.getElementById('btnLogout')?.remove(); // no hay logout explícito, pero puedes añadirlo
-    // Añadimos un botón de logout dentro del dashboard por si acaso
-    const logoutBtn = document.createElement('button');
-    logoutBtn.textContent = "🚪 Cerrar sesión";
-    logoutBtn.style.background = "#c2410c";
-    logoutBtn.style.marginTop = "20px";
-    logoutBtn.onclick = async () => {
+    // ========== BOTÓN REPORTAR INCIDENCIA (INOPERATIVO - FUTURO) ==========
+    document.getElementById('btnReportarIncidencia').onclick = () => {
+        const texto = document.getElementById('incidenciaTexto').value.trim();
+        if (!texto) {
+            document.getElementById('incidenciaMsg').innerHTML = "⚠️ Escribe una descripción antes de reportar.";
+            setTimeout(() => document.getElementById('incidenciaMsg').innerHTML = "", 3000);
+            return;
+        }
+        // Simulación: aviso de que estará disponible próximamente
+        document.getElementById('incidenciaMsg').innerHTML = "🔔 Función en desarrollo. Próximamente se enviará al gerente.";
+        console.log("INCIDENCIA (simulada):", texto, "Técnico ID:", currentUserId);
+        // Limpiar campo y mensaje después de unos segundos
+        document.getElementById('incidenciaTexto').value = "";
+        setTimeout(() => document.getElementById('incidenciaMsg').innerHTML = "", 4000);
+    };
+
+    // ========== ACORDEONES (colapsar/expandir) ==========
+    function initAccordion(headerId, contentId) {
+        const header = document.getElementById(headerId);
+        const content = document.getElementById(contentId);
+        if (!header || !content) return;
+        header.addEventListener('click', () => {
+            content.classList.toggle('oculto');
+            const span = header.querySelector('span');
+            if (span) span.innerHTML = content.classList.contains('oculto') ? '▼' : '▲';
+        });
+    }
+
+    initAccordion('ultimasMedicionesHeader', 'ultimasMedicionesContent');
+    initAccordion('historicoMedicionesHeader', 'historicoMedicionesContent');
+    initAccordion('historicoJornadasHeader', 'historicoJornadasContent');
+
+    // ========== LOGOUT ==========
+    document.getElementById('btnLogout').onclick = async () => {
         await sb.auth.signOut();
         location.reload();
     };
-    document.getElementById('dashboardPanel')?.appendChild(logoutBtn);
 </script>
 </body>
 </html>
