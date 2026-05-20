@@ -267,11 +267,12 @@
         }
         
         .mensaje-error {
-            color: #dc2626;
-            background: #fee2e2;
-            padding: 12px;
-            border-radius: 12px;
-            margin: 10px 0;
+    color: #dc2626;
+    background: #fee2e2;
+    padding: 12px;
+    border-radius: 12px;
+    margin: 10px 0;
+
         }
     </style>
 </head>
@@ -468,34 +469,45 @@
     function formatDateYMD(date) { return date.toISOString().slice(0,10); }
 
     async function cargarCaches() {
-        const { data: piscinas } = await sb.from('piscinas').select('id, nombre');
-        piscinas?.forEach(p => cachePiscinas[p.id] = p.nombre);
-        
-        const { data: perfiles } = await sb.from('perfiles').select('id, nick, nombre, rol');
-        perfiles?.forEach(p => cachePerfiles[p.id] = { nick: p.nick, nombre: p.nombre, rol: p.rol });
-        
-        await cargarSelectoresTecnicos();
+    const { data: piscinas } = await sb.from('piscinas').select('id, nombre');
+    piscinas?.forEach(p => cachePiscinas[p.id] = p.nombre);
+    
+    const { data: perfiles } = await sb.from('perfiles').select('id, nick, nombre, rol');
+    perfiles?.forEach(p => cachePerfiles[p.id] = { nick: p.nick, nombre: p.nombre, rol: p.rol });
+    
+    console.log("Perfiles cargados:", perfiles?.length);
+    console.log("Técnicos:", Object.values(cachePerfiles).filter(p => p.rol === 'tecnico'));
+    
+    await cargarSelectoresTecnicos();
+}
+
+  async function cargarSelectoresTecnicos() {
+    // Consultar técnicos directamente desde Supabase
+    const { data: tecnicos, error } = await sb.from('perfiles').select('id, nick, nombre').eq('rol', 'tecnico');
+    
+    if (error) {
+        console.error("Error cargando técnicos:", error);
+        return;
     }
     
-    async function cargarSelectoresTecnicos() {
-        const tecnicos = Object.values(cachePerfiles).filter(p => p.rol === 'tecnico');
-        const selectores = ['selectorTecnicoPersonal', 'selectorTecnicoDisponibilidad', 'selectorTecnicoVacaciones'];
-        
-        for (const id of selectores) {
-            const select = document.getElementById(id);
-            if (select) {
-                const valorActual = select.value;
-                select.innerHTML = '<option value="">Selecciona un técnico...</option>';
-                tecnicos.forEach(t => {
-                    select.innerHTML += `<option value="${t.id}">${t.nick}${t.nombre ? ` - ${t.nombre}` : ''}</option>`;
-                });
-                if (valorActual && tecnicos.some(t => t.id === valorActual)) {
-                    select.value = valorActual;
-                }
+    console.log("Técnicos encontrados:", tecnicos?.length);
+    
+    const selectores = ['selectorTecnicoPersonal', 'selectorTecnicoDisponibilidad', 'selectorTecnicoVacaciones'];
+    
+    for (const id of selectores) {
+        const select = document.getElementById(id);
+        if (select) {
+            const valorActual = select.value;
+            select.innerHTML = '<option value="">Selecciona un técnico...</option>';
+            tecnicos?.forEach(t => {
+                select.innerHTML += `<option value="${t.id}">${t.nick}${t.nombre ? ` - ${t.nombre}` : ''}</option>`;
+            });
+            if (valorActual && tecnicos?.some(t => t.id === valorActual)) {
+                select.value = valorActual;
             }
         }
     }
-
+}
     // ========== DATOS DEL TÉCNICO HOY ==========
     async function cargarDatosTecnicoHoy() {
         const tecnicoId = document.getElementById('selectorTecnicoPersonal').value;
@@ -690,190 +702,182 @@
 
     // ========== VACACIONES Y AUSENCIAS ==========
     async function cargarAusenciasTecnico() {
-        const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
-        const contenedor = document.getElementById('listaAusencias');
-        
-        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
-            contenedor.innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
-            return;
-        }
-        
-        try {
-            contenedor.innerHTML = '<div class="medicion-card">⏳ Cargando datos...</div>';
-            
-            const { data: vacaciones, error: errVac } = await sb
-                .from('vacaciones_tecnicos')
-                .select('*')
-                .eq('tecnico_id', tecnicoId)
-                .order('fecha_inicio', { ascending: false });
-            
-            if (errVac) throw errVac;
-            
-            const { data: incidencias, error: errInc } = await sb
-                .from('incidencias_tecnicos')
-                .select('*')
-                .eq('tecnico_id', tecnicoId)
-                .order('fecha_inicio', { ascending: false });
-            
-            if (errInc) throw errInc;
-            
-            let html = '';
-            const hoy = new Date();
-            
-            if (vacaciones && vacaciones.length > 0) {
-                html += `<div class="medicion-card" style="background: #e0e7ff; margin-bottom: 12px;"><strong>🏖️ VACACIONES (${vacaciones.length})</strong></div>`;
-                for (const v of vacaciones) {
-                    const fechaFin = new Date(v.fecha_fin);
-                    const esPasada = fechaFin < hoy;
-                    const estadoTexto = v.estado === 'disfrutada' ? '✅ Disfrutada' : (v.estado === 'aprobada' ? '👍 Aprobada' : '⏳ Pendiente');
-                    const bgColor = esPasada ? '#f3f4f6' : '#e0e7ff';
-                    
-                    html += `
-                        <div class="medicion-card" style="background: ${bgColor}; margin-bottom: 8px;">
-                            <strong>📅 ${v.fecha_inicio} → ${v.fecha_fin}</strong>
-                            <div>📆 Total: ${v.dias_totales} días · ${estadoTexto}</div>
-                            <div>📝 ${v.observaciones || 'Sin observaciones'}</div>
-                            <button class="eliminar-vacacion" data-id="${v.id}" style="background: #c2410c; width: auto; margin-top: 8px; padding: 4px 12px; font-size: 0.7rem;">🗑️ Eliminar</button>
-                        </div>
-                    `;
-                }
-            } else {
-                html += `<div class="medicion-card">📋 No hay vacaciones registradas</div>`;
-            }
-            
-            if (incidencias && incidencias.length > 0) {
-                html += `<div class="medicion-card" style="background: #fee2e2; margin-top: 12px; margin-bottom: 12px;"><strong>📋 INCIDENCIAS (${incidencias.length})</strong></div>`;
-                for (const i of incidencias) {
-                    const tipoTexto = {
-                        'baja_medica': '🩺 Baja médica',
-                        'permiso': '📋 Permiso',
-                        'formacion': '📚 Formación',
-                        'reunion': '🤝 Reunión',
-                        'otro': '📌 Otro'
-                    }[i.tipo] || i.tipo;
-                    
-                    const fechaFin = new Date(i.fecha_fin);
-                    const esPasada = fechaFin < hoy;
-                    const bgColor = esPasada ? '#f3f4f6' : '#fee2e2';
-                    
-                    html += `
-                        <div class="medicion-card" style="background: ${bgColor}; margin-bottom: 8px;">
-                            <strong>${tipoTexto}</strong>
-                            <div>📅 ${i.fecha_inicio} → ${i.fecha_fin}</div>
-                            <div>📝 ${i.descripcion || 'Sin descripción'}</div>
-                            <button class="eliminar-incidencia" data-id="${i.id}" style="background: #c2410c; width: auto; margin-top: 8px; padding: 4px 12px; font-size: 0.7rem;">🗑️ Eliminar</button>
-                        </div>
-                    `;
-                }
-            } else {
-                html += `<div class="medicion-card">📋 No hay incidencias registradas</div>`;
-            }
-            
-            contenedor.innerHTML = html;
-            
-            document.querySelectorAll('.eliminar-vacacion').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    if (confirm("¿Eliminar esta solicitud de vacaciones?")) {
-                        const { error } = await sb.from('vacaciones_tecnicos').delete().eq('id', btn.dataset.id);
-                        if (error) {
-                            alert("Error: " + error.message);
-                        } else {
-                            alert("✅ Vacación eliminada");
-                            await cargarAusenciasTecnico();
-                            await cargarDisponibilidadSemanal();
-                        }
-                    }
-                });
-            });
-            
-            document.querySelectorAll('.eliminar-incidencia').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    if (confirm("¿Eliminar esta incidencia?")) {
-                        const { error } = await sb.from('incidencias_tecnicos').delete().eq('id', btn.dataset.id);
-                        if (error) {
-                            alert("Error: " + error.message);
-                        } else {
-                            alert("✅ Incidencia eliminada");
-                            await cargarAusenciasTecnico();
-                            await cargarDisponibilidadSemanal();
-                        }
-                    }
-                });
-            });
-            
-        } catch (error) {
-            console.error("Error:", error);
-            contenedor.innerHTML = `<div class="mensaje-error">❌ Error: ${error.message}</div>`;
-        }
+    const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
+    const contenedor = document.getElementById('listaAusencias');
+    
+    console.log("Técnico seleccionado:", tecnicoId);
+    
+    if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '' || tecnicoId === 'null') {
+        contenedor.innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
+        return;
     }
     
-    async function agregarAusencia() {
-        const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
+    try {
+        contenedor.innerHTML = '<div class="medicion-card">⏳ Cargando datos...</div>';
         
-        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
-            alert("❌ Selecciona un técnico válido primero");
+        // Verificar que el técnico existe
+        const { data: tecnicoExiste, error: errorTecnico } = await sb
+            .from('perfiles')
+            .select('id, nick')
+            .eq('id', tecnicoId)
+            .single();
+        
+        if (errorTecnico || !tecnicoExiste) {
+            contenedor.innerHTML = '<div class="mensaje-error">❌ Técnico no encontrado</div>';
             return;
         }
         
-        const tipo = document.getElementById('nuevaAusenciaTipo').value;
-        const inicio = document.getElementById('nuevaAusenciaInicio').value;
-        const fin = document.getElementById('nuevaAusenciaFin').value;
-        const observaciones = document.getElementById('nuevaAusenciaObs').value;
+        const { data: vacaciones, error: errVac } = await sb
+            .from('vacaciones_tecnicos')
+            .select('*')
+            .eq('tecnico_id', tecnicoId)
+            .order('fecha_inicio', { ascending: false });
         
-        if (!inicio || !fin) {
-            alert("❌ Selecciona fechas de inicio y fin");
-            return;
-        }
+        if (errVac) throw errVac;
         
-        const fechaInicio = new Date(inicio);
-        const fechaFin = new Date(fin);
+        const { data: incidencias, error: errInc } = await sb
+            .from('incidencias_tecnicos')
+            .select('*')
+            .eq('tecnico_id', tecnicoId)
+            .order('fecha_inicio', { ascending: false });
         
-        if (fechaInicio > fechaFin) {
-            alert("❌ La fecha de inicio no puede ser mayor que la fecha de fin");
-            return;
-        }
+        if (errInc) throw errInc;
         
-        const diffDays = Math.ceil((fechaFin - fechaInicio) / (1000 * 60 * 60 * 24)) + 1;
+        let html = '';
+        const hoy = new Date();
         
-        try {
-            if (tipo === 'vacaciones') {
-                const { error } = await sb.from('vacaciones_tecnicos').insert({
-                    tecnico_id: tecnicoId,
-                    fecha_inicio: inicio,
-                    fecha_fin: fin,
-                    dias_totales: diffDays,
-                    estado: 'aprobada',
-                    observaciones: observaciones || 'Vacaciones registradas por gerente'
-                });
-                if (error) throw error;
-                alert(`✅ Vacaciones registradas (${diffDays} días)`);
-            } else {
-                const { error } = await sb.from('incidencias_tecnicos').insert({
-                    tecnico_id: tecnicoId,
-                    tipo: tipo,
-                    fecha_inicio: inicio,
-                    fecha_fin: fin,
-                    descripcion: observaciones || 'Registrado por gerente'
-                });
-                if (error) throw error;
-                alert("✅ Incidencia registrada");
+        if (vacaciones && vacaciones.length > 0) {
+            html += `<div class="medicion-card" style="background: #e0e7ff; margin-bottom: 12px;"><strong>🏖️ VACACIONES (${vacaciones.length})</strong></div>`;
+            for (const v of vacaciones) {
+                const esPasada = new Date(v.fecha_fin) < hoy;
+                html += `
+                    <div class="medicion-card" style="background: ${esPasada ? '#f3f4f6' : '#e0e7ff'}; margin-bottom: 8px;">
+                        📅 ${v.fecha_inicio} → ${v.fecha_fin} (${v.dias_totales} días)
+                        <br>📝 ${v.observaciones || 'Sin observaciones'}
+                        <br><button class="eliminar-vacacion" data-id="${v.id}" style="background:#c2410c; width:auto; margin-top:8px; padding:4px 12px;">🗑️ Eliminar</button>
+                    </div>
+                `;
             }
-            
-            document.getElementById('nuevaAusenciaInicio').value = '';
-            document.getElementById('nuevaAusenciaFin').value = '';
-            document.getElementById('nuevaAusenciaObs').value = '';
-            
-            await cargarAusenciasTecnico();
-            await cargarDisponibilidadSemanal();
-            
-        } catch (error) {
-            console.error("Error:", error);
-            alert("❌ Error: " + error.message);
+        } else {
+            html += `<div class="medicion-card">📋 No hay vacaciones registradas</div>`;
         }
+        
+        if (incidencias && incidencias.length > 0) {
+            html += `<div class="medicion-card" style="background: #fee2e2; margin-top: 12px;"><strong>📋 INCIDENCIAS (${incidencias.length})</strong></div>`;
+            for (const i of incidencias) {
+                const tipoTexto = {
+                    'baja_medica': '🩺 Baja médica',
+                    'permiso': '📋 Permiso',
+                    'formacion': '📚 Formación',
+                    'reunion': '🤝 Reunión'
+                }[i.tipo] || i.tipo;
+                const esPasada = new Date(i.fecha_fin) < hoy;
+                html += `
+                    <div class="medicion-card" style="background: ${esPasada ? '#f3f4f6' : '#fee2e2'}; margin-bottom: 8px;">
+                        <strong>${tipoTexto}</strong>
+                        <br>📅 ${i.fecha_inicio} → ${i.fecha_fin}
+                        <br>📝 ${i.descripcion || 'Sin descripción'}
+                        <br><button class="eliminar-incidencia" data-id="${i.id}" style="background:#c2410c; width:auto; margin-top:8px; padding:4px 12px;">🗑️ Eliminar</button>
+                    </div>
+                `;
+            }
+        } else {
+            html += `<div class="medicion-card">📋 No hay incidencias registradas</div>`;
+        }
+        
+        contenedor.innerHTML = html;
+        
+        // Eventos eliminar
+        document.querySelectorAll('.eliminar-vacacion').forEach(btn => {
+            btn.onclick = async () => {
+                if (confirm("¿Eliminar?")) {
+                    await sb.from('vacaciones_tecnicos').delete().eq('id', btn.dataset.id);
+                    await cargarAusenciasTecnico();
+                    await cargarDisponibilidadSemanal();
+                }
+            };
+        });
+        
+        document.querySelectorAll('.eliminar-incidencia').forEach(btn => {
+            btn.onclick = async () => {
+                if (confirm("¿Eliminar?")) {
+                    await sb.from('incidencias_tecnicos').delete().eq('id', btn.dataset.id);
+                    await cargarAusenciasTecnico();
+                    await cargarDisponibilidadSemanal();
+                }
+            };
+        });
+        
+    } catch (error) {
+        console.error("Error:", error);
+        contenedor.innerHTML = `<div class="medicion-card" style="color:red;">❌ Error: ${error.message}</div>`;
     }
-
+}
+    
+   async function agregarAusencia() {
+    const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
+    
+    if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '' || tecnicoId === 'null') {
+        alert("❌ Selecciona un técnico válido primero");
+        return;
+    }
+    
+    const tipo = document.getElementById('nuevaAusenciaTipo').value;
+    const inicio = document.getElementById('nuevaAusenciaInicio').value;
+    const fin = document.getElementById('nuevaAusenciaFin').value;
+    const observaciones = document.getElementById('nuevaAusenciaObs').value;
+    
+    if (!inicio || !fin) {
+        alert("❌ Selecciona fechas");
+        return;
+    }
+    
+    const fechaInicio = new Date(inicio);
+    const fechaFin = new Date(fin);
+    
+    if (fechaInicio > fechaFin) {
+        alert("❌ Fecha inicio no puede ser mayor que fin");
+        return;
+    }
+    
+    const diffDays = Math.ceil((fechaFin - fechaInicio) / (1000 * 60 * 60 * 24)) + 1;
+    
+    try {
+        if (tipo === 'vacaciones') {
+            const { error } = await sb.from('vacaciones_tecnicos').insert({
+                tecnico_id: tecnicoId,
+                fecha_inicio: inicio,
+                fecha_fin: fin,
+                dias_totales: diffDays,
+                estado: 'aprobada',
+                observaciones: observaciones || 'Registrado por gerente'
+            });
+            if (error) throw error;
+            alert(`✅ Vacaciones registradas (${diffDays} días)`);
+        } else {
+            const { error } = await sb.from('incidencias_tecnicos').insert({
+                tecnico_id: tecnicoId,
+                tipo: tipo,
+                fecha_inicio: inicio,
+                fecha_fin: fin,
+                descripcion: observaciones || 'Registrado por gerente'
+            });
+            if (error) throw error;
+            alert("✅ Incidencia registrada");
+        }
+        
+        // Limpiar formulario
+        document.getElementById('nuevaAusenciaInicio').value = '';
+        document.getElementById('nuevaAusenciaFin').value = '';
+        document.getElementById('nuevaAusenciaObs').value = '';
+        
+        await cargarAusenciasTecnico();
+        await cargarDisponibilidadSemanal();
+        
+    } catch (error) {
+        alert("❌ Error: " + error.message);
+    }
+}
     // ========== FUNCIONES DE SUPERVISIÓN (resumidas) ==========
     async function cargarResumenCompacto() {
         const hoy = new Date().toISOString().slice(0,10);
@@ -1356,23 +1360,31 @@
     }
 
     document.getElementById('btnLogin').onclick = async () => {
-        if (await hacerLogin()) {
-            document.getElementById('loginPanel').classList.add('oculto');
-            document.getElementById('dashboardPanel').classList.remove('oculto');
-            await cargarCaches();
-            await actualizarConsolaCompleta();
-            await cargarFiltrosTecnicos();
-            
-            const hoy = new Date();
-            const hace7 = new Date();
-            hace7.setDate(hoy.getDate() - 7);
-            await ejecutarBusquedaJornadas(hace7.toISOString(), hoy.toISOString());
-            await ejecutarBusquedaMediciones(hace7.toISOString(), hoy.toISOString());
-            await ejecutarBusquedaTiempos(hace7.toISOString(), hoy.toISOString());
-            
-            if (intervaloActualizacion) clearInterval(intervaloActualizacion);
-            intervaloActualizacion = setInterval(actualizarConsolaCompleta, 30000);
-        }
+    if (await hacerLogin()) {
+        document.getElementById('loginPanel').classList.add('oculto');
+        document.getElementById('dashboardPanel').classList.remove('oculto');
+        
+        // Primero cargar caches y selectores
+        await cargarCaches();
+        
+        // Verificar que los selectores tienen técnicos
+        console.log("Selector vacaciones options:", document.getElementById('selectorTecnicoVacaciones').children.length);
+        
+        // Cargar el resto de datos
+        await actualizarConsolaCompleta();
+        await cargarFiltrosTecnicos();
+        
+        const hoy = new Date();
+        const hace7 = new Date();
+        hace7.setDate(hoy.getDate() - 7);
+        await ejecutarBusquedaJornadas(hace7.toISOString(), hoy.toISOString());
+        await ejecutarBusquedaMediciones(hace7.toISOString(), hoy.toISOString());
+        await ejecutarBusquedaTiempos(hace7.toISOString(), hoy.toISOString());
+        
+        if (intervaloActualizacion) clearInterval(intervaloActualizacion);
+        intervaloActualizacion = setInterval(actualizarConsolaCompleta, 30000);
+    }
+
     };
 
     // Eventos de búsqueda
