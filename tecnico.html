@@ -497,37 +497,40 @@
     }
 
     function mostrarSugerencias(texto) {
-        const sugerenciasDiv = document.getElementById('sugerenciasPiscinas');
-        if (!texto.trim()) { sugerenciasDiv.style.display = 'none'; return; }
-        const filtradas = todasLasPiscinas.filter(p => p.nombre.toLowerCase().includes(texto.toLowerCase())).sort((a,b) => a.nombre.localeCompare(b.nombre));
-        if (filtradas.length === 0) { sugerenciasDiv.style.display = 'none'; return; }
-        sugerenciasDiv.innerHTML = '';
-        filtradas.forEach(p => {
-            const item = document.createElement('div');
-            item.className = 'sugerencia-item';
-            item.textContent = p.nombre;
-            item.onclick = async () => {
-                document.getElementById('buscarPiscina').value = p.nombre;
-                document.getElementById('piscinaSeleccionadaId').value = p.id;
-                piscinaSeleccionadaId = p.id;
-                piscinaSeleccionadaData = await cargarDatosPiscina(p.id);
-                localStorage.setItem('ultimaPiscina', p.id);
-                sugerenciasDiv.style.display = 'none';
-                actualizarConsola();
-            };
-            sugerenciasDiv.appendChild(item);
-        });
-        sugerenciasDiv.style.display = 'block';
-    }
-
-    document.getElementById('buscarPiscina').addEventListener('input', (e) => {
-        if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
-        timeoutBusqueda = setTimeout(() => mostrarSugerencias(e.target.value), 200);
-    });
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.autocomplete-container')) {
-            document.getElementById('sugerenciasPiscinas').style.display = 'none';
+    const sugerenciasDiv = document.getElementById('sugerenciasPiscinas');
+    if (!texto.trim()) { sugerenciasDiv.style.display = 'none'; return; }
+    let filtradas = todasLasPiscinas.filter(p => p.nombre.toLowerCase().includes(texto.toLowerCase())).sort((a,b) => a.nombre.localeCompare(b.nombre));
+    
+    // Eliminar duplicados por nombre (conserva el primero)
+    const unicos = [];
+    const nombresVistos = new Set();
+    for (const p of filtradas) {
+        if (!nombresVistos.has(p.nombre)) {
+            nombresVistos.add(p.nombre);
+            unicos.push(p);
         }
+    }
+    filtradas = unicos;
+    
+    if (filtradas.length === 0) { sugerenciasDiv.style.display = 'none'; return; }
+    sugerenciasDiv.innerHTML = '';
+    filtradas.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'sugerencia-item';
+        item.textContent = p.nombre;
+        item.onclick = async () => {
+            document.getElementById('buscarPiscina').value = p.nombre;
+            document.getElementById('piscinaSeleccionadaId').value = p.id;
+            piscinaSeleccionadaId = p.id;
+            piscinaSeleccionadaData = await cargarDatosPiscina(p.id);
+            localStorage.setItem('ultimaPiscina', p.id);
+            sugerenciasDiv.style.display = 'none';
+            actualizarConsola();
+        };
+        sugerenciasDiv.appendChild(item);
+    });
+    sugerenciasDiv.style.display = 'block';
+}
     });
 
     // ========== JORNADA ==========
