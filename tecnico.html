@@ -168,7 +168,7 @@
     <!-- Login -->
     <div id="loginPanel" class="card">
         <div class="card-header" style="cursor:default;">🔐 Acceso Técnico</div>
-        <input type="text" id="nick" placeholder="Nick">
+        <input type="text" id="nick" placeholder="Nombre del técnico">
         <input type="password" id="password" placeholder="Contraseña">
         <button id="btnLogin">Iniciar sesión</button>
         <div id="errorMsg" style="color:red; margin-top:12px;"></div>
@@ -474,7 +474,7 @@
             btnDesp.className = "btn-naranja";
             btnDesp.onclick = iniciarDesplazamiento;
             const btnAct = document.createElement('button');
-            btnAct.textContent = "🏊 Iniciar actividad (sin desplazamiento)";
+            btnAct.textContent = "🏊 Iniciar actividad en piscina";
             btnAct.className = "btn-verde";
             btnAct.onclick = iniciarActividad;
             botonesDiv.appendChild(btnDesp);
