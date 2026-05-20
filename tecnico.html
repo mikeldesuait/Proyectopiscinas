@@ -286,11 +286,13 @@
     ];
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
+    
     function mostrarMensaje(texto, tipo = 'exito') {
         const msgDiv = document.getElementById('mensaje');
         msgDiv.innerHTML = `<span class="${tipo}">${texto}</span>`;
         setTimeout(() => msgDiv.innerHTML = '', 3000);
     }
+    
     function getPiscinaNombre(id) {
         const piscina = todasLasPiscinas.find(p => p.id == id);
         return piscina ? piscina.nombre : '?';
@@ -339,8 +341,6 @@
     // ========== RECUPERAR ESTADO DESPUÉS DE RECARGAR ==========
     async function recuperarEstadoActual() {
         if (!currentUserId) return;
-        
-        console.log("Recuperando estado actual...");
         
         const { data: jornada, error: errJ } = await sb
             .from('jornadas')
@@ -487,7 +487,7 @@
         }
     }
 
-    // PISCINAS
+    // ========== PISCINAS ==========
     async function cargarPiscinas() {
         if (piscinasCargadas) return;
         const { data } = await sb.from('piscinas').select('*').order('nombre');
@@ -497,40 +497,50 @@
     }
 
     function mostrarSugerencias(texto) {
-    const sugerenciasDiv = document.getElementById('sugerenciasPiscinas');
-    if (!texto.trim()) { sugerenciasDiv.style.display = 'none'; return; }
-    let filtradas = todasLasPiscinas.filter(p => p.nombre.toLowerCase().includes(texto.toLowerCase())).sort((a,b) => a.nombre.localeCompare(b.nombre));
-    
-    // Eliminar duplicados por nombre (conserva el primero)
-    const unicos = [];
-    const nombresVistos = new Set();
-    for (const p of filtradas) {
-        if (!nombresVistos.has(p.nombre)) {
-            nombresVistos.add(p.nombre);
-            unicos.push(p);
+        const sugerenciasDiv = document.getElementById('sugerenciasPiscinas');
+        if (!texto.trim()) { 
+            sugerenciasDiv.style.display = 'none'; 
+            return; 
         }
+        
+        let filtradas = todasLasPiscinas.filter(p => 
+            p.nombre.toLowerCase().includes(texto.toLowerCase())
+        ).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        
+        // Eliminar duplicados por nombre
+        const unicos = [];
+        const nombresVistos = new Set();
+        for (const p of filtradas) {
+            if (!nombresVistos.has(p.nombre)) {
+                nombresVistos.add(p.nombre);
+                unicos.push(p);
+            }
+        }
+        filtradas = unicos;
+        
+        if (filtradas.length === 0) { 
+            sugerenciasDiv.style.display = 'none'; 
+            return; 
+        }
+        
+        sugerenciasDiv.innerHTML = '';
+        filtradas.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'sugerencia-item';
+            item.textContent = p.nombre;
+            item.onclick = async () => {
+                document.getElementById('buscarPiscina').value = p.nombre;
+                document.getElementById('piscinaSeleccionadaId').value = p.id;
+                piscinaSeleccionadaId = p.id;
+                piscinaSeleccionadaData = await cargarDatosPiscina(p.id);
+                localStorage.setItem('ultimaPiscina', p.id);
+                sugerenciasDiv.style.display = 'none';
+                actualizarConsola();
+            };
+            sugerenciasDiv.appendChild(item);
+        });
+        sugerenciasDiv.style.display = 'block';
     }
-    filtradas = unicos;
-    
-    if (filtradas.length === 0) { sugerenciasDiv.style.display = 'none'; return; }
-    sugerenciasDiv.innerHTML = '';
-    filtradas.forEach(p => {
-        const item = document.createElement('div');
-        item.className = 'sugerencia-item';
-        item.textContent = p.nombre;
-        item.onclick = async () => {
-            document.getElementById('buscarPiscina').value = p.nombre;
-            document.getElementById('piscinaSeleccionadaId').value = p.id;
-            piscinaSeleccionadaId = p.id;
-            piscinaSeleccionadaData = await cargarDatosPiscina(p.id);
-            localStorage.setItem('ultimaPiscina', p.id);
-            sugerenciasDiv.style.display = 'none';
-            actualizarConsola();
-        };
-        sugerenciasDiv.appendChild(item);
-    });
-    sugerenciasDiv.style.display = 'block';
-}
 
     // ========== JORNADA ==========
     async function iniciarJornada() {
@@ -637,41 +647,41 @@
     }
 
     async function finalizarActividad() {
-    if (!trabajoActivo) return;
-    
-    const observaciones = document.getElementById('obs').value.trim() || "Actividad finalizada";
-    
-    const { error } = await sb.from('trabajos_piscina').update({ 
-        fin: new Date().toISOString(), 
-        observaciones: observaciones 
-    }).eq('id', trabajoActivo.id);
-    
-    if (error) { 
-        mostrarMensaje(error.message, 'error'); 
-        return; 
+        if (!trabajoActivo) return;
+        
+        const observaciones = document.getElementById('obs').value.trim() || "Actividad finalizada";
+        
+        const { error } = await sb.from('trabajos_piscina').update({ 
+            fin: new Date().toISOString(), 
+            observaciones: observaciones 
+        }).eq('id', trabajoActivo.id);
+        
+        if (error) { 
+            mostrarMensaje(error.message, 'error'); 
+            return; 
+        }
+        
+        trabajoActivo = null;
+        
+        // LIMPIAR FORMULARIO DE MEDICIÓN
+        document.getElementById('cloro').value = '';
+        document.getElementById('ph').value = '';
+        document.getElementById('temp').value = '';
+        document.getElementById('obs').value = '';
+        productosTemp = [];
+        renderizarProductos();
+        
+        // LIMPIAR PISCINA SELECCIONADA
+        piscinaSeleccionadaId = null;
+        piscinaSeleccionadaData = null;
+        document.getElementById('buscarPiscina').value = '';
+        document.getElementById('piscinaSeleccionadaId').value = '';
+        localStorage.removeItem('ultimaPiscina');
+        
+        actualizarConsola();
+        mostrarMensaje("✅ Actividad finalizada y piscina deseleccionada", 'exito');
+        await cargarMedicionesDeJornadaActiva();
     }
-    
-    trabajoActivo = null;
-    
-    // 1️⃣ LIMPIAR FORMULARIO DE MEDICIÓN
-    document.getElementById('cloro').value = '';
-    document.getElementById('ph').value = '';
-    document.getElementById('temp').value = '';
-    document.getElementById('obs').value = '';
-    productosTemp = [];
-    renderizarProductos();
-    
-    // 2️⃣ LIMPIAR PISCINA SELECCIONADA
-    piscinaSeleccionadaId = null;
-    piscinaSeleccionadaData = null;
-    document.getElementById('buscarPiscina').value = '';
-    document.getElementById('piscinaSeleccionadaId').value = '';
-    localStorage.removeItem('ultimaPiscina');
-    
-    actualizarConsola();  // Esto refrescará la consola y mostrará el estado "sin piscina"
-    mostrarMensaje("✅ Actividad finalizada y piscina deseleccionada", 'exito');
-    await cargarMedicionesDeJornadaActiva();
-}
 
     // ========== MEDICIONES ==========
     async function cargarMedicionesDeJornadaActiva() {
@@ -779,7 +789,7 @@
         await cargarMedicionesDeJornadaActiva();
     }
 
-    // HISTÓRICOS
+    // ========== HISTÓRICOS ==========
     async function cargarJornadasPorFecha() {
         const fecha = document.getElementById('fechaJornada').value;
         if (!fecha) { alert("Selecciona fecha"); return; }
@@ -816,7 +826,7 @@
         html2pdf().set({ filename: `jornadas_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
     }
 
-    // LOGIN
+    // ========== LOGIN ==========
     async function hacerLogin() {
         const nick = document.getElementById('nick').value.trim();
         const password = document.getElementById('password').value;
@@ -845,28 +855,44 @@
         return true;
     }
 
-    // Evento principal de login
+    // ========== EVENTOS PRINCIPALES ==========
     document.getElementById('btnLogin').onclick = async () => {
         if (await hacerLogin()) {
             document.getElementById('loginPanel').style.display = 'none';
             document.getElementById('dashboardPanel').style.display = 'block';
             await cargarInfoTecnico();
             await cargarPiscinas();
+            
+            // Eventos del buscador (se crean después de mostrar el dashboard)
+            document.getElementById('buscarPiscina').addEventListener('input', (e) => {
+                if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
+                timeoutBusqueda = setTimeout(() => mostrarSugerencias(e.target.value), 200);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.autocomplete-container')) {
+                    document.getElementById('sugerenciasPiscinas').style.display = 'none';
+                }
+            });
         }
     };
-// Evento para mostrar sugerencias al escribir en el buscador
-    document.getElementById('buscarPiscina').addEventListener('input', (e) => {
-        if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
-        timeoutBusqueda = setTimeout(() => mostrarSugerencias(e.target.value), 200);
+
+    // Acordeón para histórico
+    document.getElementById('toggleHistorico').addEventListener('click', () => {
+        const content = document.getElementById('historicoContent');
+        const flecha = document.querySelector('#toggleHistorico .flecha');
+        content.classList.toggle('oculto');
+        flecha.innerHTML = content.classList.contains('oculto') ? '▼' : '▲';
     });
 
-    // Cerrar sugerencias al hacer clic fuera
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.autocomplete-container')) {
-            document.getElementById('sugerenciasPiscinas').style.display = 'none';
-        }
-    });
-
+    // Eventos de botones
+    document.getElementById('btnIniciarJornada').onclick = iniciarJornada;
+    document.getElementById('btnFinalizarJornada').onclick = finalizarJornada;
+    document.getElementById('btnGuardar').onclick = guardarMedicion;
+    document.getElementById('btnFinalizarActividad').onclick = finalizarActividad;
+    document.getElementById('btnJornadasPorFecha').onclick = cargarJornadasPorFecha;
+    document.getElementById('btnJornadasPDF').onclick = descargarJornadasPDF;
+    
     document.getElementById('btnLogout').onclick = async () => { 
         await sb.auth.signOut(); 
         document.getElementById('dashboardPanel').style.display = 'none';
