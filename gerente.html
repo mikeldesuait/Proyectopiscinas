@@ -11,40 +11,40 @@
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
             background: #eef2ff;
-            padding: 24px;
+            padding: 20px;
         }
         .container { max-width: 1400px; margin: 0 auto; }
         .card {
             background: white;
-            border-radius: 28px;
-            padding: 24px;
-            margin-bottom: 28px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             border: 1px solid rgba(0,119,182,0.1);
         }
         .card-header {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 600;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
             gap: 10px;
-            border-left: 5px solid #0077b6;
-            padding-left: 18px;
+            border-left: 4px solid #0077b6;
+            padding-left: 14px;
             color: #1e4663;
             cursor: pointer;
         }
         .card-header:hover { background: #f8fafc; }
-        .card-header .flecha { margin-left: auto; font-size: 1.2rem; }
-        .card-content { padding-top: 16px; }
+        .card-header .flecha { margin-left: auto; font-size: 1.1rem; }
+        .card-content { padding-top: 12px; }
         button, input, select {
-            padding: 12px 16px;
+            padding: 10px 14px;
             border-radius: 40px;
             border: 1px solid #cad2db;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             background: #fff;
             width: 100%;
-            margin: 5px 0;
+            margin: 4px 0;
         }
         button {
             background: #0066cc;
@@ -57,52 +57,82 @@
         button:hover { background: #0052a3; transform: translateY(-1px); }
         .btn-pdf { background: #c2410c; }
         .btn-buscar { background: #475569; }
-        .btn-refresh { background: #2c7a4d; width: auto; padding: 8px 16px; }
+        .btn-refresh { background: #2c7a4d; width: auto; padding: 6px 12px; font-size: 0.8rem; }
         .oculto { display: none; }
+        
+        /* Resumen compacto */
+        .resumen-compacto {
+            display: flex;
+            gap: 12px;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .resumen-item {
+            text-align: center;
+            flex: 1;
+            min-width: 90px;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-radius: 20px;
+        }
+        .resumen-valor {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1e4663;
+            line-height: 1.2;
+        }
+        .resumen-label {
+            font-size: 0.65rem;
+            color: #5b6e8c;
+            margin-top: 4px;
+        }
+        
         .estadisticas {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
         }
         .stat-card {
             background: #f8fafc;
-            border-radius: 24px;
-            padding: 20px;
+            border-radius: 20px;
+            padding: 12px;
             text-align: center;
-            border-left: 4px solid #0077b6;
+            border-left: 3px solid #0077b6;
         }
-        .stat-value { font-size: 2rem; font-weight: 700; color: #1e4663; }
-        .stat-label { font-size: 0.8rem; color: #5b6e8c; margin-top: 8px; }
-        .row-flex { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
-        .grupo { flex: 1; min-width: 150px; }
-        label { font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 4px; display: block; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: #1e4663; }
+        .stat-label { font-size: 0.7rem; color: #5b6e8c; margin-top: 4px; }
+        .row-flex { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
+        .grupo { flex: 1; min-width: 130px; }
+        label { font-size: 0.7rem; font-weight: 600; color: #475569; margin-bottom: 3px; display: block; }
         .medicion-card, .jornada-card, .tecnico-card {
             background: #f8fafc;
-            border-radius: 20px;
-            padding: 12px 16px;
+            border-radius: 16px;
+            padding: 10px 14px;
             margin-bottom: 8px;
-            border-left: 4px solid #0077b6;
+            border-left: 3px solid #0077b6;
+            font-size: 0.85rem;
         }
-        .resultados-area { margin-top: 16px; max-height: 400px; overflow-y: auto; }
+        .resultados-area { margin-top: 12px; max-height: 350px; overflow-y: auto; }
         @media (max-width: 700px) { .row-flex { flex-direction: column; } }
         
-        /* Estilos para pestañas tipo navegador */
+        /* Pestañas tipo navegador */
         .browser-tabs {
             display: flex;
-            gap: 4px;
+            gap: 3px;
             background: #f1f5f9;
-            padding: 8px 12px 0 12px;
-            border-radius: 16px 16px 0 0;
+            padding: 6px 10px 0 10px;
+            border-radius: 14px 14px 0 0;
             border-bottom: 1px solid #e2e8f0;
         }
         .browser-tab {
-            padding: 10px 20px;
+            padding: 8px 16px;
             background: #e2e8f0;
             border: none;
-            border-radius: 12px 12px 0 0;
+            border-radius: 10px 10px 0 0;
             cursor: pointer;
             font-weight: 500;
+            font-size: 0.8rem;
             color: #475569;
             transition: all 0.2s;
             width: auto;
@@ -115,48 +145,69 @@
         .browser-tab.active {
             background: white;
             color: #0077b6;
-            border-top: 3px solid #0077b6;
+            border-top: 2px solid #0077b6;
         }
         .browser-content {
             background: white;
-            border-radius: 0 0 20px 20px;
-            padding: 20px;
+            border-radius: 0 0 16px 16px;
+            padding: 16px;
             border: 1px solid #e2e8f0;
             border-top: none;
         }
         .activo-card {
             background: linear-gradient(135deg, #d4edda 0%, #c8e6d9 100%);
-            border-left: 4px solid #2c7a4d;
-            margin-bottom: 12px;
+            border-left: 3px solid #2c7a4d;
         }
         .urgente {
             background: #fee2e2;
-            border-left: 4px solid #dc2626;
+            border-left: 3px solid #dc2626;
         }
         .piscina-trabajo {
             background: #e0f2fe;
-            border-left: 4px solid #0284c7;
+            border-left: 3px solid #0284c7;
         }
         .refresh-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
         .timestamp {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #64748b;
         }
         .badge {
             display: inline-block;
             padding: 2px 8px;
             border-radius: 20px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 600;
         }
         .badge-trabajo { background: #2c7a4d; color: white; }
         .badge-desplazamiento { background: #e67e22; color: white; }
         .badge-descanso { background: #94a3b8; color: white; }
+        
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .tab-btn {
+            background: none;
+            color: #475569;
+            padding: 8px 16px;
+            margin: 0;
+            width: auto;
+            border-radius: 30px 30px 0 0;
+            font-size: 0.8rem;
+        }
+        .tab-btn.active {
+            background: #0077b6;
+            color: white;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
@@ -167,28 +218,35 @@
         <input type="email" id="email" placeholder="Email" value="gerente@mipiscina.com">
         <input type="password" id="password" placeholder="Contraseña">
         <button id="btnLogin">Iniciar sesión</button>
-        <div id="errorMsg" style="color:red; margin-top:12px;"></div>
+        <div id="errorMsg" style="color:red; margin-top:10px; font-size:0.8rem;"></div>
     </div>
 
     <div id="dashboardPanel" class="oculto">
-        <!-- Estadísticas -->
-        <div class="card">
-            <div class="card-header" style="cursor:default;">📊 Resumen general</div>
-            <div class="estadisticas">
-                <div class="stat-card"><div class="stat-value" id="totalTecnicos">0</div><div class="stat-label">Técnicos</div></div>
-                <div class="stat-card"><div class="stat-value" id="jornadasActivas">0</div><div class="stat-label">Jornadas activas hoy</div></div>
-                <div class="stat-card"><div class="stat-value" id="totalMediciones">0</div><div class="stat-label">Mediciones totales</div></div>
+        <!-- Resumen compacto -->
+        <div class="card" style="padding: 10px 16px;">
+            <div class="resumen-compacto">
+                <div class="resumen-item">
+                    <div class="resumen-valor" id="resumenTecnicosActivos">0</div>
+                    <div class="resumen-label">👥 Técnicos activos</div>
+                </div>
+                <div class="resumen-item">
+                    <div class="resumen-valor" id="resumenPiscinasActivas">0</div>
+                    <div class="resumen-label">🏊 Piscinas activas</div>
+                </div>
+                <div class="resumen-item">
+                    <div class="resumen-valor" id="resumenActividadesCerradas">0</div>
+                    <div class="resumen-label">✅ Actividades cerradas hoy</div>
+                </div>
             </div>
         </div>
 
         <!-- CONSOLA PRINCIPAL CON PESTAÑAS -->
         <div class="card">
             <div class="refresh-header">
-                <div class="card-header" style="cursor:default; margin-bottom:0;">🎮 Consola de supervisión</div>
+                <div class="card-header" style="cursor:default; margin-bottom:0; padding-left:0; border-left:none;">🎮 Consola de supervisión</div>
                 <button id="btnRefreshConsola" class="btn-refresh">🔄 Actualizar</button>
             </div>
             
-            <!-- Pestañas tipo navegador -->
             <div class="browser-tabs">
                 <button class="browser-tab active" data-tab="activos">👥 Técnicos activos</button>
                 <button class="browser-tab" data-tab="piscinas">🏊 Piscinas en trabajo</button>
@@ -196,22 +254,18 @@
                 <button class="browser-tab" data-tab="mensajes">⚠️ Observaciones urgentes</button>
             </div>
             
-            <!-- Contenido pestaña 1: Técnicos activos -->
             <div id="tabActivos" class="browser-content">
                 <div id="tecnicosActivosList" class="resultados-area"></div>
             </div>
             
-            <!-- Contenido pestaña 2: Piscinas en trabajo -->
             <div id="tabPiscinas" class="browser-content oculto">
                 <div id="piscinasTrabajoList" class="resultados-area"></div>
             </div>
             
-            <!-- Contenido pestaña 3: Actividades cerradas hoy -->
             <div id="tabCerradas" class="browser-content oculto">
                 <div id="actividadesCerradasList" class="resultados-area"></div>
             </div>
             
-            <!-- Contenido pestaña 4: Mensajes urgentes -->
             <div id="tabMensajes" class="browser-content oculto">
                 <div id="mensajesUrgentesList" class="resultados-area"></div>
             </div>
@@ -276,7 +330,7 @@
             </div>
         </div>
 
-        <button id="btnLogout" style="background:#475569; margin-top:20px;">🚪 Cerrar sesión</button>
+        <button id="btnLogout" style="background:#475569; margin-top:16px;">🚪 Cerrar sesión</button>
     </div>
 </div>
 
@@ -301,30 +355,77 @@
         perfiles?.forEach(p => cachePerfiles[p.id] = { nick: p.nick, nombre: p.nombre, rol: p.rol });
     }
 
-    // ========== CONSOLA: TÉCNICOS ACTIVOS ==========
+    // ========== RESUMEN COMPACTO ==========
+    async function cargarResumenCompacto() {
+        const hoy = new Date().toISOString().slice(0,10);
+        const startHoy = hoy + 'T00:00:00';
+        const endHoy = hoy + 'T23:59:59';
+        
+        // Técnicos activos
+        const { data: jornadasActivas } = await sb
+            .from('jornadas')
+            .select('tecnico_id')
+            .is('fin', null)
+            .gte('inicio', startHoy)
+            .lte('inicio', endHoy);
+        
+        const tecnicosUnicos = new Set();
+        jornadasActivas?.forEach(j => tecnicosUnicos.add(j.tecnico_id));
+        document.getElementById('resumenTecnicosActivos').innerText = tecnicosUnicos.size || 0;
+        
+        // Piscinas activas
+        const { data: trabajosActivos } = await sb
+            .from('trabajos_piscina')
+            .select('piscina_id')
+            .is('fin', null)
+            .gte('inicio', startHoy)
+            .lte('inicio', endHoy);
+        
+        const piscinasUnicas = new Set();
+        trabajosActivos?.forEach(t => piscinasUnicas.add(t.piscina_id));
+        document.getElementById('resumenPiscinasActivas').innerText = piscinasUnicas.size || 0;
+        
+        // Actividades cerradas hoy
+        const { data: trabajosCerrados } = await sb
+            .from('trabajos_piscina')
+            .select('id')
+            .gte('fin', startHoy)
+            .lte('fin', endHoy);
+        
+        const { data: desplazamientosCerrados } = await sb
+            .from('desplazamientos')
+            .select('id')
+            .gte('fin', startHoy)
+            .lte('fin', endHoy);
+        
+        const totalCerradas = (trabajosCerrados?.length || 0) + (desplazamientosCerrados?.length || 0);
+        document.getElementById('resumenActividadesCerradas').innerText = totalCerradas;
+    }
+
+    // ========== TÉCNICOS ACTIVOS ==========
     async function cargarTecnicosActivos() {
         const hoy = new Date().toISOString().slice(0,10);
+        const startHoy = hoy + 'T00:00:00';
+        const endHoy = hoy + 'T23:59:59';
         
-        // Buscar técnicos con jornada activa hoy
         const { data: jornadasActivas } = await sb
             .from('jornadas')
             .select('*, tecnico_id')
             .is('fin', null)
-            .gte('inicio', hoy+'T00:00:00');
+            .gte('inicio', startHoy)
+            .lte('inicio', endHoy);
         
         if (!jornadasActivas || jornadasActivas.length === 0) {
             document.getElementById('tecnicosActivosList').innerHTML = 
-                '<div class="tecnico-card">👨‍🔧 No hay técnicos con jornada activa</div>';
+                '<div class="tecnico-card">👨‍🔧 No hay técnicos con jornada activa hoy</div>';
             return;
         }
         
-        // Para cada técnico activo, buscar su actividad actual
         const tecnicosActivos = [];
         for (const jornada of jornadasActivas) {
             const tecnico = cachePerfiles[jornada.tecnico_id];
             if (!tecnico) continue;
             
-            // Buscar desplazamiento activo
             const { data: desplazamiento } = await sb
                 .from('desplazamientos')
                 .select('*')
@@ -332,7 +433,6 @@
                 .is('fin', null)
                 .maybeSingle();
             
-            // Buscar trabajo activo
             const { data: trabajo } = await sb
                 .from('trabajos_piscina')
                 .select('*')
@@ -341,13 +441,13 @@
                 .maybeSingle();
             
             let estado = 'descanso';
-            let estadoTexto = '💤 En descanso / entre actividades';
+            let estadoTexto = '💤 En descanso';
             let destino = '';
             let desde = '';
             
             if (desplazamiento) {
                 estado = 'desplazamiento';
-                estadoTexto = `🚗 En desplazamiento hacia ${cachePiscinas[desplazamiento.piscina_destino_id] || '?'}`;
+                estadoTexto = `🚗 Desplazándose a ${cachePiscinas[desplazamiento.piscina_destino_id] || '?'}`;
                 destino = cachePiscinas[desplazamiento.piscina_destino_id];
                 desde = formatTime(desplazamiento.inicio);
             } else if (trabajo) {
@@ -379,36 +479,41 @@
             const div = document.createElement('div');
             div.className = `tecnico-card activo-card`;
             div.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                     <strong>👤 ${t.nick}${t.nombre ? ` (${t.nombre})` : ''}</strong>
-                    <span class="badge ${badgeClass}">${t.estado === 'trabajo' ? 'TRABAJANDO' : (t.estado === 'desplazamiento' ? 'DESPLAZÁNDOSE' : 'DESCANSO')}</span>
+                    <span class="badge ${badgeClass}" style="margin-top: 4px;">${t.estado === 'trabajo' ? 'TRABAJANDO' : (t.estado === 'desplazamiento' ? 'DESPLAZÁNDOSE' : 'DESCANSO')}</span>
                 </div>
-                <div>${t.estadoTexto}</div>
-                <div style="font-size: 0.75rem; color: #5b6e8c; margin-top: 8px;">
-                    🕒 Jornada iniciada: ${t.jornadaInicio}
-                    ${t.desde ? ` · Actividad desde: ${t.desde}` : ''}
+                <div style="margin-top: 4px;">${t.estadoTexto}</div>
+                <div style="font-size: 0.7rem; color: #5b6e8c; margin-top: 6px;">
+                    🕒 Jornada: ${t.jornadaInicio}
+                    ${t.desde ? ` · Actividad: ${t.desde}` : ''}
                 </div>
             `;
             contenedor.appendChild(div);
         });
     }
 
-    // ========== CONSOLA: PISCINAS EN TRABAJO ==========
+    // ========== PISCINAS EN TRABAJO ==========
     async function cargarPiscinasEnTrabajo() {
+        const hoy = new Date().toISOString().slice(0,10);
+        const startHoy = hoy + 'T00:00:00';
+        const endHoy = hoy + 'T23:59:59';
+        
         const { data: trabajosActivos } = await sb
             .from('trabajos_piscina')
             .select('*, jornadas!inner(tecnico_id)')
-            .is('fin', null);
+            .is('fin', null)
+            .gte('inicio', startHoy)
+            .lte('inicio', endHoy);
         
         const contenedor = document.getElementById('piscinasTrabajoList');
         contenedor.innerHTML = '';
         
         if (!trabajosActivos || trabajosActivos.length === 0) {
-            contenedor.innerHTML = '<div class="tecnico-card">🏊 No hay piscinas con trabajo activo</div>';
+            contenedor.innerHTML = '<div class="tecnico-card">✅ No hay piscinas con trabajo activo hoy</div>';
             return;
         }
         
-        // Agrupar por piscina
         const piscinasMap = new Map();
         for (const trabajo of trabajosActivos) {
             const piscinaId = trabajo.piscina_id;
@@ -434,7 +539,7 @@
             div.className = 'medicion-card piscina-trabajo';
             div.innerHTML = `
                 <strong>🏊 ${data.nombre}</strong>
-                <div style="margin-top: 8px;">
+                <div style="margin-top: 6px; font-size: 0.8rem;">
                     ${data.tecnicos.map(t => `👤 ${t.nick} (desde ${t.inicio})`).join('<br>')}
                 </div>
             `;
@@ -442,26 +547,24 @@
         }
     }
 
-    // ========== CONSOLA: ACTIVIDADES CERRADAS HOY ==========
+    // ========== ACTIVIDADES CERRADAS HOY ==========
     async function cargarActividadesCerradasHoy() {
         const hoy = new Date().toISOString().slice(0,10);
-        const start = hoy + 'T00:00:00';
-        const end = hoy + 'T23:59:59';
+        const startHoy = hoy + 'T00:00:00';
+        const endHoy = hoy + 'T23:59:59';
         
-        // Trabajos cerrados hoy
         const { data: trabajos } = await sb
             .from('trabajos_piscina')
             .select('*')
-            .gte('fin', start)
-            .lte('fin', end)
+            .gte('fin', startHoy)
+            .lte('fin', endHoy)
             .order('fin', { ascending: false });
         
-        // Desplazamientos cerrados hoy
         const { data: desplazamientos } = await sb
             .from('desplazamientos')
             .select('*')
-            .gte('fin', start)
-            .lte('fin', end)
+            .gte('fin', startHoy)
+            .lte('fin', endHoy)
             .order('fin', { ascending: false });
         
         const contenedor = document.getElementById('actividadesCerradasList');
@@ -528,9 +631,8 @@
         }
     }
 
-    // ========== CONSOLA: MENSAJES URGENTES ==========
+    // ========== MENSAJES URGENTES ==========
     async function cargarMensajesUrgentes() {
-        // Buscar mediciones con valores fuera de rango en las últimas 24h
         const ayer = new Date();
         ayer.setDate(ayer.getDate() - 1);
         
@@ -587,15 +689,11 @@
     // ========== ACTUALIZAR CONSOLA COMPLETA ==========
     async function actualizarConsolaCompleta() {
         console.log("Actualizando consola...", new Date().toLocaleTimeString());
+        await cargarResumenCompacto();
         await cargarTecnicosActivos();
         await cargarPiscinasEnTrabajo();
         await cargarActividadesCerradasHoy();
         await cargarMensajesUrgentes();
-        
-        const timestamp = document.querySelector('.timestamp');
-        if (timestamp) {
-            timestamp.innerHTML = `Última actualización: ${new Date().toLocaleTimeString()}`;
-        }
     }
 
     // ========== LOGIN ==========
@@ -626,7 +724,7 @@
             document.getElementById('loginPanel').classList.add('oculto');
             document.getElementById('dashboardPanel').classList.remove('oculto');
             await cargarCaches();
-            await cargarResumen();
+            await actualizarConsolaCompleta();
             await cargarUltimasMediciones();
             await cargarTecnicos();
             await cargarFiltrosTecnicos();
@@ -634,28 +732,12 @@
             await cargarMedicionesUltimos7();
             await cargarTiemposUltimos7();
             
-            // Cargar consola
-            await actualizarConsolaCompleta();
-            
-            // Actualizar cada 30 segundos
             if (intervaloActualizacion) clearInterval(intervaloActualizacion);
             intervaloActualizacion = setInterval(actualizarConsolaCompleta, 30000);
         }
     };
 
-    // ========== RESTO DE FUNCIONES (igual que antes) ==========
-    async function cargarResumen() {
-        const { data: tecnicos } = await sb.from('perfiles').select('id').eq('rol', 'tecnico');
-        document.getElementById('totalTecnicos').innerText = tecnicos?.length || 0;
-        
-        const hoy = new Date().toISOString().slice(0,10);
-        const { data: activas } = await sb.from('jornadas').select('id').is('fin', null).gte('inicio', hoy+'T00:00:00').lte('inicio', hoy+'T23:59:59');
-        document.getElementById('jornadasActivas').innerText = activas?.length || 0;
-        
-        const { count: total } = await sb.from('mediciones').select('*', { count: 'exact', head: true });
-        document.getElementById('totalMediciones').innerText = total || 0;
-    }
-
+    // ========== ÚLTIMAS MEDICIONES ==========
     async function cargarUltimasMediciones() {
         const { data: mediciones, error } = await sb
             .from('mediciones')
@@ -686,6 +768,7 @@
         });
     }
 
+    // ========== LISTADO DE TÉCNICOS ==========
     async function cargarTecnicos() {
         const { data } = await sb.from('perfiles').select('nick, nombre').eq('rol', 'tecnico').order('nick');
         const contenedor = document.getElementById('tecnicosList');
@@ -702,6 +785,7 @@
         });
     }
 
+    // ========== FILTROS ==========
     async function cargarFiltrosTecnicos() {
         const { data } = await sb.from('perfiles').select('id, nick').eq('rol', 'tecnico');
         const selects = ['filtroTecnicoJornadas', 'filtroTecnicoMediciones', 'filtroTecnicoTiempos'];
@@ -716,7 +800,7 @@
         });
     }
 
-    // Jornadas
+    // ========== JORNADAS ==========
     async function cargarJornadasUltimos7() {
         const hoy = new Date();
         const hace7 = new Date();
@@ -794,7 +878,7 @@
         html2pdf().set({ filename: `jornadas_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
     };
 
-    // Mediciones
+    // ========== MEDICIONES ==========
     async function cargarMedicionesUltimos7() {
         const hoy = new Date();
         const hace7 = new Date();
@@ -865,7 +949,7 @@
         html2pdf().set({ filename: `mediciones_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
     };
 
-    // Tiempos
+    // ========== TIEMPOS ==========
     async function cargarTiemposUltimos7() {
         const hoy = new Date();
         const hace7 = new Date();
@@ -994,7 +1078,6 @@
         });
     });
 
-    // Navegación de pestañas de la consola
     document.querySelectorAll('.browser-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.browser-tab').forEach(t => t.classList.remove('active'));
