@@ -74,7 +74,11 @@
         .stat-label { font-size: 0.8rem; color: #5b6e8c; margin-top: 8px; }
         .row-flex { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
         .grupo { flex: 1; min-width: 150px; }
+        .grupo-buscar { flex: 1; min-width: 250px; }
         label { font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 4px; display: block; }
+        .buscar-wrapper { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+        .buscar-wrapper input { flex: 1; }
+        .buscar-wrapper button { width: auto; }
         .medicion-card, .jornada-card, .tecnico-card, .evento-card {
             background: #f8fafc;
             border-radius: 20px;
@@ -88,6 +92,8 @@
         .vista-btn { background: #e2e8f0; color: #1e4663; }
         .vista-btn.active { background: #0066cc; color: white; }
         .top-buttons { display: flex; gap: 12px; align-items: center; }
+        .info-seleccion { font-size: 0.75rem; color: #2c7a4d; margin-top: 4px; }
+        .select-label { font-size: 0.7rem; color: #475569; margin-top: 8px; margin-bottom: 4px; }
         @media (max-width: 700px) { .row-flex { flex-direction: column; } }
     </style>
 </head>
@@ -127,12 +133,38 @@
             <div id="ultimasMediciones" class="resultados-area"></div>
         </div>
 
-        <!-- Listado de técnicos y piscinas -->
+        <!-- Filtros de búsqueda (buscadores + desplegables) -->
         <div class="card">
-            <div class="card-header">👥 Técnicos y 🏊 Piscinas</div>
+            <div class="card-header">🔍 Filtros de búsqueda</div>
+            
             <div class="row-flex">
-                <div class="grupo"><label>Filtrar por técnico</label><select id="filtroTecnico"><option value="">Todos los técnicos</option></select></div>
-                <div class="grupo"><label>Filtrar por piscina</label><select id="filtroPiscina"><option value="">Todas las piscinas</option></select></div>
+                <!-- Técnico: buscador + desplegable -->
+                <div class="grupo-buscar">
+                    <label>👤 Buscar técnico</label>
+                    <div class="buscar-wrapper">
+                        <input type="text" id="buscarTecnico" placeholder="Escribe nombre para buscar rápido...">
+                        <button id="btnBuscarTecnico" class="btn-buscar">🔍 Buscar</button>
+                    </div>
+                    <div id="infoTecnicoSeleccionado" class="info-seleccion"></div>
+                    <div class="select-label">O selecciona del listado:</div>
+                    <select id="filtroTecnico">
+                        <option value="">Todos los técnicos</option>
+                    </select>
+                </div>
+                
+                <!-- Piscina: buscador + desplegable -->
+                <div class="grupo-buscar">
+                    <label>🏊 Buscar piscina</label>
+                    <div class="buscar-wrapper">
+                        <input type="text" id="buscarPiscina" placeholder="Escribe nombre para buscar rápido...">
+                        <button id="btnBuscarPiscina" class="btn-buscar">🔍 Buscar</button>
+                    </div>
+                    <div id="infoPiscinaSeleccionada" class="info-seleccion"></div>
+                    <div class="select-label">O selecciona del listado:</div>
+                    <select id="filtroPiscina">
+                        <option value="">Todas las piscinas</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -161,62 +193,92 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
+    let tecnicosList = [];
+    let piscinasList = [];
     let tecnicosMap = {};
     let piscinasMap = {};
     let vistaActual = 'unificada';
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
 
-    // Función de sincronización: recarga todos los datos
     async function sincronizarTodo() {
         document.getElementById('btnSync').innerHTML = '🔄 Sincronizando...';
         document.getElementById('btnSync').disabled = true;
         try {
-            await Promise.all([
-                cargarSelects(),
-                cargarEstadisticas(),
-                cargarUltimasMediciones(),
-                (async () => {
-                    if (document.getElementById('fechaDesde').value && document.getElementById('fechaHasta').value) {
-                        await cargarHistorico();
-                    }
-                })()
-            ]);
-        } catch (err) {
-            console.error("Error al sincronizar:", err);
-        } finally {
+            await cargarListasCompletas();
+            await cargarEstadisticas();
+            await cargarUltimasMediciones();
+            if (document.getElementById('fechaDesde').value && document.getElementById('fechaHasta').value) {
+                await cargarHistorico();
+            }
+        } catch (err) { console.error(err); }
+        finally {
             document.getElementById('btnSync').innerHTML = '🔄 Sincronizar';
             document.getElementById('btnSync').disabled = false;
         }
     }
 
-    async function cargarSelects() {
+    async function cargarListasCompletas() {
         // Cargar técnicos
-        const { data: tecnicos } = await sb.from('perfiles').select('id, nick').eq('rol', 'tecnico');
-        const selectTec = document.getElementById('filtroTecnico');
-        const currentTecValue = selectTec.value;
-        selectTec.innerHTML = '<option value="">Todos los técnicos</option>';
-        if (tecnicos) {
-            tecnicos.forEach(t => {
-                tecnicosMap[t.id] = t.nick;
-                selectTec.innerHTML += `<option value="${t.id}">${t.nick}</option>`;
-            });
-        }
-        if (currentTecValue && tecnicosMap[currentTecValue]) selectTec.value = currentTecValue;
+        const { data: tecnicos } = await sb.from('perfiles').select('id, nick, nombre').eq('rol', 'tecnico').order('nick');
+        tecnicosList = tecnicos || [];
+        tecnicosMap = {};
+        tecnicosList.forEach(t => { tecnicosMap[t.id] = t.nick || t.nombre; });
         
         // Cargar piscinas
         const { data: piscinas } = await sb.from('piscinas').select('id, nombre').order('nombre');
+        piscinasList = piscinas || [];
+        piscinasMap = {};
+        piscinasList.forEach(p => { piscinasMap[p.id] = p.nombre; });
+        
+        // Actualizar selectores
+        const selectTec = document.getElementById('filtroTecnico');
+        const valorActualTec = selectTec.value;
+        selectTec.innerHTML = '<option value="">Todos los técnicos</option>';
+        tecnicosList.forEach(t => { selectTec.innerHTML += `<option value="${t.id}">${t.nick || t.nombre}</option>`; });
+        if (valorActualTec && tecnicosMap[valorActualTec]) selectTec.value = valorActualTec;
+        
         const selectPisc = document.getElementById('filtroPiscina');
-        const currentPiscValue = selectPisc.value;
+        const valorActualPisc = selectPisc.value;
         selectPisc.innerHTML = '<option value="">Todas las piscinas</option>';
-        if (piscinas) {
-            piscinas.forEach(p => {
-                piscinasMap[p.id] = p.nombre;
-                selectPisc.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
-            });
+        piscinasList.forEach(p => { selectPisc.innerHTML += `<option value="${p.id}">${p.nombre}</option>`; });
+        if (valorActualPisc && piscinasMap[valorActualPisc]) selectPisc.value = valorActualPisc;
+        
+        document.getElementById('totalPiscinas').innerText = piscinasList.length;
+    }
+
+    function buscarTecnico() {
+        const texto = document.getElementById('buscarTecnico').value.toLowerCase();
+        const encontrado = tecnicosList.find(t => 
+            (t.nick?.toLowerCase().includes(texto) || t.nombre?.toLowerCase().includes(texto))
+        );
+        const select = document.getElementById('filtroTecnico');
+        if (encontrado) {
+            select.value = encontrado.id;
+            document.getElementById('infoTecnicoSeleccionado').innerHTML = `✅ Seleccionado: ${encontrado.nick || encontrado.nombre}`;
+        } else if (texto) {
+            document.getElementById('infoTecnicoSeleccionado').innerHTML = `❌ No se encontró "${texto}"`;
+            select.value = '';
+        } else {
+            select.value = '';
+            document.getElementById('infoTecnicoSeleccionado').innerHTML = '';
         }
-        if (currentPiscValue && piscinasMap[currentPiscValue]) selectPisc.value = currentPiscValue;
-        document.getElementById('totalPiscinas').innerText = piscinas?.length || 0;
+    }
+
+    function buscarPiscina() {
+        const texto = document.getElementById('buscarPiscina').value.toLowerCase();
+        const encontrado = piscinasList.find(p => p.nombre.toLowerCase().includes(texto));
+        const select = document.getElementById('filtroPiscina');
+        if (encontrado) {
+            select.value = encontrado.id;
+            document.getElementById('infoPiscinaSeleccionada').innerHTML = `✅ Seleccionada: ${encontrado.nombre}`;
+        } else if (texto) {
+            document.getElementById('infoPiscinaSeleccionada').innerHTML = `❌ No se encontró "${texto}"`;
+            select.value = '';
+        } else {
+            select.value = '';
+            document.getElementById('infoPiscinaSeleccionada').innerHTML = '';
+        }
     }
 
     async function cargarEstadisticas() {
@@ -238,11 +300,11 @@
         for (const m of data) {
             let piscinaNombre = piscinasMap[m.piscina_id] || '?';
             let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
-            if (!piscinasMap[m.piscina_id]) {
+            if (!piscinasMap[m.piscina_id] && m.piscina_id) {
                 const { data: p } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
                 if (p) piscinaNombre = p.nombre;
             }
-            if (!tecnicosMap[m.tecnico_id]) {
+            if (!tecnicosMap[m.tecnico_id] && m.tecnico_id) {
                 const { data: t } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
                 if (t) tecnicoNombre = t.nick;
             }
@@ -274,7 +336,7 @@
             if (jornadas) {
                 for (const j of jornadas) {
                     let tecnicoNombre = tecnicosMap[j.tecnico_id] || '?';
-                    if (!tecnicosMap[j.tecnico_id]) {
+                    if (!tecnicosMap[j.tecnico_id] && j.tecnico_id) {
                         const { data: t } = await sb.from('perfiles').select('nick').eq('id', j.tecnico_id).single();
                         if (t) tecnicoNombre = t.nick;
                     }
@@ -297,11 +359,11 @@
                 for (const m of mediciones) {
                     let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
                     let piscinaNombre = piscinasMap[m.piscina_id] || '?';
-                    if (!tecnicosMap[m.tecnico_id]) {
+                    if (!tecnicosMap[m.tecnico_id] && m.tecnico_id) {
                         const { data: t } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
                         if (t) tecnicoNombre = t.nick;
                     }
-                    if (!piscinasMap[m.piscina_id]) {
+                    if (!piscinasMap[m.piscina_id] && m.piscina_id) {
                         const { data: p } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
                         if (p) piscinaNombre = p.nombre;
                     }
@@ -339,8 +401,10 @@
         if (!window.eventosActuales || window.eventosActuales.length === 0) { alert("Primero busca datos"); return; }
         const desde = document.getElementById('fechaDesde').value;
         const hasta = document.getElementById('fechaHasta').value;
-        const tecnicoNombre = document.getElementById('filtroTecnico').selectedOptions[0]?.text || 'Todos';
-        const piscinaNombre = document.getElementById('filtroPiscina').selectedOptions[0]?.text || 'Todas';
+        const tecnicoId = document.getElementById('filtroTecnico').value;
+        const piscinaId = document.getElementById('filtroPiscina').value;
+        const tecnicoNombre = tecnicosMap[tecnicoId] || (tecnicoId ? 'Técnico específico' : 'Todos');
+        const piscinaNombre = piscinasMap[piscinaId] || (piscinaId ? 'Piscina específica' : 'Todas');
         
         const tempDiv = document.createElement('div');
         tempDiv.style.padding = '20px';
@@ -382,7 +446,7 @@
             currentUser = data.user;
             document.getElementById('loginPanel').classList.add('oculto');
             document.getElementById('dashboardPanel').classList.remove('oculto');
-            await cargarSelects();
+            await cargarListasCompletas();
             await cargarEstadisticas();
             await cargarUltimasMediciones();
             const hoy = new Date();
@@ -401,6 +465,12 @@
     document.getElementById('vistaUnificadaBtn').onclick = () => setVista('unificada');
     document.getElementById('vistaJornadasBtn').onclick = () => setVista('jornadas');
     document.getElementById('vistaMedicionesBtn').onclick = () => setVista('mediciones');
+    document.getElementById('btnBuscarTecnico').onclick = buscarTecnico;
+    document.getElementById('btnBuscarPiscina').onclick = buscarPiscina;
+    document.getElementById('buscarTecnico').addEventListener('keypress', (e) => { if (e.key === 'Enter') buscarTecnico(); });
+    document.getElementById('buscarPiscina').addEventListener('keypress', (e) => { if (e.key === 'Enter') buscarPiscina(); });
+    document.getElementById('filtroTecnico').onchange = () => { document.getElementById('infoTecnicoSeleccionado').innerHTML = ''; };
+    document.getElementById('filtroPiscina').onchange = () => { document.getElementById('infoPiscinaSeleccionada').innerHTML = ''; };
 </script>
 </body>
 </html>
