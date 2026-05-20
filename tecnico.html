@@ -300,15 +300,23 @@
     async function recuperarEstadoActual() {
         if (!currentUserId) return;
         
+        console.log("Recuperando estado actual...");
+        
         // 1. Buscar jornada activa (sin fin)
-        const { data: jornada } = await sb
+        const { data: jornada, error: errJ } = await sb
             .from('jornadas')
             .select('*')
             .eq('tecnico_id', currentUserId)
             .is('fin', null)
             .maybeSingle();
         
+        if (errJ) {
+            console.error("Error al recuperar jornada:", errJ);
+            return;
+        }
+        
         if (!jornada) {
+            console.log("No hay jornada activa");
             jornadaActiva = null;
             desplazamientoActivo = null;
             trabajoActivo = null;
@@ -318,6 +326,7 @@
             return;
         }
         
+        console.log("Jornada activa encontrada:", jornada);
         jornadaActiva = jornada;
         document.getElementById('estadoJornada').innerHTML = `✅ Jornada activa desde ${formatDate(jornadaActiva.inicio)}`;
         document.getElementById('estadoJornada').className = "estado-jornada activa";
@@ -325,14 +334,17 @@
         document.getElementById('btnFinalizarJornada').classList.remove('oculto');
         
         // 2. Buscar desplazamiento activo (sin fin)
-        const { data: desplazamiento } = await sb
+        const { data: desplazamiento, error: errD } = await sb
             .from('desplazamientos')
             .select('*')
             .eq('jornada_id', jornadaActiva.id)
             .is('fin', null)
             .maybeSingle();
         
+        if (errD) console.error("Error al recuperar desplazamiento:", errD);
+        
         if (desplazamiento) {
+            console.log("Desplazamiento activo encontrado:", desplazamiento);
             desplazamientoActivo = desplazamiento;
             piscinaSeleccionadaId = desplazamiento.piscina_destino_id;
             piscinaSeleccionadaData = await cargarDatosPiscina(piscinaSeleccionadaId);
@@ -343,14 +355,17 @@
         }
         
         // 3. Buscar trabajo activo (sin fin)
-        const { data: trabajo } = await sb
+        const { data: trabajo, error: errT } = await sb
             .from('trabajos_piscina')
             .select('*')
             .eq('jornada_id', jornadaActiva.id)
             .is('fin', null)
             .maybeSingle();
         
+        if (errT) console.error("Error al recuperar trabajo:", errT);
+        
         if (trabajo) {
+            console.log("Trabajo activo encontrado:", trabajo);
             trabajoActivo = trabajo;
             piscinaSeleccionadaId = trabajo.piscina_id;
             piscinaSeleccionadaData = await cargarDatosPiscina(piscinaSeleccionadaId);
@@ -485,12 +500,19 @@
         }
     });
 
-    // JORNADA CON CONFIRMACIÓN
+    // ========== JORNADA CON CONFIRMACIÓN ==========
     async function iniciarJornada() {
         if (jornadaActiva) return;
         if (!confirm("¿Estás seguro de que quieres INICIAR la jornada laboral?")) return;
+        
+        console.log("Insertando jornada...");
         const { data, error } = await sb.from('jornadas').insert({ tecnico_id: currentUserId, inicio: new Date().toISOString() }).select();
-        if (error) { mostrarMensaje(error.message, 'error'); return; }
+        if (error) { 
+            console.error("Error al insertar jornada:", error);
+            mostrarMensaje(error.message, 'error'); 
+            return; 
+        }
+        console.log("Jornada insertada:", data);
         jornadaActiva = data[0];
         document.getElementById('estadoJornada').innerHTML = `✅ Jornada activa desde ${formatDate(jornadaActiva.inicio)}`;
         document.getElementById('estadoJornada').className = "estado-jornada activa";
@@ -507,8 +529,14 @@
             return;
         }
         if (!confirm("¿Estás seguro de que quieres FINALIZAR la jornada laboral?")) return;
+        
+        console.log("Finalizando jornada...");
         const { error } = await sb.from('jornadas').update({ fin: new Date().toISOString() }).eq('id', jornadaActiva.id);
-        if (error) { mostrarMensaje(error.message, 'error'); return; }
+        if (error) { 
+            console.error("Error al finalizar jornada:", error);
+            mostrarMensaje(error.message, 'error'); 
+            return; 
+        }
         jornadaActiva = null;
         desplazamientoActivo = null;
         trabajoActivo = null;
@@ -525,19 +553,25 @@
         mostrarMensaje("✅ Jornada finalizada", 'exito');
     }
 
-    // DESPLAZAMIENTO
+    // ========== DESPLAZAMIENTO ==========
     async function iniciarDesplazamiento() {
         if (!jornadaActiva) { mostrarMensaje("Inicia la jornada primero", 'error'); return; }
         if (!piscinaSeleccionadaId) { mostrarMensaje("Selecciona una piscina", 'error'); return; }
         if (desplazamientoActivo || trabajoActivo) { mostrarMensaje("Ya hay una actividad en curso", 'error'); return; }
         
+        console.log("Insertando desplazamiento...");
         const { data, error } = await sb.from('desplazamientos').insert({
             jornada_id: jornadaActiva.id,
             tecnico_id: currentUserId,
             piscina_destino_id: piscinaSeleccionadaId,
             inicio: new Date().toISOString()
         }).select();
-        if (error) { mostrarMensaje(error.message, 'error'); return; }
+        if (error) { 
+            console.error("Error al insertar desplazamiento:", error);
+            mostrarMensaje(error.message, 'error'); 
+            return; 
+        }
+        console.log("Desplazamiento insertado:", data);
         desplazamientoActivo = data[0];
         actualizarConsola();
         mostrarMensaje(`🚗 Desplazamiento hacia ${getPiscinaNombre(piscinaSeleccionadaId)} iniciado`, 'exito');
@@ -545,26 +579,38 @@
 
     async function llegadaPiscina() {
         if (!desplazamientoActivo) return;
+        
+        console.log("Finalizando desplazamiento...");
         const { error } = await sb.from('desplazamientos').update({ fin: new Date().toISOString() }).eq('id', desplazamientoActivo.id);
-        if (error) { mostrarMensaje(error.message, 'error'); return; }
+        if (error) { 
+            console.error("Error al finalizar desplazamiento:", error);
+            mostrarMensaje(error.message, 'error'); 
+            return; 
+        }
         desplazamientoActivo = null;
         actualizarConsola();
         mostrarMensaje("📍 Llegada a piscina registrada", 'exito');
     }
 
-    // ACTIVIDAD
+    // ========== ACTIVIDAD ==========
     async function iniciarActividad() {
         if (!jornadaActiva) { mostrarMensaje("Inicia la jornada primero", 'error'); return; }
         if (!piscinaSeleccionadaId) { mostrarMensaje("Selecciona una piscina", 'error'); return; }
         if (trabajoActivo) { mostrarMensaje("Ya hay una actividad activa", 'error'); return; }
         
+        console.log("Insertando trabajo...");
         const { data, error } = await sb.from('trabajos_piscina').insert({
             jornada_id: jornadaActiva.id,
             piscina_id: piscinaSeleccionadaId,
             tecnico_id: currentUserId,
             inicio: new Date().toISOString()
         }).select();
-        if (error) { mostrarMensaje(error.message, 'error'); return; }
+        if (error) { 
+            console.error("Error al insertar trabajo:", error);
+            mostrarMensaje(error.message, 'error'); 
+            return; 
+        }
+        console.log("Trabajo insertado:", data);
         trabajoActivo = data[0];
         actualizarConsola();
         mostrarMensaje("🏊 Actividad iniciada", 'exito');
@@ -574,15 +620,24 @@
     async function finalizarActividad() {
         if (!trabajoActivo) return;
         const observaciones = document.getElementById('obs').value.trim() || "Actividad finalizada";
-        const { error } = await sb.from('trabajos_piscina').update({ fin: new Date().toISOString(), observaciones }).eq('id', trabajoActivo.id);
-        if (error) { mostrarMensaje(error.message, 'error'); return; }
+        
+        console.log("Finalizando trabajo...");
+        const { error } = await sb.from('trabajos_piscina').update({ 
+            fin: new Date().toISOString(), 
+            observaciones: observaciones 
+        }).eq('id', trabajoActivo.id);
+        if (error) { 
+            console.error("Error al finalizar trabajo:", error);
+            mostrarMensaje(error.message, 'error'); 
+            return; 
+        }
         trabajoActivo = null;
         actualizarConsola();
         mostrarMensaje("✅ Actividad finalizada", 'exito');
         await cargarMedicionesDeJornadaActiva();
     }
 
-    // MEDICIONES
+    // ========== MEDICIONES ==========
     async function cargarMedicionesDeJornadaActiva() {
         if (!jornadaActiva) return;
         const { data, error } = await sb
@@ -656,13 +711,19 @@
         }
         const observaciones = document.getElementById('obs').value;
         
+        console.log("Insertando medición...");
         const { data: medicion, error: errMed } = await sb.from('mediciones').insert({
             tecnico_id: currentUserId,
             piscina_id: trabajoActivo.piscina_id,
             jornada_id: jornadaActiva.id,
             cloro, ph, temperatura, observaciones
         }).select();
-        if (errMed) { mostrarMensaje(errMed.message, 'error'); return; }
+        if (errMed) { 
+            console.error("Error al insertar medición:", errMed);
+            mostrarMensaje(errMed.message, 'error'); 
+            return; 
+        }
+        console.log("Medición insertada:", medicion);
         
         const medicionId = medicion[0].id;
         for (const prod of productosTemp) {
@@ -741,7 +802,7 @@
         if (await hacerLogin()) {
             document.getElementById('loginPanel').classList.add('oculto');
             document.getElementById('dashboardPanel').classList.remove('oculto');
-            await cargarPiscinas();  // Dentro de cargarPiscinas se llama a recuperarEstadoActual
+            await cargarPiscinas();
         }
     };
 
