@@ -71,9 +71,6 @@
         .row-flex { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
         .grupo { flex: 1; min-width: 150px; }
         label { font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 4px; display: block; }
-        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        th { background: #f1f5f9; font-weight: 600; color: #1e4663; }
         .medicion-card, .jornada-card, .tecnico-card {
             background: #f8fafc;
             border-radius: 20px;
@@ -82,10 +79,8 @@
             border-left: 4px solid #0077b6;
         }
         .resultados-area { margin-top: 16px; max-height: 400px; overflow-y: auto; }
-        .badge { background: #e0f2fe; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; display: inline-block; margin: 4px; }
-        @media (max-width: 700px) {
-            .row-flex { flex-direction: column; }
-        }
+        .fecha-historico { font-size: 0.8rem; color: #5b6e8c; margin-bottom: 8px; }
+        @media (max-width: 700px) { .row-flex { flex-direction: column; } }
     </style>
 </head>
 <body>
@@ -159,11 +154,22 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
+    let tecnicosMap = {}; // Para almacenar nombres de técnicos
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
 
+    // Cargar todos los técnicos para usar en filtros y nombres
+    async function cargarTecnicosMap() {
+        const { data } = await sb.from('perfiles').select('id, nick, nombre').eq('rol', 'tecnico');
+        if (data) {
+            tecnicosMap = {};
+            data.forEach(t => { tecnicosMap[t.id] = t.nick || t.nombre; });
+        }
+        return data || [];
+    }
+
     async function cargarSelectsTecnicos() {
-        const { data } = await sb.from('perfiles').select('id, nick').eq('rol', 'tecnico');
+        const data = await cargarTecnicosMap();
         const selectJ = document.getElementById('filtroTecnicoJornadas');
         const selectM = document.getElementById('filtroTecnicoMediciones');
         selectJ.innerHTML = '<option value="">Todos los técnicos</option>';
@@ -185,18 +191,35 @@
     }
 
     async function cargarUltimasMediciones() {
-        const { data } = await sb.from('mediciones').select('*, piscinas(nombre), perfiles(nick)').order('created_at', { ascending: false }).limit(5);
+        const { data, error } = await sb
+            .from('mediciones')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(5);
+        
         const container = document.getElementById('ultimasMediciones');
         container.innerHTML = '';
+        if (error) { container.innerHTML = `<div class="medicion-card">Error: ${error.message}</div>`; return; }
         if (!data || data.length === 0) { container.innerHTML = '<div class="medicion-card">No hay mediciones</div>'; return; }
-        data.forEach(m => {
+        
+        for (const m of data) {
+            let piscinaNombre = '?';
+            let tecnicoNombre = '?';
+            if (m.piscina_id) {
+                const { data: piscina } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
+                if (piscina) piscinaNombre = piscina.nombre;
+            }
+            if (m.tecnico_id) {
+                const { data: perfil } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
+                if (perfil) tecnicoNombre = perfil.nick;
+            }
             container.innerHTML += `
                 <div class="medicion-card">
-                    <strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>
+                    <strong>👤 ${tecnicoNombre}</strong> · 🏊 ${piscinaNombre}<br>
                     🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
                     📅 ${formatDate(m.created_at)}
                 </div>`;
-        });
+        }
     }
 
     async function cargarTecnicosList() {
@@ -207,6 +230,7 @@
         data.forEach(t => { container.innerHTML += `<div class="tecnico-card"><strong>@${t.nick}</strong> · ${t.nombre || ''}</div>`; });
     }
 
+    // JORNADAS
     async function buscarJornadas() {
         const desde = document.getElementById('jornadaDesde').value;
         const hasta = document.getElementById('jornadaHasta').value;
@@ -214,19 +238,33 @@
         const start = new Date(`${desde}T00:00:00`).toISOString();
         const end = new Date(`${hasta}T23:59:59`).toISOString();
         const tecnicoId = document.getElementById('filtroTecnicoJornadas').value;
-        let query = sb.from('jornadas').select('*, perfiles(nick)').gte('inicio', start).lte('inicio', end);
+        
+        let query = sb.from('jornadas').select('*').gte('inicio', start).lte('inicio', end);
         if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
         const { data } = await query.order('inicio', { ascending: false });
+        
         const container = document.getElementById('listaJornadas');
         container.innerHTML = '';
         if (!data || data.length === 0) { container.innerHTML = '<div class="jornada-card">No hay jornadas</div>'; return; }
-        data.forEach(j => {
+        
+        for (const j of data) {
+            let tecnicoNombre = '?';
+            if (j.tecnico_id && tecnicosMap[j.tecnico_id]) {
+                tecnicoNombre = tecnicosMap[j.tecnico_id];
+            } else if (j.tecnico_id) {
+                const { data: perfil } = await sb.from('perfiles').select('nick').eq('id', j.tecnico_id).single();
+                if (perfil) tecnicoNombre = perfil.nick;
+            }
             const inicio = new Date(j.inicio);
             const fin = j.fin ? new Date(j.fin) : null;
             let duracion = '';
             if (fin) { const diff = fin - inicio; const horas = Math.floor(diff/3600000); const mins = Math.floor((diff%3600000)/60000); duracion = ` (${horas}h ${mins}m)`; }
-            container.innerHTML += `<div class="jornada-card"><strong>👤 ${j.perfiles?.nick || '?'}</strong><br>📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}${duracion}</div>`;
-        });
+            container.innerHTML += `
+                <div class="jornada-card">
+                    <strong>👤 ${tecnicoNombre}</strong><br>
+                    📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}${duracion}
+                </div>`;
+        }
         window.jornadasData = data;
     }
 
@@ -235,17 +273,25 @@
         const desde = document.getElementById('jornadaDesde').value;
         const hasta = document.getElementById('jornadaHasta').value;
         const tempDiv = document.createElement('div');
+        tempDiv.style.padding = '20px';
+        tempDiv.style.fontFamily = 'system-ui';
         tempDiv.innerHTML = `<h2>Jornadas (${desde} a ${hasta})</h2>`;
-        window.jornadasData.forEach(j => {
+        
+        for (const j of window.jornadasData) {
+            let tecnicoNombre = tecnicosMap[j.tecnico_id] || '?';
             const inicio = new Date(j.inicio);
             const fin = j.fin ? new Date(j.fin) : null;
             let duracion = '';
             if (fin) { const diff = fin - inicio; const horas = Math.floor(diff/3600000); const mins = Math.floor((diff%3600000)/60000); duracion = ` (${horas}h ${mins}m)`; }
-            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;"><strong>👤 ${j.perfiles?.nick || '?'}</strong><br>📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}${duracion}</div>`;
-        });
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
+                                    <strong>👤 ${tecnicoNombre}</strong><br>
+                                    📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}${duracion}
+                                   </div>`;
+        }
         html2pdf().set({ filename: `jornadas_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
     }
 
+    // MEDICIONES
     async function buscarMediciones() {
         const desde = document.getElementById('medicionDesde').value;
         const hasta = document.getElementById('medicionHasta').value;
@@ -253,15 +299,38 @@
         const start = new Date(`${desde}T00:00:00`).toISOString();
         const end = new Date(`${hasta}T23:59:59`).toISOString();
         const tecnicoId = document.getElementById('filtroTecnicoMediciones').value;
-        let query = sb.from('mediciones').select('*, piscinas(nombre), perfiles(nick)').gte('created_at', start).lte('created_at', end);
+        
+        let query = sb.from('mediciones').select('*').gte('created_at', start).lte('created_at', end);
         if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
         const { data } = await query.order('created_at', { ascending: false });
+        
         const container = document.getElementById('listaMediciones');
         container.innerHTML = '';
         if (!data || data.length === 0) { container.innerHTML = '<div class="medicion-card">No hay mediciones</div>'; return; }
-        data.forEach(m => {
-            container.innerHTML += `<div class="medicion-card"><strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || ''}<br>📅 ${formatDate(m.created_at)}</div>`;
-        });
+        
+        for (const m of data) {
+            let piscinaNombre = '?';
+            let tecnicoNombre = '?';
+            if (m.piscina_id) {
+                const { data: piscina } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
+                if (piscina) piscinaNombre = piscina.nombre;
+            }
+            if (m.tecnico_id) {
+                if (tecnicosMap[m.tecnico_id]) {
+                    tecnicoNombre = tecnicosMap[m.tecnico_id];
+                } else {
+                    const { data: perfil } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
+                    if (perfil) tecnicoNombre = perfil.nick;
+                }
+            }
+            container.innerHTML += `
+                <div class="medicion-card">
+                    <strong>👤 ${tecnicoNombre}</strong> · 🏊 ${piscinaNombre}<br>
+                    🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
+                    📝 ${m.observaciones || 'Sin observaciones'}<br>
+                    📅 ${formatDate(m.created_at)}
+                </div>`;
+        }
         window.medicionesData = data;
     }
 
@@ -270,10 +339,24 @@
         const desde = document.getElementById('medicionDesde').value;
         const hasta = document.getElementById('medicionHasta').value;
         const tempDiv = document.createElement('div');
+        tempDiv.style.padding = '20px';
+        tempDiv.style.fontFamily = 'system-ui';
         tempDiv.innerHTML = `<h2>Mediciones (${desde} a ${hasta})</h2>`;
-        window.medicionesData.forEach(m => {
-            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;"><strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || ''}<br>📅 ${formatDate(m.created_at)}</div>`;
-        });
+        
+        for (const m of window.medicionesData) {
+            let piscinaNombre = '?';
+            let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
+            if (m.piscina_id) {
+                const { data: piscina } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
+                if (piscina) piscinaNombre = piscina.nombre;
+            }
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
+                                    <strong>👤 ${tecnicoNombre}</strong> · 🏊 ${piscinaNombre}<br>
+                                    🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
+                                    📝 ${m.observaciones || ''}<br>
+                                    📅 ${formatDate(m.created_at)}
+                                   </div>`;
+        }
         html2pdf().set({ filename: `mediciones_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
     }
 
@@ -291,7 +374,10 @@
             currentUser = data.user;
             document.getElementById('loginPanel').classList.add('oculto');
             document.getElementById('dashboardPanel').classList.remove('oculto');
-            await Promise.all([cargarSelectsTecnicos(), cargarEstadisticas(), cargarUltimasMediciones(), cargarTecnicosList()]);
+            await cargarSelectsTecnicos();
+            await cargarEstadisticas();
+            await cargarUltimasMediciones();
+            await cargarTecnicosList();
         } catch (err) { errorDiv.innerText = err.message; }
     };
 
