@@ -129,13 +129,14 @@
             max-height: 400px;
             overflow-y: auto;
         }
-        .medicion-card, .jornada-card {
+        .medicion-card, .jornada-card, .piscina-detalle-card {
             background: #f8fafc;
             padding: 14px 18px;
             border-radius: 20px;
             margin-bottom: 12px;
             border-left: 4px solid #3b82f6;
         }
+        .piscina-detalle-card { border-left-color: #2c7a4d; }
 
         .buscador-piscina {
             display: flex;
@@ -164,10 +165,14 @@
         }
         .quitar-producto { width: auto; padding: 6px 14px; background: #c2410c; }
 
+        .grid-datos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+        .piscina-detalle { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+
         @media (max-width: 720px) {
             .card-content { padding: 16px; }
             .fila { flex-direction: column; align-items: stretch; }
             .buscador-piscina { flex-direction: column; }
+            .grid-datos { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -209,6 +214,10 @@
                     <button id="btnBuscarPiscina" class="outline">🔍 Buscar</button>
                 </div>
                 <select id="piscinaSelect"></select>
+                
+                <!-- Datos de la piscina seleccionada -->
+                <div id="piscinaDetalle" class="piscina-detalle-card" style="margin-top: 16px; display: none;"></div>
+                
                 <div class="fila">
                     <div class="grupo"><label>Cloro (ppm)</label><input type="number" step="0.1" id="cloro" placeholder="0.0"></div>
                     <div class="grupo"><label>pH</label><input type="number" step="0.1" id="ph" placeholder="7.2"></div>
@@ -275,6 +284,7 @@
     let jornadaActiva = null;
     let productosTemp = [];
     let piscinasList = [];
+    let piscinasDetalle = {};
 
     const productosPredefinidos = [
         "Cloro granulado", "Cloro pastillas", "pH+ (aumentador)", "pH- (disminuidor)",
@@ -283,6 +293,27 @@
 
     function exportarPDF(elemento, nombreArchivo) {
         html2pdf().set({ filename: `${nombreArchivo}.pdf`, margin: 10 }).from(elemento).save();
+    }
+
+    // Mostrar datos de la piscina seleccionada
+    function mostrarDetallePiscina(piscinaId) {
+        const p = piscinasDetalle[piscinaId];
+        const container = document.getElementById('piscinaDetalle');
+        if (!p || (!p.localidad && !p.direccion && !p.codigo_postal && !p.telefono_contacto && !p.capacidad)) {
+            container.style.display = 'none';
+            return;
+        }
+        container.innerHTML = `
+            <strong>📍 Datos de la piscina</strong>
+            <div class="grid-datos">
+                ${p.localidad ? `<div><strong>Localidad:</strong> ${p.localidad}</div>` : ''}
+                ${p.direccion ? `<div><strong>Dirección:</strong> ${p.direccion}</div>` : ''}
+                ${p.codigo_postal ? `<div><strong>Código postal:</strong> ${p.codigo_postal}</div>` : ''}
+                ${p.telefono_contacto ? `<div><strong>Teléfono:</strong> ${p.telefono_contacto}</div>` : ''}
+                ${p.capacidad ? `<div><strong>Capacidad:</strong> ${p.capacidad} personas</div>` : ''}
+            </div>
+        `;
+        container.style.display = 'block';
     }
 
     // LOGIN
@@ -329,6 +360,8 @@
     async function cargarPiscinas() {
         const { data } = await sb.from('piscinas').select('*').order('nombre');
         piscinasList = data || [];
+        piscinasDetalle = {};
+        piscinasList.forEach(p => { piscinasDetalle[p.id] = p; });
         actualizarSelectPiscinas(piscinasList);
     }
 
@@ -351,6 +384,16 @@
             const msgDiv = document.getElementById('mensaje');
             msgDiv.innerHTML = '<span style="color:#c2410c;">⚠️ No se encontraron piscinas con ese nombre</span>';
             setTimeout(() => msgDiv.innerHTML = '', 3000);
+        }
+    };
+
+    // Al cambiar la selección de piscina, mostrar sus datos
+    document.getElementById('piscinaSelect').onchange = () => {
+        const piscinaId = document.getElementById('piscinaSelect').value;
+        if (piscinaId && piscinasDetalle[piscinaId]) {
+            mostrarDetallePiscina(piscinaId);
+        } else {
+            document.getElementById('piscinaDetalle').style.display = 'none';
         }
     };
 
