@@ -65,6 +65,15 @@
         .btn-info { background: #0284c7; }
         .oculto { display: none; }
         
+        /* Header del gerente */
+        .gerente-header {
+            background: linear-gradient(135deg, #0077b6 0%, #00a8e8 100%);
+            color: white;
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
         .resumen-compacto {
             display: flex;
             gap: 12px;
@@ -217,144 +226,89 @@
         .calendario {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            margin-top: 16px;
+            gap: 15px;
+            margin-top: 20px;
         }
         .dia-calendario {
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 8px;
+            border-radius: 20px;
+            padding: 15px 10px;
             text-align: center;
-            background: white;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .dia-calendario.vacaciones {
-            background: #e0e7ff;
-            border-color: #4f46e5;
+        .dia-calendario:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        .dia-calendario.baja {
-            background: #fee2e2;
-            border-color: #dc2626;
+        .dia-calendario .dia-nombre {
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .dia-calendario.descanso {
-            background: #d4edda;
-            border-color: #2c7a4d;
-        }
-        .dia-calendario.trabajo {
-            background: #e0f2fe;
-            border-color: #0284c7;
-        }
-        .dia-numero {
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-        .dia-nombre {
-            font-size: 0.7rem;
-            color: #5b6e8c;
+        .dia-calendario .dia-numero {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 10px 0;
         }
         .tipo-select {
-            font-size: 0.65rem;
-            padding: 4px;
-            margin-top: 6px;
             width: 100%;
+            padding: 8px 6px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            background: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        
         .form-ausencia {
             background: #f8fafc;
             padding: 16px;
             border-radius: 16px;
             margin-bottom: 16px;
         }
-        
         .mensaje-error {
-    color: #dc2626;
-    background: #fee2e2;
-    padding: 12px;
-    border-radius: 12px;
-    margin: 10px 0;
-
+            color: #dc2626;
+            background: #fee2e2;
+            padding: 12px;
+            border-radius: 12px;
+            margin: 10px 0;
         }
-
-        /* Estilos mejorados para el calendario */
-.calendario {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.dia-calendario {
-    border-radius: 20px;
-    padding: 15px 10px;
-    text-align: center;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.dia-calendario:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.dia-calendario .dia-nombre {
-    font-size: 1rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.dia-calendario .dia-numero {
-    font-size: 1.5rem;
-    font-weight: 800;
-    margin: 10px 0;
-}
-
-.tipo-select {
-    width: 100%;
-    padding: 8px 6px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    background: white;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.tipo-select:hover {
-    opacity: 0.9;
-}
-
-/* Colores de fondo para cada tipo */
-.dia-calendario[style*="#d4edda"] .tipo-select,
-.dia-calendario:has(select option[value="trabajo"]:checked) {
-    background: #d4edda;
-}
-
-.dia-calendario:has(select option[value="descanso"]:checked) {
-    background: #e2e3e5;
-}
-
-.dia-calendario:has(select option[value="vacaciones"]:checked) {
-    background: #e0e7ff;
-}
-
-.dia-calendario:has(select option[value="baja"]:checked) {
-    background: #fee2e2;
-}
+        
+        /* Ocultar dashboard hasta login */
+        #dashboardPanel {
+            display: none;
+        }
     </style>
 </head>
 <body>
 <div class="container">
+    <!-- Login -->
     <div id="loginPanel" class="card">
         <div class="card-header" style="cursor:default;">👔 Acceso Gerente</div>
-        <input type="email" id="email" placeholder="Email" value="">
+        <input type="email" id="email" placeholder="Email">
         <input type="password" id="password" placeholder="Contraseña">
         <button id="btnLogin">Iniciar sesión</button>
         <div id="errorMsg" style="color:red; margin-top:10px; font-size:0.8rem;"></div>
     </div>
 
-    <div id="dashboardPanel" class="oculto">
+    <div id="dashboardPanel">
+        <!-- Header con información del gerente -->
+        <div class="gerente-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;">👔 Gerente</div>
+                    <div style="font-size: 1.5rem; font-weight: 700;" id="nombreGerente">Cargando...</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;" id="emailGerente"></div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 2rem;">🏊</div>
+                    <div style="font-size: 0.7rem; opacity: 0.8;">Aqua Garden</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Resumen compacto -->
         <div class="card" style="padding: 10px 16px;">
             <div class="resumen-compacto">
@@ -536,46 +490,61 @@
     function formatTime(iso) { return iso ? new Date(iso).toLocaleTimeString() : '—'; }
     function formatDateYMD(date) { return date.toISOString().slice(0,10); }
 
-    async function cargarCaches() {
-    const { data: piscinas } = await sb.from('piscinas').select('id, nombre');
-    piscinas?.forEach(p => cachePiscinas[p.id] = p.nombre);
-    
-    const { data: perfiles } = await sb.from('perfiles').select('id, nick, nombre, rol');
-    perfiles?.forEach(p => cachePerfiles[p.id] = { nick: p.nick, nombre: p.nombre, rol: p.rol });
-    
-    console.log("Perfiles cargados:", perfiles?.length);
-    console.log("Técnicos:", Object.values(cachePerfiles).filter(p => p.rol === 'tecnico'));
-    
-    await cargarSelectoresTecnicos();
-}
-
-  async function cargarSelectoresTecnicos() {
-    // Consultar técnicos directamente desde Supabase
-    const { data: tecnicos, error } = await sb.from('perfiles').select('id, nick, nombre').eq('rol', 'tecnico');
-    
-    if (error) {
-        console.error("Error cargando técnicos:", error);
-        return;
-    }
-    
-    console.log("Técnicos encontrados:", tecnicos?.length);
-    
-    const selectores = ['selectorTecnicoPersonal', 'selectorTecnicoDisponibilidad', 'selectorTecnicoVacaciones'];
-    
-    for (const id of selectores) {
-        const select = document.getElementById(id);
-        if (select) {
-            const valorActual = select.value;
-            select.innerHTML = '<option value="">Selecciona un técnico...</option>';
-            tecnicos?.forEach(t => {
-                select.innerHTML += `<option value="${t.id}">${t.nick}${t.nombre ? ` - ${t.nombre}` : ''}</option>`;
-            });
-            if (valorActual && tecnicos?.some(t => t.id === valorActual)) {
-                select.value = valorActual;
+    // ========== INFO GERENTE ==========
+    async function cargarInfoGerente() {
+        const { data: { user } } = await sb.auth.getUser();
+        if (user) {
+            const { data: perfil } = await sb
+                .from('perfiles')
+                .select('nick, nombre')
+                .eq('id', user.id)
+                .single();
+            
+            if (perfil) {
+                document.getElementById('nombreGerente').innerHTML = `${perfil.nombre || perfil.nick} 👋`;
+                document.getElementById('emailGerente').innerHTML = user.email;
+            } else {
+                document.getElementById('nombreGerente').innerHTML = user.email.split('@')[0];
+                document.getElementById('emailGerente').innerHTML = user.email;
             }
         }
     }
-}
+
+    async function cargarCaches() {
+        const { data: piscinas } = await sb.from('piscinas').select('id, nombre');
+        piscinas?.forEach(p => cachePiscinas[p.id] = p.nombre);
+        
+        const { data: perfiles } = await sb.from('perfiles').select('id, nick, nombre, rol');
+        perfiles?.forEach(p => cachePerfiles[p.id] = { nick: p.nick, nombre: p.nombre, rol: p.rol });
+        
+        await cargarSelectoresTecnicos();
+    }
+
+    async function cargarSelectoresTecnicos() {
+        const { data: tecnicos, error } = await sb.from('perfiles').select('id, nick, nombre').eq('rol', 'tecnico');
+        
+        if (error) {
+            console.error("Error cargando técnicos:", error);
+            return;
+        }
+        
+        const selectores = ['selectorTecnicoPersonal', 'selectorTecnicoDisponibilidad', 'selectorTecnicoVacaciones'];
+        
+        for (const id of selectores) {
+            const select = document.getElementById(id);
+            if (select) {
+                const valorActual = select.value;
+                select.innerHTML = '<option value="">Selecciona un técnico...</option>';
+                tecnicos?.forEach(t => {
+                    select.innerHTML += `<option value="${t.id}">${t.nick}${t.nombre ? ` - ${t.nombre}` : ''}</option>`;
+                });
+                if (valorActual && tecnicos?.some(t => t.id === valorActual)) {
+                    select.value = valorActual;
+                }
+            }
+        }
+    }
+
     // ========== DATOS DEL TÉCNICO HOY ==========
     async function cargarDatosTecnicoHoy() {
         const tecnicoId = document.getElementById('selectorTecnicoPersonal').value;
@@ -674,133 +643,126 @@
 
     // ========== DISPONIBILIDAD SEMANAL ==========
     async function cargarDisponibilidadSemanal() {
-    const tecnicoId = document.getElementById('selectorTecnicoDisponibilidad').value;
-    if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
-        document.getElementById('calendarioDisponibilidad').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
-        return;
-    }
-    
-    let fechaBase = document.getElementById('semanaDisponibilidad').value;
-    if (!fechaBase) {
-        fechaBase = formatDateYMD(new Date());
-        document.getElementById('semanaDisponibilidad').value = fechaBase;
-    }
-    
-    const fecha = new Date(fechaBase);
-    const diaSemana = fecha.getDay();
-    const inicioSemana = new Date(fecha);
-    inicioSemana.setDate(fecha.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1));
-    
-    const diasSemana = [];
-    for (let i = 0; i < 7; i++) {
-        const dia = new Date(inicioSemana);
-        dia.setDate(inicioSemana.getDate() + i);
-        diasSemana.push(dia);
-    }
-    
-    const fechas = diasSemana.map(d => formatDateYMD(d));
-    const { data: disponibilidad } = await sb
-        .from('disponibilidad_tecnicos')
-        .select('*')
-        .eq('tecnico_id', tecnicoId)
-        .in('fecha', fechas);
-    
-    disponibilidadActual = {};
-    disponibilidad?.forEach(d => {
-        disponibilidadActual[d.fecha] = d.tipo;
-    });
-    
-    const nombresDias = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
-    let html = '<div class="calendario" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px;">';
-    
-    diasSemana.forEach((dia, idx) => {
-        const fechaStr = formatDateYMD(dia);
-        const tipo = disponibilidadActual[fechaStr] || 'trabajo';
-        
-        let textoEstado = '';
-        let colorFondo = '';
-        let colorBoton = '';
-        
-        switch(tipo) {
-            case 'trabajo':
-                textoEstado = '✅ Trabajo';
-                colorFondo = '#d4edda';
-                colorBoton = '#2c7a4d';
-                break;
-            case 'descanso':
-                textoEstado = '💤 Descanso';
-                colorFondo = '#e2e3e5';
-                colorBoton = '#6c757d';
-                break;
-            case 'vacaciones':
-                textoEstado = '🏖️ Vacaciones';
-                colorFondo = '#e0e7ff';
-                colorBoton = '#4f46e5';
-                break;
-            case 'baja':
-                textoEstado = '🩺 Baja';
-                colorFondo = '#fee2e2';
-                colorBoton = '#dc2626';
-                break;
-            default:
-                textoEstado = '✅ Trabajo';
-                colorFondo = '#d4edda';
-                colorBoton = '#2c7a4d';
+        const tecnicoId = document.getElementById('selectorTecnicoDisponibilidad').value;
+        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
+            document.getElementById('calendarioDisponibilidad').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
+            return;
         }
         
-        html += `
-            <div class="dia-calendario" style="background: ${colorFondo}; border-radius: 16px; padding: 12px; text-align: center; border: 1px solid #ddd;">
-                <div style="font-size: 1rem; font-weight: bold; color: #333;">${nombresDias[idx]}</div>
-                <div style="font-size: 1.2rem; font-weight: bold; color: #1e4663; margin: 8px 0;">${dia.getDate()}</div>
-                <div style="font-size: 0.85rem; margin: 8px 0; font-weight: 500;">${textoEstado}</div>
-                <select class="tipo-select" data-fecha="${fechaStr}" style="width: 100%; padding: 8px; border-radius: 12px; border: 1px solid #cad2db; background: white; font-size: 0.8rem; margin-top: 8px; cursor: pointer;">
-                    <option value="trabajo" ${tipo === 'trabajo' ? 'selected' : ''}>✅ Trabajo</option>
-                    <option value="descanso" ${tipo === 'descanso' ? 'selected' : ''}>💤 Descanso</option>
-                    <option value="vacaciones" ${tipo === 'vacaciones' ? 'selected' : ''}>🏖️ Vacaciones</option>
-                    <option value="baja" ${tipo === 'baja' ? 'selected' : ''}>🩺 Baja</option>
-                </select>
-            </div>
-        `;
-    });
-    html += '</div>';
-    document.getElementById('calendarioDisponibilidad').innerHTML = html;
-    
-    document.querySelectorAll('.tipo-select').forEach(select => {
-        select.addEventListener('change', (e) => {
-            const fecha = e.target.dataset.fecha;
-            const nuevoTipo = e.target.value;
-            disponibilidadActual[fecha] = nuevoTipo;
+        let fechaBase = document.getElementById('semanaDisponibilidad').value;
+        if (!fechaBase) {
+            fechaBase = formatDateYMD(new Date());
+            document.getElementById('semanaDisponibilidad').value = fechaBase;
+        }
+        
+        const fecha = new Date(fechaBase);
+        const diaSemana = fecha.getDay();
+        const inicioSemana = new Date(fecha);
+        inicioSemana.setDate(fecha.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1));
+        
+        const diasSemana = [];
+        for (let i = 0; i < 7; i++) {
+            const dia = new Date(inicioSemana);
+            dia.setDate(inicioSemana.getDate() + i);
+            diasSemana.push(dia);
+        }
+        
+        const fechas = diasSemana.map(d => formatDateYMD(d));
+        const { data: disponibilidad } = await sb
+            .from('disponibilidad_tecnicos')
+            .select('*')
+            .eq('tecnico_id', tecnicoId)
+            .in('fecha', fechas);
+        
+        disponibilidadActual = {};
+        disponibilidad?.forEach(d => {
+            disponibilidadActual[d.fecha] = d.tipo;
+        });
+        
+        const nombresDias = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+        let html = '<div class="calendario">';
+        
+        diasSemana.forEach((dia, idx) => {
+            const fechaStr = formatDateYMD(dia);
+            const tipo = disponibilidadActual[fechaStr] || 'trabajo';
             
-            // Actualizar el estilo visual del día
-            const parent = e.target.closest('.dia-calendario');
-            let colorFondo = '';
             let textoEstado = '';
+            let colorFondo = '';
             
-            switch(nuevoTipo) {
+            switch(tipo) {
                 case 'trabajo':
-                    colorFondo = '#d4edda';
                     textoEstado = '✅ Trabajo';
+                    colorFondo = '#d4edda';
                     break;
                 case 'descanso':
-                    colorFondo = '#e2e3e5';
                     textoEstado = '💤 Descanso';
+                    colorFondo = '#e2e3e5';
                     break;
                 case 'vacaciones':
-                    colorFondo = '#e0e7ff';
                     textoEstado = '🏖️ Vacaciones';
+                    colorFondo = '#e0e7ff';
                     break;
                 case 'baja':
-                    colorFondo = '#fee2e2';
                     textoEstado = '🩺 Baja';
+                    colorFondo = '#fee2e2';
                     break;
+                default:
+                    textoEstado = '✅ Trabajo';
+                    colorFondo = '#d4edda';
             }
             
-            parent.style.background = colorFondo;
-            const estadoDiv = parent.querySelector('div:nth-child(3)');
-            if (estadoDiv) estadoDiv.innerHTML = textoEstado;
+            html += `
+                <div class="dia-calendario" style="background: ${colorFondo};">
+                    <div class="dia-nombre">${nombresDias[idx]}</div>
+                    <div class="dia-numero">${dia.getDate()}</div>
+                    <div style="font-size: 0.85rem; margin: 8px 0; font-weight: 500;">${textoEstado}</div>
+                    <select class="tipo-select" data-fecha="${fechaStr}">
+                        <option value="trabajo" ${tipo === 'trabajo' ? 'selected' : ''}>✅ Trabajo</option>
+                        <option value="descanso" ${tipo === 'descanso' ? 'selected' : ''}>💤 Descanso</option>
+                        <option value="vacaciones" ${tipo === 'vacaciones' ? 'selected' : ''}>🏖️ Vacaciones</option>
+                        <option value="baja" ${tipo === 'baja' ? 'selected' : ''}>🩺 Baja</option>
+                    </select>
+                </div>
+            `;
         });
-    });
-}
+        html += '</div>';
+        document.getElementById('calendarioDisponibilidad').innerHTML = html;
+        
+        document.querySelectorAll('.tipo-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const fecha = e.target.dataset.fecha;
+                const nuevoTipo = e.target.value;
+                disponibilidadActual[fecha] = nuevoTipo;
+                
+                const parent = e.target.closest('.dia-calendario');
+                let colorFondo = '';
+                let textoEstado = '';
+                
+                switch(nuevoTipo) {
+                    case 'trabajo':
+                        colorFondo = '#d4edda';
+                        textoEstado = '✅ Trabajo';
+                        break;
+                    case 'descanso':
+                        colorFondo = '#e2e3e5';
+                        textoEstado = '💤 Descanso';
+                        break;
+                    case 'vacaciones':
+                        colorFondo = '#e0e7ff';
+                        textoEstado = '🏖️ Vacaciones';
+                        break;
+                    case 'baja':
+                        colorFondo = '#fee2e2';
+                        textoEstado = '🩺 Baja';
+                        break;
+                }
+                
+                parent.style.background = colorFondo;
+                const estadoDiv = parent.querySelector('div:nth-child(3)');
+                if (estadoDiv) estadoDiv.innerHTML = textoEstado;
+            });
+        });
+    }
     
     async function guardarDisponibilidad() {
         const tecnicoId = document.getElementById('selectorTecnicoDisponibilidad').value;
@@ -829,183 +791,168 @@
 
     // ========== VACACIONES Y AUSENCIAS ==========
     async function cargarAusenciasTecnico() {
-    const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
-    const contenedor = document.getElementById('listaAusencias');
-    
-    console.log("Técnico seleccionado:", tecnicoId);
-    
-    if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '' || tecnicoId === 'null') {
-        contenedor.innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
-        return;
-    }
-    
-    try {
-        contenedor.innerHTML = '<div class="medicion-card">⏳ Cargando datos...</div>';
+        const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
+        const contenedor = document.getElementById('listaAusencias');
         
-        // Verificar que el técnico existe
-        const { data: tecnicoExiste, error: errorTecnico } = await sb
-            .from('perfiles')
-            .select('id, nick')
-            .eq('id', tecnicoId)
-            .single();
-        
-        if (errorTecnico || !tecnicoExiste) {
-            contenedor.innerHTML = '<div class="mensaje-error">❌ Técnico no encontrado</div>';
+        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '' || tecnicoId === 'null') {
+            contenedor.innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
             return;
         }
         
-        const { data: vacaciones, error: errVac } = await sb
-            .from('vacaciones_tecnicos')
-            .select('*')
-            .eq('tecnico_id', tecnicoId)
-            .order('fecha_inicio', { ascending: false });
-        
-        if (errVac) throw errVac;
-        
-        const { data: incidencias, error: errInc } = await sb
-            .from('incidencias_tecnicos')
-            .select('*')
-            .eq('tecnico_id', tecnicoId)
-            .order('fecha_inicio', { ascending: false });
-        
-        if (errInc) throw errInc;
-        
-        let html = '';
-        const hoy = new Date();
-        
-        if (vacaciones && vacaciones.length > 0) {
-            html += `<div class="medicion-card" style="background: #e0e7ff; margin-bottom: 12px;"><strong>🏖️ VACACIONES (${vacaciones.length})</strong></div>`;
-            for (const v of vacaciones) {
-                const esPasada = new Date(v.fecha_fin) < hoy;
-                html += `
-                    <div class="medicion-card" style="background: ${esPasada ? '#f3f4f6' : '#e0e7ff'}; margin-bottom: 8px;">
-                        📅 ${v.fecha_inicio} → ${v.fecha_fin} (${v.dias_totales} días)
-                        <br>📝 ${v.observaciones || 'Sin observaciones'}
-                        <br><button class="eliminar-vacacion" data-id="${v.id}" style="background:#c2410c; width:auto; margin-top:8px; padding:4px 12px;">🗑️ Eliminar</button>
-                    </div>
-                `;
-            }
-        } else {
-            html += `<div class="medicion-card">📋 No hay vacaciones registradas</div>`;
-        }
-        
-        if (incidencias && incidencias.length > 0) {
-            html += `<div class="medicion-card" style="background: #fee2e2; margin-top: 12px;"><strong>📋 INCIDENCIAS (${incidencias.length})</strong></div>`;
-            for (const i of incidencias) {
-                const tipoTexto = {
-                    'baja_medica': '🩺 Baja médica',
-                    'permiso': '📋 Permiso',
-                    'formacion': '📚 Formación',
-                    'reunion': '🤝 Reunión'
-                }[i.tipo] || i.tipo;
-                const esPasada = new Date(i.fecha_fin) < hoy;
-                html += `
-                    <div class="medicion-card" style="background: ${esPasada ? '#f3f4f6' : '#fee2e2'}; margin-bottom: 8px;">
-                        <strong>${tipoTexto}</strong>
-                        <br>📅 ${i.fecha_inicio} → ${i.fecha_fin}
-                        <br>📝 ${i.descripcion || 'Sin descripción'}
-                        <br><button class="eliminar-incidencia" data-id="${i.id}" style="background:#c2410c; width:auto; margin-top:8px; padding:4px 12px;">🗑️ Eliminar</button>
-                    </div>
-                `;
-            }
-        } else {
-            html += `<div class="medicion-card">📋 No hay incidencias registradas</div>`;
-        }
-        
-        contenedor.innerHTML = html;
-        
-        // Eventos eliminar
-        document.querySelectorAll('.eliminar-vacacion').forEach(btn => {
-            btn.onclick = async () => {
-                if (confirm("¿Eliminar?")) {
-                    await sb.from('vacaciones_tecnicos').delete().eq('id', btn.dataset.id);
-                    await cargarAusenciasTecnico();
-                    await cargarDisponibilidadSemanal();
+        try {
+            contenedor.innerHTML = '<div class="medicion-card">⏳ Cargando datos...</div>';
+            
+            const { data: vacaciones, error: errVac } = await sb
+                .from('vacaciones_tecnicos')
+                .select('*')
+                .eq('tecnico_id', tecnicoId)
+                .order('fecha_inicio', { ascending: false });
+            
+            if (errVac) throw errVac;
+            
+            const { data: incidencias, error: errInc } = await sb
+                .from('incidencias_tecnicos')
+                .select('*')
+                .eq('tecnico_id', tecnicoId)
+                .order('fecha_inicio', { ascending: false });
+            
+            if (errInc) throw errInc;
+            
+            let html = '';
+            const hoy = new Date();
+            
+            if (vacaciones && vacaciones.length > 0) {
+                html += `<div class="medicion-card" style="background: #e0e7ff; margin-bottom: 12px;"><strong>🏖️ VACACIONES (${vacaciones.length})</strong></div>`;
+                for (const v of vacaciones) {
+                    const esPasada = new Date(v.fecha_fin) < hoy;
+                    html += `
+                        <div class="medicion-card" style="background: ${esPasada ? '#f3f4f6' : '#e0e7ff'}; margin-bottom: 8px;">
+                            📅 ${v.fecha_inicio} → ${v.fecha_fin} (${v.dias_totales} días)
+                            <br>📝 ${v.observaciones || 'Sin observaciones'}
+                            <br><button class="eliminar-vacacion" data-id="${v.id}" style="background:#c2410c; width:auto; margin-top:8px; padding:4px 12px;">🗑️ Eliminar</button>
+                        </div>
+                    `;
                 }
-            };
-        });
-        
-        document.querySelectorAll('.eliminar-incidencia').forEach(btn => {
-            btn.onclick = async () => {
-                if (confirm("¿Eliminar?")) {
-                    await sb.from('incidencias_tecnicos').delete().eq('id', btn.dataset.id);
-                    await cargarAusenciasTecnico();
-                    await cargarDisponibilidadSemanal();
+            } else {
+                html += `<div class="medicion-card">📋 No hay vacaciones registradas</div>`;
+            }
+            
+            if (incidencias && incidencias.length > 0) {
+                html += `<div class="medicion-card" style="background: #fee2e2; margin-top: 12px;"><strong>📋 INCIDENCIAS (${incidencias.length})</strong></div>`;
+                for (const i of incidencias) {
+                    const tipoTexto = {
+                        'baja_medica': '🩺 Baja médica',
+                        'permiso': '📋 Permiso',
+                        'formacion': '📚 Formación',
+                        'reunion': '🤝 Reunión'
+                    }[i.tipo] || i.tipo;
+                    const esPasada = new Date(i.fecha_fin) < hoy;
+                    html += `
+                        <div class="medicion-card" style="background: ${esPasada ? '#f3f4f6' : '#fee2e2'}; margin-bottom: 8px;">
+                            <strong>${tipoTexto}</strong>
+                            <br>📅 ${i.fecha_inicio} → ${i.fecha_fin}
+                            <br>📝 ${i.descripcion || 'Sin descripción'}
+                            <br><button class="eliminar-incidencia" data-id="${i.id}" style="background:#c2410c; width:auto; margin-top:8px; padding:4px 12px;">🗑️ Eliminar</button>
+                        </div>
+                    `;
                 }
-            };
-        });
+            } else {
+                html += `<div class="medicion-card">📋 No hay incidencias registradas</div>`;
+            }
+            
+            contenedor.innerHTML = html;
+            
+            document.querySelectorAll('.eliminar-vacacion').forEach(btn => {
+                btn.onclick = async () => {
+                    if (confirm("¿Eliminar?")) {
+                        await sb.from('vacaciones_tecnicos').delete().eq('id', btn.dataset.id);
+                        await cargarAusenciasTecnico();
+                        await cargarDisponibilidadSemanal();
+                    }
+                };
+            });
+            
+            document.querySelectorAll('.eliminar-incidencia').forEach(btn => {
+                btn.onclick = async () => {
+                    if (confirm("¿Eliminar?")) {
+                        await sb.from('incidencias_tecnicos').delete().eq('id', btn.dataset.id);
+                        await cargarAusenciasTecnico();
+                        await cargarDisponibilidadSemanal();
+                    }
+                };
+            });
+            
+        } catch (error) {
+            console.error("Error:", error);
+            contenedor.innerHTML = `<div class="mensaje-error">❌ Error: ${error.message}</div>`;
+        }
+    }
+    
+    async function agregarAusencia() {
+        const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
         
-    } catch (error) {
-        console.error("Error:", error);
-        contenedor.innerHTML = `<div class="medicion-card" style="color:red;">❌ Error: ${error.message}</div>`;
-    }
-}
-    
-   async function agregarAusencia() {
-    const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
-    
-    if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '' || tecnicoId === 'null') {
-        alert("❌ Selecciona un técnico válido primero");
-        return;
-    }
-    
-    const tipo = document.getElementById('nuevaAusenciaTipo').value;
-    const inicio = document.getElementById('nuevaAusenciaInicio').value;
-    const fin = document.getElementById('nuevaAusenciaFin').value;
-    const observaciones = document.getElementById('nuevaAusenciaObs').value;
-    
-    if (!inicio || !fin) {
-        alert("❌ Selecciona fechas");
-        return;
-    }
-    
-    const fechaInicio = new Date(inicio);
-    const fechaFin = new Date(fin);
-    
-    if (fechaInicio > fechaFin) {
-        alert("❌ Fecha inicio no puede ser mayor que fin");
-        return;
-    }
-    
-    const diffDays = Math.ceil((fechaFin - fechaInicio) / (1000 * 60 * 60 * 24)) + 1;
-    
-    try {
-        if (tipo === 'vacaciones') {
-            const { error } = await sb.from('vacaciones_tecnicos').insert({
-                tecnico_id: tecnicoId,
-                fecha_inicio: inicio,
-                fecha_fin: fin,
-                dias_totales: diffDays,
-                estado: 'aprobada',
-                observaciones: observaciones || 'Registrado por gerente'
-            });
-            if (error) throw error;
-            alert(`✅ Vacaciones registradas (${diffDays} días)`);
-        } else {
-            const { error } = await sb.from('incidencias_tecnicos').insert({
-                tecnico_id: tecnicoId,
-                tipo: tipo,
-                fecha_inicio: inicio,
-                fecha_fin: fin,
-                descripcion: observaciones || 'Registrado por gerente'
-            });
-            if (error) throw error;
-            alert("✅ Incidencia registrada");
+        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '' || tecnicoId === 'null') {
+            alert("❌ Selecciona un técnico válido primero");
+            return;
         }
         
-        // Limpiar formulario
-        document.getElementById('nuevaAusenciaInicio').value = '';
-        document.getElementById('nuevaAusenciaFin').value = '';
-        document.getElementById('nuevaAusenciaObs').value = '';
+        const tipo = document.getElementById('nuevaAusenciaTipo').value;
+        const inicio = document.getElementById('nuevaAusenciaInicio').value;
+        const fin = document.getElementById('nuevaAusenciaFin').value;
+        const observaciones = document.getElementById('nuevaAusenciaObs').value;
         
-        await cargarAusenciasTecnico();
-        await cargarDisponibilidadSemanal();
+        if (!inicio || !fin) {
+            alert("❌ Selecciona fechas");
+            return;
+        }
         
-    } catch (error) {
-        alert("❌ Error: " + error.message);
+        const fechaInicio = new Date(inicio);
+        const fechaFin = new Date(fin);
+        
+        if (fechaInicio > fechaFin) {
+            alert("❌ Fecha inicio no puede ser mayor que fin");
+            return;
+        }
+        
+        const diffDays = Math.ceil((fechaFin - fechaInicio) / (1000 * 60 * 60 * 24)) + 1;
+        
+        try {
+            if (tipo === 'vacaciones') {
+                const { error } = await sb.from('vacaciones_tecnicos').insert({
+                    tecnico_id: tecnicoId,
+                    fecha_inicio: inicio,
+                    fecha_fin: fin,
+                    dias_totales: diffDays,
+                    estado: 'aprobada',
+                    observaciones: observaciones || 'Registrado por gerente'
+                });
+                if (error) throw error;
+                alert(`✅ Vacaciones registradas (${diffDays} días)`);
+            } else {
+                const { error } = await sb.from('incidencias_tecnicos').insert({
+                    tecnico_id: tecnicoId,
+                    tipo: tipo,
+                    fecha_inicio: inicio,
+                    fecha_fin: fin,
+                    descripcion: observaciones || 'Registrado por gerente'
+                });
+                if (error) throw error;
+                alert("✅ Incidencia registrada");
+            }
+            
+            document.getElementById('nuevaAusenciaInicio').value = '';
+            document.getElementById('nuevaAusenciaFin').value = '';
+            document.getElementById('nuevaAusenciaObs').value = '';
+            
+            await cargarAusenciasTecnico();
+            await cargarDisponibilidadSemanal();
+            
+        } catch (error) {
+            alert("❌ Error: " + error.message);
+        }
     }
-}
-    // ========== FUNCIONES DE SUPERVISIÓN (resumidas) ==========
+
+    // ========== FUNCIONES DE SUPERVISIÓN ==========
     async function cargarResumenCompacto() {
         const hoy = new Date().toISOString().slice(0,10);
         const startHoy = hoy + 'T00:00:00';
@@ -1477,41 +1424,46 @@
     async function hacerLogin() {
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
-        if (!email || !password) { document.getElementById('errorMsg').innerText = "Introduce email y contraseña"; return false; }
+        if (!email || !password) { 
+            document.getElementById('errorMsg').innerText = "Introduce email y contraseña"; 
+            return false; 
+        }
         const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
-        if (authError) { document.getElementById('errorMsg').innerText = authError.message; return false; }
+        if (authError) { 
+            document.getElementById('errorMsg').innerText = authError.message; 
+            return false; 
+        }
         const { data: perfil, error: perfilError } = await sb.from('perfiles').select('rol').eq('id', authData.user.id).single();
-        if (perfilError || perfil.rol !== 'gerente') { await sb.auth.signOut(); document.getElementById('errorMsg').innerText = "No tienes permisos de gerente"; return false; }
+        if (perfilError || perfil.rol !== 'gerente') { 
+            await sb.auth.signOut(); 
+            document.getElementById('errorMsg').innerText = "No tienes permisos de gerente"; 
+            return false; 
+        }
         currentUser = authData.user;
         return true;
     }
 
+    // Evento principal de login
     document.getElementById('btnLogin').onclick = async () => {
-    if (await hacerLogin()) {
-        document.getElementById('loginPanel').classList.add('oculto');
-        document.getElementById('dashboardPanel').classList.remove('oculto');
-        
-        // Primero cargar caches y selectores
-        await cargarCaches();
-        
-        // Verificar que los selectores tienen técnicos
-        console.log("Selector vacaciones options:", document.getElementById('selectorTecnicoVacaciones').children.length);
-        
-        // Cargar el resto de datos
-        await actualizarConsolaCompleta();
-        await cargarFiltrosTecnicos();
-        
-        const hoy = new Date();
-        const hace7 = new Date();
-        hace7.setDate(hoy.getDate() - 7);
-        await ejecutarBusquedaJornadas(hace7.toISOString(), hoy.toISOString());
-        await ejecutarBusquedaMediciones(hace7.toISOString(), hoy.toISOString());
-        await ejecutarBusquedaTiempos(hace7.toISOString(), hoy.toISOString());
-        
-        if (intervaloActualizacion) clearInterval(intervaloActualizacion);
-        intervaloActualizacion = setInterval(actualizarConsolaCompleta, 30000);
-    }
-
+        if (await hacerLogin()) {
+            document.getElementById('loginPanel').style.display = 'none';
+            document.getElementById('dashboardPanel').style.display = 'block';
+            
+            await cargarInfoGerente();
+            await cargarCaches();
+            await actualizarConsolaCompleta();
+            await cargarFiltrosTecnicos();
+            
+            const hoy = new Date();
+            const hace7 = new Date();
+            hace7.setDate(hoy.getDate() - 7);
+            await ejecutarBusquedaJornadas(hace7.toISOString(), hoy.toISOString());
+            await ejecutarBusquedaMediciones(hace7.toISOString(), hoy.toISOString());
+            await ejecutarBusquedaTiempos(hace7.toISOString(), hoy.toISOString());
+            
+            if (intervaloActualizacion) clearInterval(intervaloActualizacion);
+            intervaloActualizacion = setInterval(actualizarConsolaCompleta, 30000);
+        }
     };
 
     // Eventos de búsqueda
@@ -1608,7 +1560,6 @@
 
     // Navegación pestañas
     function initTabs() {
-        // Pestañas de supervisión
         const supervisionTabs = document.querySelectorAll('#supervisionTabs .browser-tab');
         const supervisionContents = {
             activos: document.getElementById('tabActivos'),
@@ -1632,7 +1583,6 @@
             });
         });
         
-        // Pestañas de personal
         const personalTabs = document.querySelectorAll('#personalTabs .browser-tab');
         const personalContents = {
             'personal-tecnicos': document.getElementById('tabPersonalTecnicos'),
@@ -1655,14 +1605,12 @@
         });
     }
     
-    // Inicializar tabs
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initTabs);
     } else {
         initTabs();
     }
 
-    // Pestañas de históricos
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1677,7 +1625,11 @@
     document.getElementById('btnLogout').onclick = async () => { 
         if (intervaloActualizacion) clearInterval(intervaloActualizacion);
         await sb.auth.signOut(); 
-        location.reload(); 
+        document.getElementById('dashboardPanel').style.display = 'none';
+        document.getElementById('loginPanel').style.display = 'block';
+        document.getElementById('email').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('errorMsg').innerText = '';
     };
 </script>
 </body>
