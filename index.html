@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Piscina Los Pinos · Estado en directo</title>
+    <title>Aqua Garden · Panel de control</title>
     <style>
         * {
             margin: 0;
@@ -12,289 +12,109 @@
         }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
-            background: #f0f7ff;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
-            color: #1e2a3e;
         }
         .container {
-            max-width: 600px;
-            margin: 0 auto;
+            max-width: 500px;
+            width: 100%;
         }
         .card {
             background: white;
-            border-radius: 32px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 48px;
+            padding: 48px 32px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255,255,255,0.2);
         }
-        .estado {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 40px;
-            font-weight: 600;
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #0077b6, #00b4d8);
+            border-radius: 24px;
+            margin: 0 auto 24px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 0 10px 25px -5px rgba(0,119,182,0.3);
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1e3a5f;
+            margin-bottom: 8px;
+        }
+        .subtitulo {
+            color: #5b6e8c;
+            margin-bottom: 40px;
             font-size: 0.9rem;
         }
-        .abierta { background: #e0f7e8; color: #1e7b48; }
-        .cerrada { background: #ffe6e5; color: #c2410c; }
-        .dato {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            padding: 12px 0;
-            border-bottom: 1px solid #eef2f6;
-        }
-        .dato-label {
-            font-weight: 500;
-            color: #5b6e8c;
-        }
-        .dato-valor {
-            font-weight: 700;
-            font-size: 1.3rem;
-        }
-        .normal { color: #1e7b48; }
-        .alerta { color: #e67e22; }
-        .critico { color: #c2410c; }
         .btn {
-            background: #0066cc;
-            color: white;
-            border: none;
-            padding: 14px 20px;
+            display: block;
+            width: 100%;
+            padding: 16px 24px;
             border-radius: 60px;
+            text-decoration: none;
             font-weight: 600;
             font-size: 1rem;
-            width: 100%;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn:hover { background: #0052a3; }
-        .input-group {
-            margin-bottom: 16px;
-        }
-        label {
-            font-weight: 500;
-            display: block;
-            margin-bottom: 6px;
-        }
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccd7e6;
-            border-radius: 24px;
-            font-size: 1rem;
-        }
-        .incidencia-form {
-            background: #f9fbfe;
-            border-radius: 28px;
-            padding: 20px;
-        }
-        footer {
             text-align: center;
+            transition: all 0.2s ease;
+            margin-bottom: 16px;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-tecnico {
+            background: #0066cc;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+        }
+        .btn-tecnico:hover {
+            background: #0052a3;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,102,204,0.4);
+        }
+        .btn-gerente {
+            background: white;
+            color: #1e3a5f;
+            border: 2px solid #0066cc;
+        }
+        .btn-gerente:hover {
+            background: #f0f9ff;
+            transform: translateY(-2px);
+        }
+        .footer {
+            margin-top: 32px;
             font-size: 0.75rem;
             color: #8a99b0;
-            margin-top: 30px;
-        }
-        .ultima-act {
-            font-size: 0.75rem;
-            color: #5b6e8c;
-            text-align: right;
-            margin-top: 8px;
-        }
-        .cargando {
-            text-align: center;
-            padding: 20px;
-            color: #5b6e8c;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2>🏊 Piscina Los Pinos</h2>
-            <span id="estado-badge" class="estado abierta">🟢 ABIERTA</span>
-        </div>
-        <p style="margin-top: 6px; color: #5b6e8c;">Urbanización Los Pinos · Datos reales del técnico</p>
-
-        <div style="margin: 20px 0 10px 0;">
-            <div class="dato">
-                <span class="dato-label">🧪 Cloro (ppm)</span>
-                <span id="cloro-valor" class="dato-valor">--</span>
+    <div class="container">
+        <div class="card">
+            <div class="logo">
+                💧
             </div>
-            <div class="dato">
-                <span class="dato-label">⚗️ pH</span>
-                <span id="ph-valor" class="dato-valor">--</span>
+            <h1>Aqua Garden</h1>
+            <div class="subtitulo">Gestión de mantenimiento de piscinas</div>
+            
+            <a href="tecnico.html" class="btn btn-tecnico">
+                🔧 Acceso Técnico
+            </a>
+            
+            <a href="gerente.html" class="btn btn-gerente">
+                👔 Acceso Gerente
+            </a>
+            
+            <div class="footer">
+                Sistema de control de calidad y mantenimiento
             </div>
-            <div class="dato">
-                <span class="dato-label">🌡️ Temperatura</span>
-                <span id="temp-valor" class="dato-valor">--°C</span>
-            </div>
-            <div class="dato">
-                <span class="dato-label">💧 Turbidez</span>
-                <span>Clara</span>
-            </div>
-        </div>
-        <div class="ultima-act" id="ultima-act">Cargando datos...</div>
-    </div>
-
-    <!-- Reporte de incidencias -->
-    <div class="card">
-        <h3>📢 Reportar problema</h3>
-        <div class="incidencia-form">
-            <div class="input-group">
-                <label>Tipo de incidencia</label>
-                <select id="tipo-incidencia">
-                    <option>Ducha fuera de servicio</option>
-                    <option>Limpieza de vaso</option>
-                    <option>Iluminación defectuosa</option>
-                    <option>Acceso / cerradura</option>
-                    <option>Otro</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label>Descripción (opcional)</label>
-                <textarea rows="2" id="desc-incidencia" placeholder="Ej: El grifo no cierra bien..."></textarea>
-            </div>
-            <div class="input-group">
-                <label>📸 Foto (opcional) - pega una URL</label>
-                <input type="text" id="foto-url" placeholder="https://... o déjalo vacío">
-            </div>
-            <button class="btn" id="reportar-btn">📨 Enviar al encargado</button>
-            <div id="mensaje-envio" style="margin-top:12px; font-size:0.85rem; text-align:center;"></div>
         </div>
     </div>
-
-    <footer>
-        Escanea el QR en la puerta de la piscina · Datos actualizados automáticamente
-    </footer>
-</div>
-
-<script>
-    // ================= CONFIGURACIÓN SUPABASE =================
-    const SUPABASE_URL = "https://zlaatodfoulhhhvoyrrr.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_Ow6HYUU0x0Yzhb6UqqR2iQ_xEoTpcAL"; // misma clave que funciona
-
-    // Función para llamar a la API REST de Supabase
-    async function callSupabase(endpoint, options = {}) {
-        const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
-        const headers = {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-        };
-        const response = await fetch(url, { ...options, headers });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
-    }
-
-    // Obtener la última medición (la más reciente de toda la tabla)
-    async function obtenerUltimaMedicion() {
-        try {
-            const data = await callSupabase('mediciones?order=created_at.desc&limit=1');
-            if (data && data.length > 0) {
-                return data[0];
-            } else {
-                return null; // No hay mediciones aún
-            }
-        } catch (error) {
-            console.error("Error al cargar medición:", error);
-            return null;
-        }
-    }
-
-    // Actualizar la interfaz con los datos de la última medición
-    function actualizarUI(medicion) {
-        const cloroSpan = document.getElementById('cloro-valor');
-        const phSpan = document.getElementById('ph-valor');
-        const tempSpan = document.getElementById('temp-valor');
-        const estadoBadge = document.getElementById('estado-badge');
-        const ultimaSpan = document.getElementById('ultima-act');
-
-        if (!medicion) {
-            // No hay datos aún
-            cloroSpan.innerText = '--';
-            phSpan.innerText = '--';
-            tempSpan.innerText = '--°C';
-            estadoBadge.innerHTML = '❓ SIN DATOS';
-            estadoBadge.className = 'estado cerrada';
-            ultimaSpan.innerText = 'Aún no hay mediciones registradas';
-            return;
-        }
-
-        const cloro = medicion.cloro;
-        const ph = medicion.ph;
-        const temperatura = medicion.temperatura;
-        const fecha = new Date(medicion.created_at);
-
-        // Mostrar valores
-        cloroSpan.innerText = cloro;
-        phSpan.innerText = ph;
-        tempSpan.innerHTML = `${temperatura}°C`;
-
-        // Colores según normativa
-        if (cloro < 0.5) cloroSpan.className = "dato-valor critico";
-        else if (cloro < 0.8) cloroSpan.className = "dato-valor alerta";
-        else cloroSpan.className = "dato-valor normal";
-
-        if (ph < 7.0 || ph > 8.0) phSpan.className = "dato-valor critico";
-        else if (ph < 7.2 || ph > 7.6) phSpan.className = "dato-valor alerta";
-        else phSpan.className = "dato-valor normal";
-
-        // Determinar si la piscina está abierta o cerrada
-        const cloroOK = cloro >= 0.5;
-        const phOK = (ph >= 7.2 && ph <= 7.6);
-        const abierta = cloroOK && phOK;
-
-        if (abierta) {
-            estadoBadge.innerHTML = "🟢 ABIERTA";
-            estadoBadge.className = "estado abierta";
-        } else {
-            estadoBadge.innerHTML = "🔴 CERRADA (fuera de normativa)";
-            estadoBadge.className = "estado cerrada";
-        }
-
-        // Mostrar fecha/hora de la medición
-        const ahora = new Date();
-        const diffHoras = Math.floor((ahora - fecha) / 3600000);
-        if (diffHoras < 1) {
-            ultimaSpan.innerText = `Actualizado hace ${Math.floor((ahora - fecha) / 60000)} minutos`;
-        } else {
-            ultimaSpan.innerText = `Última medición: ${fecha.toLocaleString()}`;
-        }
-    }
-
-    // Cargar datos al inicio y cada 30 segundos
-    async function cargarYActualizar() {
-        const medicion = await obtenerUltimaMedicion();
-        actualizarUI(medicion);
-    }
-
-    // Cargar al inicio
-    cargarYActualizar();
-
-    // Actualizar automáticamente cada 30 segundos
-    setInterval(cargarYActualizar, 30000);
-
-    // ========== INCIDENCIAS (igual que antes) ==========
-    document.getElementById('reportar-btn').addEventListener('click', () => {
-        const tipo = document.getElementById('tipo-incidencia').value;
-        const desc = document.getElementById('desc-incidencia').value;
-        const fotoUrl = document.getElementById('foto-url').value;
-        const mensajeDiv = document.getElementById('mensaje-envio');
-
-        if (!desc && tipo === "Otro") {
-            mensajeDiv.innerHTML = "⚠️ Por favor, escribe una descripción.";
-            return;
-        }
-
-        mensajeDiv.innerHTML = "📤 Enviando aviso...";
-        setTimeout(() => {
-            mensajeDiv.innerHTML = "✅ Aviso enviado al encargado. Recibirás respuesta pronto.";
-            document.getElementById('desc-incidencia').value = "";
-            document.getElementById('foto-url').value = "";
-        }, 1000);
-
-        console.log({ tipo, desc, fotoUrl, piscina: "Los Pinos", timestamp: new Date().toISOString() });
-    });
-</script>
 </body>
 </html>
