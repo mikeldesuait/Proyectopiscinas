@@ -94,6 +94,7 @@
         .top-buttons { display: flex; gap: 12px; align-items: center; }
         .info-seleccion { font-size: 0.75rem; color: #2c7a4d; margin-top: 4px; }
         .select-label { font-size: 0.7rem; color: #475569; margin-top: 8px; margin-bottom: 4px; }
+        .piscina-detalle { font-size: 0.75rem; color: #5b6e8c; margin-top: 4px; }
         @media (max-width: 700px) { .row-flex { flex-direction: column; } }
     </style>
 </head>
@@ -197,6 +198,7 @@
     let piscinasList = [];
     let tecnicosMap = {};
     let piscinasMap = {};
+    let piscinasDetalle = {}; // Guardar datos completos de piscinas
     let vistaActual = 'unificada';
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
@@ -225,11 +227,15 @@
         tecnicosMap = {};
         tecnicosList.forEach(t => { tecnicosMap[t.id] = t.nick || t.nombre; });
         
-        // Cargar piscinas
-        const { data: piscinas } = await sb.from('piscinas').select('id, nombre').order('nombre');
+        // Cargar piscinas con todos los datos
+        const { data: piscinas } = await sb.from('piscinas').select('*').order('nombre');
         piscinasList = piscinas || [];
         piscinasMap = {};
-        piscinasList.forEach(p => { piscinasMap[p.id] = p.nombre; });
+        piscinasDetalle = {};
+        piscinasList.forEach(p => { 
+            piscinasMap[p.id] = p.nombre; 
+            piscinasDetalle[p.id] = p;
+        });
         
         // Actualizar selectores
         const selectTec = document.getElementById('filtroTecnico');
@@ -267,11 +273,19 @@
 
     function buscarPiscina() {
         const texto = document.getElementById('buscarPiscina').value.toLowerCase();
-        const encontrado = piscinasList.find(p => p.nombre.toLowerCase().includes(texto));
+        // Buscar por nombre, localidad o dirección
+        const encontrado = piscinasList.find(p => 
+            p.nombre.toLowerCase().includes(texto) || 
+            (p.localidad && p.localidad.toLowerCase().includes(texto)) ||
+            (p.direccion && p.direccion.toLowerCase().includes(texto))
+        );
         const select = document.getElementById('filtroPiscina');
         if (encontrado) {
             select.value = encontrado.id;
-            document.getElementById('infoPiscinaSeleccionada').innerHTML = `✅ Seleccionada: ${encontrado.nombre}`;
+            let detalle = `✅ Seleccionada: ${encontrado.nombre}`;
+            if (encontrado.localidad) detalle += ` · ${encontrado.localidad}`;
+            if (encontrado.direccion) detalle += ` · ${encontrado.direccion}`;
+            document.getElementById('infoPiscinaSeleccionada').innerHTML = detalle;
         } else if (texto) {
             document.getElementById('infoPiscinaSeleccionada').innerHTML = `❌ No se encontró "${texto}"`;
             select.value = '';
@@ -299,11 +313,14 @@
         
         for (const m of data) {
             let piscinaNombre = piscinasMap[m.piscina_id] || '?';
-            let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
-            if (!piscinasMap[m.piscina_id] && m.piscina_id) {
-                const { data: p } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
-                if (p) piscinaNombre = p.nombre;
+            let piscinaDetalle = '';
+            if (piscinasDetalle[m.piscina_id]) {
+                const p = piscinasDetalle[m.piscina_id];
+                if (p.localidad || p.direccion) {
+                    piscinaDetalle = `<div class="piscina-detalle">📍 ${p.localidad || ''} ${p.direccion ? '- ' + p.direccion : ''}</div>`;
+                }
             }
+            let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
             if (!tecnicosMap[m.tecnico_id] && m.tecnico_id) {
                 const { data: t } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
                 if (t) tecnicoNombre = t.nick;
@@ -311,6 +328,7 @@
             container.innerHTML += `
                 <div class="medicion-card">
                     <strong>👤 ${tecnicoNombre}</strong> · 🏊 ${piscinaNombre}<br>
+                    ${piscinaDetalle}
                     🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
                     📅 ${formatDate(m.created_at)}
                 </div>`;
@@ -359,6 +377,13 @@
                 for (const m of mediciones) {
                     let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
                     let piscinaNombre = piscinasMap[m.piscina_id] || '?';
+                    let piscinaDetalle = '';
+                    if (piscinasDetalle[m.piscina_id]) {
+                        const p = piscinasDetalle[m.piscina_id];
+                        if (p.localidad || p.direccion) {
+                            piscinaDetalle = `<div class="piscina-detalle">📍 ${p.localidad || ''} ${p.direccion ? '- ' + p.direccion : ''}</div>`;
+                        }
+                    }
                     if (!tecnicosMap[m.tecnico_id] && m.tecnico_id) {
                         const { data: t } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
                         if (t) tecnicoNombre = t.nick;
@@ -371,7 +396,7 @@
                         fecha: new Date(m.created_at),
                         tipo: 'medicion',
                         titulo: `Medición en ${piscinaNombre} por ${tecnicoNombre}`,
-                        detalle: `🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || 'Sin observaciones'}`
+                        detalle: `${piscinaDetalle}<br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || 'Sin observaciones'}`
                     });
                 }
             }
