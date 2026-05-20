@@ -84,10 +84,8 @@
             border-left: 4px solid #0077b6;
         }
         .resultados-area { margin-top: 16px; max-height: 400px; overflow-y: auto; }
-        .badge { background: #e0f2fe; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; display: inline-block; margin: 4px; }
         @media (max-width: 700px) { .row-flex { flex-direction: column; } }
         
-        /* Tabs */
         .tabs {
             display: flex;
             gap: 8px;
@@ -182,7 +180,7 @@
                 <div id="listaMediciones" class="resultados-area"></div>
             </div>
 
-            <!-- Tab Tiempos (análisis de productividad) -->
+            <!-- Tab Tiempos -->
             <div id="tabTiempos" class="tab-content">
                 <div class="row-flex">
                     <div class="grupo"><label>Fecha desde</label><input type="date" id="tiemposDesde"></div>
@@ -206,7 +204,6 @@
     let currentUser = null;
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
-    function formatDateShort(iso) { return iso ? new Date(iso).toLocaleDateString() : '—'; }
 
     // ========== LOGIN ==========
     async function hacerLogin() {
@@ -254,21 +251,26 @@
         const { data: activas } = await sb.from('jornadas').select('id').is('fin', null).gte('inicio', hoy+'T00:00:00').lte('inicio', hoy+'T23:59:59');
         document.getElementById('jornadasActivas').innerText = activas?.length || 0;
         
-        const { data: mediciones } = await sb.from('mediciones').select('id', { count: 'exact' });
-        document.getElementById('totalMediciones').innerText = mediciones?.length || 0;
+        const { count: total, error } = await sb.from('mediciones').select('*', { count: 'exact', head: true });
+        document.getElementById('totalMediciones').innerText = total || 0;
     }
 
     // ========== ÚLTIMAS 5 MEDICIONES ==========
     async function cargarUltimasMediciones() {
-        const { data } = await sb
+        const { data, error } = await sb
             .from('mediciones')
             .select('*, piscinas(nombre), perfiles(nick)')
             .order('created_at', { ascending: false })
             .limit(5);
+        
         const contenedor = document.getElementById('ultimasMediciones');
         contenedor.innerHTML = '';
+        if (error) {
+            contenedor.innerHTML = `<div class="medicion-card">Error: ${error.message}</div>`;
+            return;
+        }
         if (!data || data.length === 0) {
-            contenedor.innerHTML = '<div class="medicion-card">No hay mediciones</div>';
+            contenedor.innerHTML = '<div class="medicion-card">No hay mediciones registradas</div>';
             return;
         }
         data.forEach(m => {
@@ -298,7 +300,7 @@
         });
     }
 
-    // ========== FILTROS DE TÉCNICOS ==========
+    // ========== FILTROS ==========
     async function cargarFiltrosTecnicos() {
         const { data } = await sb.from('perfiles').select('id, nick').eq('rol', 'tecnico');
         const selects = ['filtroTecnicoJornadas', 'filtroTecnicoMediciones', 'filtroTecnicoTiempos'];
@@ -318,17 +320,20 @@
         const hoy = new Date();
         const hace7 = new Date();
         hace7.setDate(hoy.getDate() - 7);
-        const start = hace7.toISOString();
-        const end = hoy.toISOString();
-        await ejecutarBusquedaJornadas(start, end);
+        await ejecutarBusquedaJornadas(hace7.toISOString(), hoy.toISOString());
     }
 
     async function ejecutarBusquedaJornadas(start, end, tecnicoId = null) {
         let query = sb.from('jornadas').select('*, perfiles(nick)').gte('inicio', start).lte('inicio', end);
-        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
-        const { data } = await query.order('inicio', { ascending: false });
+        if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
+        const { data, error } = await query.order('inicio', { ascending: false });
+        
         const contenedor = document.getElementById('listaJornadas');
         contenedor.innerHTML = '';
+        if (error) {
+            contenedor.innerHTML = `<div class="jornada-card">Error: ${error.message}</div>`;
+            return;
+        }
         if (!data || data.length === 0) {
             contenedor.innerHTML = '<div class="jornada-card">No hay jornadas en este período</div>';
             return;
@@ -359,7 +364,6 @@
         const start = new Date(`${desde}T00:00:00`).toISOString();
         const end = new Date(`${hasta}T23:59:59`).toISOString();
         await ejecutarBusquedaJornadas(start, end, tecnicoId);
-        window.jornadasData = { start, end, tecnicoId };
     };
 
     document.getElementById('btnJornadasPDF').onclick = async () => {
@@ -370,7 +374,7 @@
         const start = new Date(`${desde}T00:00:00`).toISOString();
         const end = new Date(`${hasta}T23:59:59`).toISOString();
         let query = sb.from('jornadas').select('*, perfiles(nick)').gte('inicio', start).lte('inicio', end);
-        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
+        if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
         const { data } = await query.order('inicio', { ascending: false });
         if (!data || data.length === 0) { alert("No hay datos"); return; }
         const tempDiv = document.createElement('div');
@@ -391,17 +395,23 @@
         const hoy = new Date();
         const hace7 = new Date();
         hace7.setDate(hoy.getDate() - 7);
-        const start = hace7.toISOString();
-        const end = hoy.toISOString();
-        await ejecutarBusquedaMediciones(start, end);
+        await ejecutarBusquedaMediciones(hace7.toISOString(), hoy.toISOString());
     }
 
     async function ejecutarBusquedaMediciones(start, end, tecnicoId = null) {
-        let query = sb.from('mediciones').select('*, piscinas(nombre), perfiles(nick)').gte('created_at', start).lte('created_at', end);
-        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
-        const { data } = await query.order('created_at', { ascending: false });
+        let query = sb.from('mediciones')
+            .select('*, piscinas(nombre), perfiles(nick)')
+            .gte('created_at', start)
+            .lte('created_at', end);
+        if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
+        const { data, error } = await query.order('created_at', { ascending: false });
+        
         const contenedor = document.getElementById('listaMediciones');
         contenedor.innerHTML = '';
+        if (error) {
+            contenedor.innerHTML = `<div class="medicion-card">Error: ${error.message}</div>`;
+            return;
+        }
         if (!data || data.length === 0) {
             contenedor.innerHTML = '<div class="medicion-card">No hay mediciones en este período</div>';
             return;
@@ -435,7 +445,7 @@
         const start = new Date(`${desde}T00:00:00`).toISOString();
         const end = new Date(`${hasta}T23:59:59`).toISOString();
         let query = sb.from('mediciones').select('*, piscinas(nombre), perfiles(nick)').gte('created_at', start).lte('created_at', end);
-        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
+        if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
         const { data } = await query.order('created_at', { ascending: false });
         if (!data || data.length === 0) { alert("No hay datos"); return; }
         const tempDiv = document.createElement('div');
@@ -451,25 +461,21 @@
         html2pdf().set({ filename: `mediciones_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
     };
 
-    // ========== TIEMPOS (productividad) ==========
+    // ========== TIEMPOS ==========
     async function cargarTiemposUltimos7() {
         const hoy = new Date();
         const hace7 = new Date();
         hace7.setDate(hoy.getDate() - 7);
-        const start = hace7.toISOString();
-        const end = hoy.toISOString();
-        await ejecutarBusquedaTiempos(start, end);
+        await ejecutarBusquedaTiempos(hace7.toISOString(), hoy.toISOString());
     }
 
     async function ejecutarBusquedaTiempos(start, end, tecnicoId = null) {
-        // Obtener trabajos (tiempo real trabajando en piscinas)
         let queryTrabajos = sb.from('trabajos_piscina').select('*, piscinas(nombre), perfiles(nick)').gte('inicio', start).lte('inicio', end);
-        if (tecnicoId) queryTrabajos = queryTrabajos.eq('tecnico_id', tecnicoId);
+        if (tecnicoId && tecnicoId !== '') queryTrabajos = queryTrabajos.eq('tecnico_id', tecnicoId);
         const { data: trabajos } = await queryTrabajos.order('inicio', { ascending: false });
         
-        // Obtener desplazamientos
         let queryDesplazamientos = sb.from('desplazamientos').select('*, piscinas!piscina_destino_id(nombre), perfiles(nick)').gte('inicio', start).lte('inicio', end);
-        if (tecnicoId) queryDesplazamientos = queryDesplazamientos.eq('tecnico_id', tecnicoId);
+        if (tecnicoId && tecnicoId !== '') queryDesplazamientos = queryDesplazamientos.eq('tecnico_id', tecnicoId);
         const { data: desplazamientos } = await queryDesplazamientos.order('inicio', { ascending: false });
         
         const contenedor = document.getElementById('listaTiempos');
@@ -480,9 +486,10 @@
         
         if (trabajos && trabajos.length > 0) {
             const titulo = document.createElement('div');
-            titulo.className = 'consola-titulo';
-            titulo.textContent = '🏊 Tiempos de trabajo en piscina';
-            titulo.style.marginTop = '16px';
+            titulo.className = 'medicion-card';
+            titulo.style.fontWeight = 'bold';
+            titulo.style.background = '#e0f2e9';
+            titulo.innerHTML = '🏊 TIEMPOS DE TRABAJO EN PISCINA';
             contenedor.appendChild(titulo);
             
             trabajos.forEach(t => {
@@ -508,8 +515,10 @@
         
         if (desplazamientos && desplazamientos.length > 0) {
             const titulo = document.createElement('div');
-            titulo.className = 'consola-titulo';
-            titulo.textContent = '🚗 Tiempos de desplazamiento';
+            titulo.className = 'medicion-card';
+            titulo.style.fontWeight = 'bold';
+            titulo.style.background = '#e0f2e9';
+            titulo.innerHTML = '🚗 TIEMPOS DE DESPLAZAMIENTO';
             contenedor.appendChild(titulo);
             
             desplazamientos.forEach(d => {
@@ -533,8 +542,7 @@
             });
         }
         
-        // Totales
-        if (trabajos?.length === 0 && desplazamientos?.length === 0) {
+        if ((!trabajos || trabajos.length === 0) && (!desplazamientos || desplazamientos.length === 0)) {
             contenedor.innerHTML = '<div class="medicion-card">No hay datos de tiempos en este período</div>';
             return;
         }
@@ -580,7 +588,10 @@
         });
     });
 
-    document.getElementById('btnLogout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    document.getElementById('btnLogout').onclick = async () => { 
+        await sb.auth.signOut(); 
+        location.reload(); 
+    };
 </script>
 </body>
 </html>
