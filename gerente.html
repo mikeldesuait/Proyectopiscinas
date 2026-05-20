@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerente · Aqua Garden</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            background: #eef2ff;
+            padding: 24px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 28px;
+            padding: 24px;
+            margin-bottom: 28px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,119,182,0.1);
+        }
+        .card-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 5px solid #0077b6;
+            padding-left: 18px;
+            color: #1e4663;
+        }
+        button, input, select {
+            padding: 10px 16px;
+            border-radius: 40px;
+            border: 1px solid #cad2db;
+            font-size: 0.9rem;
+            background: #fff;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { background: #0052a3; transform: translateY(-1px); }
+        .btn-pdf { background: #c2410c; }
+        .btn-pdf:hover { background: #9a330a; }
+        .btn-buscar { background: #475569; }
+        .oculto { display: none; }
+        .estadisticas {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border-radius: 24px;
+            padding: 20px;
+            text-align: center;
+            border-left: 4px solid #0077b6;
+        }
+        .stat-value { font-size: 2rem; font-weight: 700; color: #1e4663; }
+        .stat-label { font-size: 0.8rem; color: #5b6e8c; margin-top: 8px; }
+        .row-flex { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
+        .grupo { flex: 1; min-width: 150px; }
+        label { font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 4px; display: block; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; font-weight: 600; color: #1e4663; }
+        .medicion-card, .jornada-card, .tecnico-card {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-left: 4px solid #0077b6;
+        }
+        .resultados-area { margin-top: 16px; max-height: 400px; overflow-y: auto; }
+        .badge { background: #e0f2fe; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; display: inline-block; margin: 4px; }
+        @media (max-width: 700px) {
+            .row-flex { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Login -->
+    <div id="loginPanel" class="card">
+        <div class="card-header">👔 Acceso Gerente</div>
+        <input type="email" id="email" placeholder="Email" value="gerente@mipiscina.com">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button id="btnLogin">Iniciar sesión</button>
+        <div id="errorMsg" style="color:red; margin-top:12px;"></div>
+    </div>
+
+    <!-- Dashboard (oculto hasta login) -->
+    <div id="dashboardPanel" class="oculto">
+        <!-- Estadísticas -->
+        <div class="card">
+            <div class="card-header">📊 Resumen general</div>
+            <div class="estadisticas">
+                <div class="stat-card"><div class="stat-value" id="totalTecnicos">0</div><div class="stat-label">Técnicos</div></div>
+                <div class="stat-card"><div class="stat-value" id="jornadasActivas">0</div><div class="stat-label">Jornadas activas hoy</div></div>
+                <div class="stat-card"><div class="stat-value" id="totalMediciones">0</div><div class="stat-label">Mediciones totales</div></div>
+            </div>
+        </div>
+
+        <!-- Últimas 5 mediciones -->
+        <div class="card">
+            <div class="card-header">📈 Últimas 5 mediciones globales</div>
+            <div id="ultimasMediciones" class="resultados-area"></div>
+        </div>
+
+        <!-- Listado de técnicos -->
+        <div class="card">
+            <div class="card-header">👥 Técnicos</div>
+            <div id="tecnicosList" class="resultados-area"></div>
+        </div>
+
+        <!-- Histórico de jornadas -->
+        <div class="card">
+            <div class="card-header">📋 Histórico de jornadas</div>
+            <div class="row-flex">
+                <div class="grupo"><label>Fecha desde</label><input type="date" id="jornadaDesde"></div>
+                <div class="grupo"><label>Fecha hasta</label><input type="date" id="jornadaHasta"></div>
+                <div class="grupo"><label>Técnico</label><select id="filtroTecnicoJornadas"><option value="">Todos</option></select></div>
+                <button id="btnBuscarJornadas" class="btn-buscar">🔍 Buscar</button>
+                <button id="btnJornadasPDF" class="btn-pdf">📄 Descargar PDF</button>
+            </div>
+            <div id="listaJornadas" class="resultados-area"></div>
+        </div>
+
+        <!-- Histórico de mediciones -->
+        <div class="card">
+            <div class="card-header">📊 Histórico de mediciones</div>
+            <div class="row-flex">
+                <div class="grupo"><label>Fecha desde</label><input type="date" id="medicionDesde"></div>
+                <div class="grupo"><label>Fecha hasta</label><input type="date" id="medicionHasta"></div>
+                <div class="grupo"><label>Técnico</label><select id="filtroTecnicoMediciones"><option value="">Todos</option></select></div>
+                <button id="btnBuscarMediciones" class="btn-buscar">🔍 Buscar</button>
+                <button id="btnMedicionesPDF" class="btn-pdf">📄 Descargar PDF</button>
+            </div>
+            <div id="listaMediciones" class="resultados-area"></div>
+        </div>
+
+        <button id="btnLogout" style="background:#475569; margin-top:20px;">🚪 Cerrar sesión</button>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = "https://vvdyofbapqttcvczokiw.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_MwuazhcxSJGc04eS2vttZA_SEcGjhVT";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+
+    function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
+
+    async function cargarSelectsTecnicos() {
+        const { data } = await sb.from('perfiles').select('id, nick').eq('rol', 'tecnico');
+        const selectJ = document.getElementById('filtroTecnicoJornadas');
+        const selectM = document.getElementById('filtroTecnicoMediciones');
+        selectJ.innerHTML = '<option value="">Todos los técnicos</option>';
+        selectM.innerHTML = '<option value="">Todos los técnicos</option>';
+        if (data) data.forEach(t => {
+            selectJ.innerHTML += `<option value="${t.id}">${t.nick}</option>`;
+            selectM.innerHTML += `<option value="${t.id}">${t.nick}</option>`;
+        });
+    }
+
+    async function cargarEstadisticas() {
+        const { data: tecnicos } = await sb.from('perfiles').select('id').eq('rol', 'tecnico');
+        document.getElementById('totalTecnicos').innerText = tecnicos?.length || 0;
+        const hoy = new Date().toISOString().slice(0,10);
+        const { data: activas } = await sb.from('jornadas').select('id').is('fin', null).gte('inicio', hoy+'T00:00:00').lte('inicio', hoy+'T23:59:59');
+        document.getElementById('jornadasActivas').innerText = activas?.length || 0;
+        const { data: mediciones } = await sb.from('mediciones').select('id', { count: 'exact' });
+        document.getElementById('totalMediciones').innerText = mediciones?.length || 0;
+    }
+
+    async function cargarUltimasMediciones() {
+        const { data } = await sb.from('mediciones').select('*, piscinas(nombre), perfiles(nick)').order('created_at', { ascending: false }).limit(5);
+        const container = document.getElementById('ultimasMediciones');
+        container.innerHTML = '';
+        if (!data || data.length === 0) { container.innerHTML = '<div class="medicion-card">No hay mediciones</div>'; return; }
+        data.forEach(m => {
+            container.innerHTML += `
+                <div class="medicion-card">
+                    <strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>
+                    🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
+                    📅 ${formatDate(m.created_at)}
+                </div>`;
+        });
+    }
+
+    async function cargarTecnicosList() {
+        const { data } = await sb.from('perfiles').select('nick, nombre').eq('rol', 'tecnico').order('nick');
+        const container = document.getElementById('tecnicosList');
+        container.innerHTML = '';
+        if (!data || data.length === 0) { container.innerHTML = '<div class="tecnico-card">No hay técnicos</div>'; return; }
+        data.forEach(t => { container.innerHTML += `<div class="tecnico-card"><strong>@${t.nick}</strong> · ${t.nombre || ''}</div>`; });
+    }
+
+    async function buscarJornadas() {
+        const desde = document.getElementById('jornadaDesde').value;
+        const hasta = document.getElementById('jornadaHasta').value;
+        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        const tecnicoId = document.getElementById('filtroTecnicoJornadas').value;
+        let query = sb.from('jornadas').select('*, perfiles(nick)').gte('inicio', start).lte('inicio', end);
+        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
+        const { data } = await query.order('inicio', { ascending: false });
+        const container = document.getElementById('listaJornadas');
+        container.innerHTML = '';
+        if (!data || data.length === 0) { container.innerHTML = '<div class="jornada-card">No hay jornadas</div>'; return; }
+        data.forEach(j => {
+            const inicio = new Date(j.inicio);
+            const fin = j.fin ? new Date(j.fin) : null;
+            let duracion = '';
+            if (fin) { const diff = fin - inicio; const horas = Math.floor(diff/3600000); const mins = Math.floor((diff%3600000)/60000); duracion = ` (${horas}h ${mins}m)`; }
+            container.innerHTML += `<div class="jornada-card"><strong>👤 ${j.perfiles?.nick || '?'}</strong><br>📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}${duracion}</div>`;
+        });
+        window.jornadasData = data;
+    }
+
+    async function descargarJornadasPDF() {
+        if (!window.jornadasData || window.jornadasData.length === 0) { alert("Primero busca jornadas"); return; }
+        const desde = document.getElementById('jornadaDesde').value;
+        const hasta = document.getElementById('jornadaHasta').value;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `<h2>Jornadas (${desde} a ${hasta})</h2>`;
+        window.jornadasData.forEach(j => {
+            const inicio = new Date(j.inicio);
+            const fin = j.fin ? new Date(j.fin) : null;
+            let duracion = '';
+            if (fin) { const diff = fin - inicio; const horas = Math.floor(diff/3600000); const mins = Math.floor((diff%3600000)/60000); duracion = ` (${horas}h ${mins}m)`; }
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;"><strong>👤 ${j.perfiles?.nick || '?'}</strong><br>📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}${duracion}</div>`;
+        });
+        html2pdf().set({ filename: `jornadas_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
+    }
+
+    async function buscarMediciones() {
+        const desde = document.getElementById('medicionDesde').value;
+        const hasta = document.getElementById('medicionHasta').value;
+        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        const tecnicoId = document.getElementById('filtroTecnicoMediciones').value;
+        let query = sb.from('mediciones').select('*, piscinas(nombre), perfiles(nick)').gte('created_at', start).lte('created_at', end);
+        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
+        const { data } = await query.order('created_at', { ascending: false });
+        const container = document.getElementById('listaMediciones');
+        container.innerHTML = '';
+        if (!data || data.length === 0) { container.innerHTML = '<div class="medicion-card">No hay mediciones</div>'; return; }
+        data.forEach(m => {
+            container.innerHTML += `<div class="medicion-card"><strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || ''}<br>📅 ${formatDate(m.created_at)}</div>`;
+        });
+        window.medicionesData = data;
+    }
+
+    async function descargarMedicionesPDF() {
+        if (!window.medicionesData || window.medicionesData.length === 0) { alert("Primero busca mediciones"); return; }
+        const desde = document.getElementById('medicionDesde').value;
+        const hasta = document.getElementById('medicionHasta').value;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `<h2>Mediciones (${desde} a ${hasta})</h2>`;
+        window.medicionesData.forEach(m => {
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;"><strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || ''}<br>📅 ${formatDate(m.created_at)}</div>`;
+        });
+        html2pdf().set({ filename: `mediciones_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
+    }
+
+    // Login
+    document.getElementById('btnLogin').onclick = async () => {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('errorMsg');
+        errorDiv.innerText = '';
+        try {
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            const { data: perfil } = await sb.from('perfiles').select('rol').eq('id', data.user.id).single();
+            if (!perfil || perfil.rol !== 'gerente') throw new Error('No tienes permisos de gerente');
+            currentUser = data.user;
+            document.getElementById('loginPanel').classList.add('oculto');
+            document.getElementById('dashboardPanel').classList.remove('oculto');
+            await Promise.all([cargarSelectsTecnicos(), cargarEstadisticas(), cargarUltimasMediciones(), cargarTecnicosList()]);
+        } catch (err) { errorDiv.innerText = err.message; }
+    };
+
+    document.getElementById('btnLogout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    document.getElementById('btnBuscarJornadas').onclick = buscarJornadas;
+    document.getElementById('btnJornadasPDF').onclick = descargarJornadasPDF;
+    document.getElementById('btnBuscarMediciones').onclick = buscarMediciones;
+    document.getElementById('btnMedicionesPDF').onclick = descargarMedicionesPDF;
+</script>
+</body>
+</html>
