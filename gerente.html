@@ -274,6 +274,74 @@
     margin: 10px 0;
 
         }
+
+        /* Estilos mejorados para el calendario */
+.calendario {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.dia-calendario {
+    border-radius: 20px;
+    padding: 15px 10px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.dia-calendario:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.dia-calendario .dia-nombre {
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.dia-calendario .dia-numero {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 10px 0;
+}
+
+.tipo-select {
+    width: 100%;
+    padding: 8px 6px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.tipo-select:hover {
+    opacity: 0.9;
+}
+
+/* Colores de fondo para cada tipo */
+.dia-calendario[style*="#d4edda"] .tipo-select,
+.dia-calendario:has(select option[value="trabajo"]:checked) {
+    background: #d4edda;
+}
+
+.dia-calendario:has(select option[value="descanso"]:checked) {
+    background: #e2e3e5;
+}
+
+.dia-calendario:has(select option[value="vacaciones"]:checked) {
+    background: #e0e7ff;
+}
+
+.dia-calendario:has(select option[value="baja"]:checked) {
+    background: #fee2e2;
+}
     </style>
 </head>
 <body>
@@ -606,74 +674,133 @@
 
     // ========== DISPONIBILIDAD SEMANAL ==========
     async function cargarDisponibilidadSemanal() {
-        const tecnicoId = document.getElementById('selectorTecnicoDisponibilidad').value;
-        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
-            document.getElementById('calendarioDisponibilidad').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
-            return;
-        }
-        
-        let fechaBase = document.getElementById('semanaDisponibilidad').value;
-        if (!fechaBase) {
-            fechaBase = formatDateYMD(new Date());
-            document.getElementById('semanaDisponibilidad').value = fechaBase;
-        }
-        
-        const fecha = new Date(fechaBase);
-        const diaSemana = fecha.getDay();
-        const inicioSemana = new Date(fecha);
-        inicioSemana.setDate(fecha.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1));
-        
-        const diasSemana = [];
-        for (let i = 0; i < 7; i++) {
-            const dia = new Date(inicioSemana);
-            dia.setDate(inicioSemana.getDate() + i);
-            diasSemana.push(dia);
-        }
-        
-        const fechas = diasSemana.map(d => formatDateYMD(d));
-        const { data: disponibilidad } = await sb
-            .from('disponibilidad_tecnicos')
-            .select('*')
-            .eq('tecnico_id', tecnicoId)
-            .in('fecha', fechas);
-        
-        disponibilidadActual = {};
-        disponibilidad?.forEach(d => {
-            disponibilidadActual[d.fecha] = d.tipo;
-        });
-        
-        const nombresDias = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
-        let html = '<div class="calendario">';
-        
-        diasSemana.forEach((dia, idx) => {
-            const fechaStr = formatDateYMD(dia);
-            const tipo = disponibilidadActual[fechaStr] || 'trabajo';
-            
-            html += `
-                <div class="dia-calendario ${tipo}">
-                    <div class="dia-nombre">${nombresDias[idx]}</div>
-                    <div class="dia-numero">${dia.getDate()}</div>
-                    <select class="tipo-select" data-fecha="${fechaStr}">
-                        <option value="trabajo" ${tipo === 'trabajo' ? 'selected' : ''}>✅ Trabajo</option>
-                        <option value="descanso" ${tipo === 'descanso' ? 'selected' : ''}>💤 Descanso</option>
-                        <option value="vacaciones" ${tipo === 'vacaciones' ? 'selected' : ''}>🏖️ Vacaciones</option>
-                        <option value="baja" ${tipo === 'baja' ? 'selected' : ''}>🩺 Baja</option>
-                    </select>
-                </div>
-            `;
-        });
-        html += '</div>';
-        document.getElementById('calendarioDisponibilidad').innerHTML = html;
-        
-        document.querySelectorAll('.tipo-select').forEach(select => {
-            select.addEventListener('change', (e) => {
-                const fecha = e.target.dataset.fecha;
-                disponibilidadActual[fecha] = e.target.value;
-                const parent = e.target.closest('.dia-calendario');
-                parent.className = `dia-calendario ${e.target.value}`;
-            });
-        });
+    const tecnicoId = document.getElementById('selectorTecnicoDisponibilidad').value;
+    if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
+        document.getElementById('calendarioDisponibilidad').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
+        return;
     }
+    
+    let fechaBase = document.getElementById('semanaDisponibilidad').value;
+    if (!fechaBase) {
+        fechaBase = formatDateYMD(new Date());
+        document.getElementById('semanaDisponibilidad').value = fechaBase;
+    }
+    
+    const fecha = new Date(fechaBase);
+    const diaSemana = fecha.getDay();
+    const inicioSemana = new Date(fecha);
+    inicioSemana.setDate(fecha.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1));
+    
+    const diasSemana = [];
+    for (let i = 0; i < 7; i++) {
+        const dia = new Date(inicioSemana);
+        dia.setDate(inicioSemana.getDate() + i);
+        diasSemana.push(dia);
+    }
+    
+    const fechas = diasSemana.map(d => formatDateYMD(d));
+    const { data: disponibilidad } = await sb
+        .from('disponibilidad_tecnicos')
+        .select('*')
+        .eq('tecnico_id', tecnicoId)
+        .in('fecha', fechas);
+    
+    disponibilidadActual = {};
+    disponibilidad?.forEach(d => {
+        disponibilidadActual[d.fecha] = d.tipo;
+    });
+    
+    const nombresDias = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+    let html = '<div class="calendario" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px;">';
+    
+    diasSemana.forEach((dia, idx) => {
+        const fechaStr = formatDateYMD(dia);
+        const tipo = disponibilidadActual[fechaStr] || 'trabajo';
+        
+        let textoEstado = '';
+        let colorFondo = '';
+        let colorBoton = '';
+        
+        switch(tipo) {
+            case 'trabajo':
+                textoEstado = '✅ Trabajo';
+                colorFondo = '#d4edda';
+                colorBoton = '#2c7a4d';
+                break;
+            case 'descanso':
+                textoEstado = '💤 Descanso';
+                colorFondo = '#e2e3e5';
+                colorBoton = '#6c757d';
+                break;
+            case 'vacaciones':
+                textoEstado = '🏖️ Vacaciones';
+                colorFondo = '#e0e7ff';
+                colorBoton = '#4f46e5';
+                break;
+            case 'baja':
+                textoEstado = '🩺 Baja';
+                colorFondo = '#fee2e2';
+                colorBoton = '#dc2626';
+                break;
+            default:
+                textoEstado = '✅ Trabajo';
+                colorFondo = '#d4edda';
+                colorBoton = '#2c7a4d';
+        }
+        
+        html += `
+            <div class="dia-calendario" style="background: ${colorFondo}; border-radius: 16px; padding: 12px; text-align: center; border: 1px solid #ddd;">
+                <div style="font-size: 1rem; font-weight: bold; color: #333;">${nombresDias[idx]}</div>
+                <div style="font-size: 1.2rem; font-weight: bold; color: #1e4663; margin: 8px 0;">${dia.getDate()}</div>
+                <div style="font-size: 0.85rem; margin: 8px 0; font-weight: 500;">${textoEstado}</div>
+                <select class="tipo-select" data-fecha="${fechaStr}" style="width: 100%; padding: 8px; border-radius: 12px; border: 1px solid #cad2db; background: white; font-size: 0.8rem; margin-top: 8px; cursor: pointer;">
+                    <option value="trabajo" ${tipo === 'trabajo' ? 'selected' : ''}>✅ Trabajo</option>
+                    <option value="descanso" ${tipo === 'descanso' ? 'selected' : ''}>💤 Descanso</option>
+                    <option value="vacaciones" ${tipo === 'vacaciones' ? 'selected' : ''}>🏖️ Vacaciones</option>
+                    <option value="baja" ${tipo === 'baja' ? 'selected' : ''}>🩺 Baja</option>
+                </select>
+            </div>
+        `;
+    });
+    html += '</div>';
+    document.getElementById('calendarioDisponibilidad').innerHTML = html;
+    
+    document.querySelectorAll('.tipo-select').forEach(select => {
+        select.addEventListener('change', (e) => {
+            const fecha = e.target.dataset.fecha;
+            const nuevoTipo = e.target.value;
+            disponibilidadActual[fecha] = nuevoTipo;
+            
+            // Actualizar el estilo visual del día
+            const parent = e.target.closest('.dia-calendario');
+            let colorFondo = '';
+            let textoEstado = '';
+            
+            switch(nuevoTipo) {
+                case 'trabajo':
+                    colorFondo = '#d4edda';
+                    textoEstado = '✅ Trabajo';
+                    break;
+                case 'descanso':
+                    colorFondo = '#e2e3e5';
+                    textoEstado = '💤 Descanso';
+                    break;
+                case 'vacaciones':
+                    colorFondo = '#e0e7ff';
+                    textoEstado = '🏖️ Vacaciones';
+                    break;
+                case 'baja':
+                    colorFondo = '#fee2e2';
+                    textoEstado = '🩺 Baja';
+                    break;
+            }
+            
+            parent.style.background = colorFondo;
+            const estadoDiv = parent.querySelector('div:nth-child(3)');
+            if (estadoDiv) estadoDiv.innerHTML = textoEstado;
+        });
+    });
+}
     
     async function guardarDisponibilidad() {
         const tecnicoId = document.getElementById('selectorTecnicoDisponibilidad').value;
