@@ -156,6 +156,11 @@
         }
         .sugerencia-item:hover { background: #eef2ff; }
         .sugerencia-item:last-child { border-bottom: none; }
+
+        /* Ocultar dashboard hasta login */
+        #dashboardPanel {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -163,13 +168,13 @@
     <!-- Login -->
     <div id="loginPanel" class="card">
         <div class="card-header" style="cursor:default;">🔐 Acceso Técnico</div>
-        <input type="text" id="nick" placeholder="Nick" value="">
-        <input type="password" id="password" placeholder="Contraseña" value="">
+        <input type="text" id="nick" placeholder="Nick">
+        <input type="password" id="password" placeholder="Contraseña">
         <button id="btnLogin">Iniciar sesión</button>
         <div id="errorMsg" style="color:red; margin-top:12px;"></div>
     </div>
 
-    <div id="dashboardPanel" class="oculto">
+    <div id="dashboardPanel">
         <!-- Header con información del técnico -->
         <div class="card" style="background: linear-gradient(135deg, #0077b6 0%, #00a8e8 100%); color: white;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
@@ -337,7 +342,6 @@
         
         console.log("Recuperando estado actual...");
         
-        // 1. Buscar jornada activa (sin fin)
         const { data: jornada, error: errJ } = await sb
             .from('jornadas')
             .select('*')
@@ -351,7 +355,6 @@
         }
         
         if (!jornada) {
-            console.log("No hay jornada activa");
             jornadaActiva = null;
             desplazamientoActivo = null;
             trabajoActivo = null;
@@ -361,14 +364,12 @@
             return;
         }
         
-        console.log("Jornada activa encontrada:", jornada);
         jornadaActiva = jornada;
         document.getElementById('estadoJornada').innerHTML = `✅ Jornada activa desde ${formatDate(jornadaActiva.inicio)}`;
         document.getElementById('estadoJornada').className = "estado-jornada activa";
         document.getElementById('btnIniciarJornada').classList.add('oculto');
         document.getElementById('btnFinalizarJornada').classList.remove('oculto');
         
-        // 2. Buscar desplazamiento activo (sin fin)
         const { data: desplazamiento, error: errD } = await sb
             .from('desplazamientos')
             .select('*')
@@ -379,7 +380,6 @@
         if (errD) console.error("Error al recuperar desplazamiento:", errD);
         
         if (desplazamiento) {
-            console.log("Desplazamiento activo encontrado:", desplazamiento);
             desplazamientoActivo = desplazamiento;
             piscinaSeleccionadaId = desplazamiento.piscina_destino_id;
             piscinaSeleccionadaData = await cargarDatosPiscina(piscinaSeleccionadaId);
@@ -389,7 +389,6 @@
             return;
         }
         
-        // 3. Buscar trabajo activo (sin fin)
         const { data: trabajo, error: errT } = await sb
             .from('trabajos_piscina')
             .select('*')
@@ -400,7 +399,6 @@
         if (errT) console.error("Error al recuperar trabajo:", errT);
         
         if (trabajo) {
-            console.log("Trabajo activo encontrado:", trabajo);
             trabajoActivo = trabajo;
             piscinaSeleccionadaId = trabajo.piscina_id;
             piscinaSeleccionadaData = await cargarDatosPiscina(piscinaSeleccionadaId);
@@ -411,7 +409,6 @@
             return;
         }
         
-        // 4. Si no hay desplazamiento ni trabajo, recuperar última piscina del localStorage
         const ultimaPiscina = localStorage.getItem('ultimaPiscina');
         if (ultimaPiscina) {
             const piscina = todasLasPiscinas.find(p => p.id == ultimaPiscina);
@@ -496,8 +493,6 @@
         const { data } = await sb.from('piscinas').select('*').order('nombre');
         todasLasPiscinas = data || [];
         piscinasCargadas = true;
-        
-        // Después de cargar piscinas, recuperar estado
         await recuperarEstadoActual();
     }
 
@@ -535,19 +530,16 @@
         }
     });
 
-    // ========== JORNADA CON CONFIRMACIÓN ==========
+    // ========== JORNADA ==========
     async function iniciarJornada() {
         if (jornadaActiva) return;
         if (!confirm("¿Estás seguro de que quieres INICIAR la jornada laboral?")) return;
         
-        console.log("Insertando jornada...");
         const { data, error } = await sb.from('jornadas').insert({ tecnico_id: currentUserId, inicio: new Date().toISOString() }).select();
         if (error) { 
-            console.error("Error al insertar jornada:", error);
             mostrarMensaje(error.message, 'error'); 
             return; 
         }
-        console.log("Jornada insertada:", data);
         jornadaActiva = data[0];
         document.getElementById('estadoJornada').innerHTML = `✅ Jornada activa desde ${formatDate(jornadaActiva.inicio)}`;
         document.getElementById('estadoJornada').className = "estado-jornada activa";
@@ -565,10 +557,8 @@
         }
         if (!confirm("¿Estás seguro de que quieres FINALIZAR la jornada laboral?")) return;
         
-        console.log("Finalizando jornada...");
         const { error } = await sb.from('jornadas').update({ fin: new Date().toISOString() }).eq('id', jornadaActiva.id);
         if (error) { 
-            console.error("Error al finalizar jornada:", error);
             mostrarMensaje(error.message, 'error'); 
             return; 
         }
@@ -594,7 +584,6 @@
         if (!piscinaSeleccionadaId) { mostrarMensaje("Selecciona una piscina", 'error'); return; }
         if (desplazamientoActivo || trabajoActivo) { mostrarMensaje("Ya hay una actividad en curso", 'error'); return; }
         
-        console.log("Insertando desplazamiento...");
         const { data, error } = await sb.from('desplazamientos').insert({
             jornada_id: jornadaActiva.id,
             tecnico_id: currentUserId,
@@ -602,11 +591,9 @@
             inicio: new Date().toISOString()
         }).select();
         if (error) { 
-            console.error("Error al insertar desplazamiento:", error);
             mostrarMensaje(error.message, 'error'); 
             return; 
         }
-        console.log("Desplazamiento insertado:", data);
         desplazamientoActivo = data[0];
         actualizarConsola();
         mostrarMensaje(`🚗 Desplazamiento hacia ${getPiscinaNombre(piscinaSeleccionadaId)} iniciado`, 'exito');
@@ -615,10 +602,8 @@
     async function llegadaPiscina() {
         if (!desplazamientoActivo) return;
         
-        console.log("Finalizando desplazamiento...");
         const { error } = await sb.from('desplazamientos').update({ fin: new Date().toISOString() }).eq('id', desplazamientoActivo.id);
         if (error) { 
-            console.error("Error al finalizar desplazamiento:", error);
             mostrarMensaje(error.message, 'error'); 
             return; 
         }
@@ -633,7 +618,6 @@
         if (!piscinaSeleccionadaId) { mostrarMensaje("Selecciona una piscina", 'error'); return; }
         if (trabajoActivo) { mostrarMensaje("Ya hay una actividad activa", 'error'); return; }
         
-        console.log("Insertando trabajo...");
         const { data, error } = await sb.from('trabajos_piscina').insert({
             jornada_id: jornadaActiva.id,
             piscina_id: piscinaSeleccionadaId,
@@ -641,11 +625,9 @@
             inicio: new Date().toISOString()
         }).select();
         if (error) { 
-            console.error("Error al insertar trabajo:", error);
             mostrarMensaje(error.message, 'error'); 
             return; 
         }
-        console.log("Trabajo insertado:", data);
         trabajoActivo = data[0];
         actualizarConsola();
         mostrarMensaje("🏊 Actividad iniciada", 'exito');
@@ -656,13 +638,11 @@
         if (!trabajoActivo) return;
         const observaciones = document.getElementById('obs').value.trim() || "Actividad finalizada";
         
-        console.log("Finalizando trabajo...");
         const { error } = await sb.from('trabajos_piscina').update({ 
             fin: new Date().toISOString(), 
             observaciones: observaciones 
         }).eq('id', trabajoActivo.id);
         if (error) { 
-            console.error("Error al finalizar trabajo:", error);
             mostrarMensaje(error.message, 'error'); 
             return; 
         }
@@ -746,7 +726,6 @@
         }
         const observaciones = document.getElementById('obs').value;
         
-        console.log("Insertando medición...");
         const { data: medicion, error: errMed } = await sb.from('mediciones').insert({
             tecnico_id: currentUserId,
             piscina_id: trabajoActivo.piscina_id,
@@ -754,11 +733,9 @@
             cloro, ph, temperatura, observaciones
         }).select();
         if (errMed) { 
-            console.error("Error al insertar medición:", errMed);
             mostrarMensaje(errMed.message, 'error'); 
             return; 
         }
-        console.log("Medición insertada:", medicion);
         
         const medicionId = medicion[0].id;
         for (const prod of productosTemp) {
@@ -822,13 +799,27 @@
     async function hacerLogin() {
         const nick = document.getElementById('nick').value.trim();
         const password = document.getElementById('password').value;
-        if (!nick || !password) { document.getElementById('errorMsg').innerText = "Introduce nick y contraseña"; return false; }
+        if (!nick || !password) { 
+            document.getElementById('errorMsg').innerText = "Introduce nick y contraseña"; 
+            return false; 
+        }
         const email = nick + DOMINIO;
         const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
-        if (authError) { document.getElementById('errorMsg').innerText = authError.message; return false; }
+        if (authError) { 
+            document.getElementById('errorMsg').innerText = authError.message; 
+            return false; 
+        }
         const { data: perfil, error: perfilError } = await sb.from('perfiles').select('*').eq('id', authData.user.id).single();
-        if (perfilError || !perfil) { await sb.auth.signOut(); document.getElementById('errorMsg').innerText = "Usuario sin perfil"; return false; }
-        if (perfil.rol !== 'tecnico') { await sb.auth.signOut(); document.getElementById('errorMsg').innerText = "Acceso solo para técnicos"; return false; }
+        if (perfilError || !perfil) { 
+            await sb.auth.signOut(); 
+            document.getElementById('errorMsg').innerText = "Usuario sin perfil"; 
+            return false; 
+        }
+        if (perfil.rol !== 'tecnico') { 
+            await sb.auth.signOut(); 
+            document.getElementById('errorMsg').innerText = "Acceso solo para técnicos"; 
+            return false; 
+        }
         currentUserId = authData.user.id;
         return true;
     }
@@ -836,8 +827,8 @@
     // Evento principal de login
     document.getElementById('btnLogin').onclick = async () => {
         if (await hacerLogin()) {
-            document.getElementById('loginPanel').classList.add('oculto');
-            document.getElementById('dashboardPanel').classList.remove('oculto');
+            document.getElementById('loginPanel').style.display = 'none';
+            document.getElementById('dashboardPanel').style.display = 'block';
             await cargarInfoTecnico();
             await cargarPiscinas();
         }
@@ -858,7 +849,14 @@
     document.getElementById('btnFinalizarActividad').onclick = finalizarActividad;
     document.getElementById('btnJornadasPorFecha').onclick = cargarJornadasPorFecha;
     document.getElementById('btnJornadasPDF').onclick = descargarJornadasPDF;
-    document.getElementById('btnLogout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    document.getElementById('btnLogout').onclick = async () => { 
+        await sb.auth.signOut(); 
+        document.getElementById('dashboardPanel').style.display = 'none';
+        document.getElementById('loginPanel').style.display = 'block';
+        document.getElementById('nick').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('errorMsg').innerText = '';
+    };
 </script>
 </body>
 </html>
