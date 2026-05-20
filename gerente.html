@@ -114,7 +114,7 @@
     <div id="loginPanel" class="card">
         <div class="card-header" style="cursor:default;">👔 Acceso Gerente</div>
         <input type="email" id="email" placeholder="Email" value="gerente@mipiscina.com">
-        <input type="password" id="password" placeholder="Contraseña">
+        <input type="password" id="password" placeholder="Contraseña" value="gerente123">
         <button id="btnLogin">Iniciar sesión</button>
         <div id="errorMsg" style="color:red; margin-top:12px;"></div>
     </div>
@@ -202,8 +202,21 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
+    let cachePiscinas = {};  // Cache de piscinas {id: nombre}
+    let cachePerfiles = {};  // Cache de perfiles {id: nick}
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
+
+    // ========== CARGAR CACHES ==========
+    async function cargarCaches() {
+        // Cargar piscinas
+        const { data: piscinas } = await sb.from('piscinas').select('id, nombre');
+        piscinas?.forEach(p => cachePiscinas[p.id] = p.nombre);
+        
+        // Cargar perfiles de técnicos
+        const { data: perfiles } = await sb.from('perfiles').select('id, nick, rol');
+        perfiles?.forEach(p => cachePerfiles[p.id] = { nick: p.nick, rol: p.rol });
+    }
 
     // ========== LOGIN ==========
     async function hacerLogin() {
@@ -232,6 +245,7 @@
         if (await hacerLogin()) {
             document.getElementById('loginPanel').classList.add('oculto');
             document.getElementById('dashboardPanel').classList.remove('oculto');
+            await cargarCaches();
             await cargarResumen();
             await cargarUltimasMediciones();
             await cargarTecnicos();
@@ -251,32 +265,35 @@
         const { data: activas } = await sb.from('jornadas').select('id').is('fin', null).gte('inicio', hoy+'T00:00:00').lte('inicio', hoy+'T23:59:59');
         document.getElementById('jornadasActivas').innerText = activas?.length || 0;
         
-        const { count: total, error } = await sb.from('mediciones').select('*', { count: 'exact', head: true });
+        const { count: total } = await sb.from('mediciones').select('*', { count: 'exact', head: true });
         document.getElementById('totalMediciones').innerText = total || 0;
     }
 
     // ========== ÚLTIMAS 5 MEDICIONES ==========
     async function cargarUltimasMediciones() {
-        const { data, error } = await sb
+        const { data: mediciones, error } = await sb
             .from('mediciones')
-            .select('*, piscinas(nombre), perfiles(nick)')
+            .select('*')
             .order('created_at', { ascending: false })
             .limit(5);
         
         const contenedor = document.getElementById('ultimasMediciones');
         contenedor.innerHTML = '';
+        
         if (error) {
             contenedor.innerHTML = `<div class="medicion-card">Error: ${error.message}</div>`;
             return;
         }
-        if (!data || data.length === 0) {
+        
+        if (!mediciones || mediciones.length === 0) {
             contenedor.innerHTML = '<div class="medicion-card">No hay mediciones registradas</div>';
             return;
         }
-        data.forEach(m => {
+        
+        mediciones.forEach(m => {
             const div = document.createElement('div');
             div.className = 'medicion-card';
-            div.innerHTML = `<strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>
+            div.innerHTML = `<strong>👤 ${cachePerfiles[m.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[m.piscina_id] || '?'}<br>
                             🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
                             📅 ${formatDate(m.created_at)}`;
             contenedor.appendChild(div);
@@ -324,21 +341,24 @@
     }
 
     async function ejecutarBusquedaJornadas(start, end, tecnicoId = null) {
-        let query = sb.from('jornadas').select('*, perfiles(nick)').gte('inicio', start).lte('inicio', end);
+        let query = sb.from('jornadas').select('*').gte('inicio', start).lte('inicio', end);
         if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
-        const { data, error } = await query.order('inicio', { ascending: false });
+        const { data: jornadas, error } = await query.order('inicio', { ascending: false });
         
         const contenedor = document.getElementById('listaJornadas');
         contenedor.innerHTML = '';
+        
         if (error) {
             contenedor.innerHTML = `<div class="jornada-card">Error: ${error.message}</div>`;
             return;
         }
-        if (!data || data.length === 0) {
+        
+        if (!jornadas || jornadas.length === 0) {
             contenedor.innerHTML = '<div class="jornada-card">No hay jornadas en este período</div>';
             return;
         }
-        data.forEach(j => {
+        
+        jornadas.forEach(j => {
             const inicio = new Date(j.inicio);
             const fin = j.fin ? new Date(j.fin) : null;
             let duracion = '';
@@ -350,7 +370,7 @@
             } else { duracion = ' (en curso)'; }
             const div = document.createElement('div');
             div.className = 'jornada-card';
-            div.innerHTML = `<strong>👤 ${j.perfiles?.nick || '?'}</strong><br>
+            div.innerHTML = `<strong>👤 ${cachePerfiles[j.tecnico_id]?.nick || '?'}</strong><br>
                             📅 ${inicio.toLocaleDateString()} · 🕒 ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : '—'}${duracion}`;
             contenedor.appendChild(div);
         });
@@ -373,17 +393,17 @@
         if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
         const start = new Date(`${desde}T00:00:00`).toISOString();
         const end = new Date(`${hasta}T23:59:59`).toISOString();
-        let query = sb.from('jornadas').select('*, perfiles(nick)').gte('inicio', start).lte('inicio', end);
+        let query = sb.from('jornadas').select('*').gte('inicio', start).lte('inicio', end);
         if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
-        const { data } = await query.order('inicio', { ascending: false });
-        if (!data || data.length === 0) { alert("No hay datos"); return; }
+        const { data: jornadas } = await query.order('inicio', { ascending: false });
+        if (!jornadas || jornadas.length === 0) { alert("No hay datos"); return; }
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = `<h2>Jornadas (${desde} a ${hasta})</h2>`;
-        data.forEach(j => {
+        jornadas.forEach(j => {
             const inicio = new Date(j.inicio);
             const fin = j.fin ? new Date(j.fin) : null;
             tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
-                <strong>👤 ${j.perfiles?.nick || '?'}</strong><br>
+                <strong>👤 ${cachePerfiles[j.tecnico_id]?.nick || '?'}</strong><br>
                 📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}
             </div>`;
         });
@@ -399,27 +419,27 @@
     }
 
     async function ejecutarBusquedaMediciones(start, end, tecnicoId = null) {
-        let query = sb.from('mediciones')
-            .select('*, piscinas(nombre), perfiles(nick)')
-            .gte('created_at', start)
-            .lte('created_at', end);
+        let query = sb.from('mediciones').select('*').gte('created_at', start).lte('created_at', end);
         if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
-        const { data, error } = await query.order('created_at', { ascending: false });
+        const { data: mediciones, error } = await query.order('created_at', { ascending: false });
         
         const contenedor = document.getElementById('listaMediciones');
         contenedor.innerHTML = '';
+        
         if (error) {
             contenedor.innerHTML = `<div class="medicion-card">Error: ${error.message}</div>`;
             return;
         }
-        if (!data || data.length === 0) {
+        
+        if (!mediciones || mediciones.length === 0) {
             contenedor.innerHTML = '<div class="medicion-card">No hay mediciones en este período</div>';
             return;
         }
-        data.forEach(m => {
+        
+        mediciones.forEach(m => {
             const div = document.createElement('div');
             div.className = 'medicion-card';
-            div.innerHTML = `<strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>
+            div.innerHTML = `<strong>👤 ${cachePerfiles[m.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[m.piscina_id] || '?'}<br>
                             🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
                             📝 ${m.observaciones || 'Sin observaciones'}<br>
                             📅 ${formatDate(m.created_at)}`;
@@ -444,15 +464,15 @@
         if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
         const start = new Date(`${desde}T00:00:00`).toISOString();
         const end = new Date(`${hasta}T23:59:59`).toISOString();
-        let query = sb.from('mediciones').select('*, piscinas(nombre), perfiles(nick)').gte('created_at', start).lte('created_at', end);
+        let query = sb.from('mediciones').select('*').gte('created_at', start).lte('created_at', end);
         if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
-        const { data } = await query.order('created_at', { ascending: false });
-        if (!data || data.length === 0) { alert("No hay datos"); return; }
+        const { data: mediciones } = await query.order('created_at', { ascending: false });
+        if (!mediciones || mediciones.length === 0) { alert("No hay datos"); return; }
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = `<h2>Mediciones (${desde} a ${hasta})</h2>`;
-        data.forEach(m => {
+        mediciones.forEach(m => {
             tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
-                <strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>
+                <strong>👤 ${cachePerfiles[m.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[m.piscina_id] || '?'}<br>
                 🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
                 📝 ${m.observaciones || ''}<br>
                 📅 ${formatDate(m.created_at)}
@@ -470,11 +490,11 @@
     }
 
     async function ejecutarBusquedaTiempos(start, end, tecnicoId = null) {
-        let queryTrabajos = sb.from('trabajos_piscina').select('*, piscinas(nombre), perfiles(nick)').gte('inicio', start).lte('inicio', end);
+        let queryTrabajos = sb.from('trabajos_piscina').select('*').gte('inicio', start).lte('inicio', end);
         if (tecnicoId && tecnicoId !== '') queryTrabajos = queryTrabajos.eq('tecnico_id', tecnicoId);
         const { data: trabajos } = await queryTrabajos.order('inicio', { ascending: false });
         
-        let queryDesplazamientos = sb.from('desplazamientos').select('*, piscinas!piscina_destino_id(nombre), perfiles(nick)').gte('inicio', start).lte('inicio', end);
+        let queryDesplazamientos = sb.from('desplazamientos').select('*').gte('inicio', start).lte('inicio', end);
         if (tecnicoId && tecnicoId !== '') queryDesplazamientos = queryDesplazamientos.eq('tecnico_id', tecnicoId);
         const { data: desplazamientos } = await queryDesplazamientos.order('inicio', { ascending: false });
         
@@ -506,7 +526,7 @@
                 }
                 const div = document.createElement('div');
                 div.className = 'medicion-card';
-                div.innerHTML = `<strong>👤 ${t.perfiles?.nick || '?'}</strong> · 🏊 ${t.piscinas?.nombre || '?'}<br>
+                div.innerHTML = `<strong>👤 ${cachePerfiles[t.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[t.piscina_id] || '?'}<br>
                                 🕒 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}<br>
                                 ⏱️ Duración: ${duracionTexto}`;
                 contenedor.appendChild(div);
@@ -535,7 +555,7 @@
                 }
                 const div = document.createElement('div');
                 div.className = 'medicion-card';
-                div.innerHTML = `<strong>👤 ${d.perfiles?.nick || '?'}</strong> · 🏊 Hacia: ${d.piscinas?.nombre || '?'}<br>
+                div.innerHTML = `<strong>👤 ${cachePerfiles[d.tecnico_id]?.nick || '?'}</strong> · 🏊 Hacia: ${cachePiscinas[d.piscina_destino_id] || '?'}<br>
                                 🕒 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}<br>
                                 ⏱️ Duración: ${duracionTexto}`;
                 contenedor.appendChild(div);
