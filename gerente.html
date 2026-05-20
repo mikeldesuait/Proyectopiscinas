@@ -38,7 +38,7 @@
         .card-header:hover { background: #f8fafc; }
         .card-header .flecha { margin-left: auto; font-size: 1.1rem; }
         .card-content { padding: 16px 0 0 0; }
-        button, input, select {
+        button, input, select, textarea {
             padding: 10px 14px;
             border-radius: 40px;
             border: 1px solid #cad2db;
@@ -59,6 +59,10 @@
         .btn-pdf { background: #c2410c; }
         .btn-buscar { background: #475569; }
         .btn-refresh { background: #2c7a4d; width: auto; padding: 6px 12px; font-size: 0.8rem; }
+        .btn-success { background: #2c7a4d; }
+        .btn-warning { background: #e67e22; }
+        .btn-danger { background: #c2410c; }
+        .btn-info { background: #0284c7; }
         .oculto { display: none; }
         
         /* Resumen compacto */
@@ -102,6 +106,7 @@
         .resultados-area { margin-top: 12px; max-height: 350px; overflow-y: auto; }
         @media (max-width: 700px) { .row-flex { flex-direction: column; } }
         
+        /* Pestañas */
         .browser-tabs {
             display: flex;
             gap: 3px;
@@ -140,6 +145,8 @@
             border: 1px solid #e2e8f0;
             border-top: none;
         }
+        
+        /* Cards de estado */
         .activo-card {
             background: linear-gradient(135deg, #d4edda 0%, #c8e6d9 100%);
             border-left: 3px solid #2c7a4d;
@@ -156,6 +163,11 @@
             background: #fef3c7;
             border-left: 3px solid #d97706;
         }
+        .vacacion-card {
+            background: #e0e7ff;
+            border-left: 3px solid #4f46e5;
+        }
+        
         .refresh-header {
             display: flex;
             justify-content: space-between;
@@ -172,6 +184,53 @@
         .badge-trabajo { background: #2c7a4d; color: white; }
         .badge-desplazamiento { background: #e67e22; color: white; }
         .badge-descanso { background: #94a3b8; color: white; }
+        .badge-vacaciones { background: #4f46e5; color: white; }
+        .badge-baja { background: #dc2626; color: white; }
+        .badge-dia-libre { background: #16a34a; color: white; }
+        
+        .calendario {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .dia-calendario {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 8px;
+            text-align: center;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .dia-calendario:hover {
+            background: #eef2ff;
+            transform: scale(1.02);
+        }
+        .dia-calendario.seleccionado {
+            background: #0077b6;
+            color: white;
+        }
+        .dia-calendario.vacaciones {
+            background: #e0e7ff;
+            border-color: #4f46e5;
+        }
+        .dia-calendario.baja {
+            background: #fee2e2;
+            border-color: #dc2626;
+        }
+        .dia-calendario.descanso {
+            background: #d4edda;
+            border-color: #2c7a4d;
+        }
+        .dia-numero {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .dia-nombre {
+            font-size: 0.7rem;
+            color: #5b6e8c;
+        }
         
         .tabs {
             display: flex;
@@ -194,6 +253,17 @@
         }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        
+        .tecnico-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .tecnico-selector select {
+            flex: 2;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -225,7 +295,7 @@
             </div>
         </div>
 
-        <!-- CONSOLA PRINCIPAL CON PESTAÑAS -->
+        <!-- CONSOLA DE SUPERVISIÓN -->
         <div class="card">
             <div class="refresh-header">
                 <div class="card-header" style="cursor:default; margin-bottom:0; padding-left:0; border-left:none;">🎮 Consola de supervisión</div>
@@ -261,7 +331,73 @@
             </div>
         </div>
 
-        <!-- Históricos (plegado por defecto) -->
+        <!-- CONSOLA DE GESTIÓN DE PERSONAL -->
+        <div class="card">
+            <div class="card-header" style="cursor:default;">👔 Gestión de personal</div>
+            
+            <div class="browser-tabs">
+                <button class="browser-tab active" data-tab="personal-tecnicos">👥 Datos del técnico</button>
+                <button class="browser-tab" data-tab="personal-disponibilidad">📅 Disponibilidad semanal</button>
+                <button class="browser-tab" data-tab="personal-vacaciones">🏖️ Vacaciones y ausencias</button>
+            </div>
+            
+            <!-- Pestaña 1: Datos del técnico (actividad de hoy) -->
+            <div id="tabPersonalTecnicos" class="browser-content">
+                <div class="tecnico-selector">
+                    <select id="selectorTecnicoPersonal">
+                        <option value="">Selecciona un técnico...</option>
+                    </select>
+                </div>
+                <div id="datosTecnicoHoy" class="resultados-area"></div>
+            </div>
+            
+            <!-- Pestaña 2: Disponibilidad semanal -->
+            <div id="tabPersonalDisponibilidad" class="browser-content oculto">
+                <div class="tecnico-selector">
+                    <select id="selectorTecnicoDisponibilidad">
+                        <option value="">Selecciona un técnico...</option>
+                    </select>
+                    <input type="date" id="semanaDisponibilidad" value="">
+                    <button id="btnCargarDisponibilidad" class="btn-info">📅 Cargar semana</button>
+                </div>
+                <div id="calendarioDisponibilidad" class="calendario"></div>
+                <div style="margin-top: 16px;">
+                    <button id="btnGuardarDisponibilidad" class="btn-success">💾 Guardar cambios</button>
+                </div>
+            </div>
+            
+            <!-- Pestaña 3: Vacaciones y ausencias -->
+            <div id="tabPersonalVacaciones" class="browser-content oculto">
+                <div class="tecnico-selector">
+                    <select id="selectorTecnicoVacaciones">
+                        <option value="">Selecciona un técnico...</option>
+                    </select>
+                </div>
+                
+                <div style="background: #f8fafc; padding: 16px; border-radius: 16px; margin-bottom: 16px;">
+                    <h4 style="margin-bottom: 12px;">➕ Nueva solicitud</h4>
+                    <div class="row-flex">
+                        <div class="grupo"><label>Tipo</label>
+                            <select id="nuevaAusenciaTipo">
+                                <option value="vacaciones">🏖️ Vacaciones</option>
+                                <option value="baja_medica">🩺 Baja médica</option>
+                                <option value="permiso">📋 Permiso</option>
+                                <option value="formacion">📚 Formación</option>
+                                <option value="reunion">🤝 Reunión</option>
+                            </select>
+                        </div>
+                        <div class="grupo"><label>Fecha inicio</label><input type="date" id="nuevaAusenciaInicio"></div>
+                        <div class="grupo"><label>Fecha fin</label><input type="date" id="nuevaAusenciaFin"></div>
+                        <div class="grupo"><label>Observaciones</label><input type="text" id="nuevaAusenciaObs" placeholder="Observaciones"></div>
+                        <button id="btnAgregarAusencia" class="btn-success" style="flex: 0.5;">➕ Agregar</button>
+                    </div>
+                </div>
+                
+                <div id="listaAusencias" class="resultados-area"></div>
+            </div>
+        </div>
+
+        <!-- Históricos (plegado) -->
         <div class="card">
             <div class="card-header" id="toggleHistorico">
                 📋 Históricos de jornadas, mediciones y tiempos
@@ -321,9 +457,11 @@
     let cachePiscinas = {};
     let cachePerfiles = {};
     let intervaloActualizacion = null;
+    let disponibilidadActual = {};
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
     function formatTime(iso) { return iso ? new Date(iso).toLocaleTimeString() : '—'; }
+    function formatDateYMD(date) { return date.toISOString().slice(0,10); }
 
     async function cargarCaches() {
         const { data: piscinas } = await sb.from('piscinas').select('id, nombre');
@@ -331,9 +469,370 @@
         
         const { data: perfiles } = await sb.from('perfiles').select('id, nick, nombre, rol');
         perfiles?.forEach(p => cachePerfiles[p.id] = { nick: p.nick, nombre: p.nombre, rol: p.rol });
+        
+        // Cargar selectores de técnicos
+        const tecnicos = Object.values(cachePerfiles).filter(p => p.rol === 'tecnico');
+        const selectores = ['selectorTecnicoPersonal', 'selectorTecnicoDisponibilidad', 'selectorTecnicoVacaciones'];
+        selectores.forEach(id => {
+            const select = document.getElementById(id);
+            if (select) {
+                select.innerHTML = '<option value="">Selecciona un técnico...</option>';
+                tecnicos.forEach(t => {
+                    select.innerHTML += `<option value="${t.id}">${t.nick}${t.nombre ? ` - ${t.nombre}` : ''}</option>`;
+                });
+            }
+        });
     }
 
-    // ========== RESUMEN COMPACTO ==========
+    // ========== DATOS DEL TÉCNICO HOY ==========
+    async function cargarDatosTecnicoHoy() {
+        const tecnicoId = document.getElementById('selectorTecnicoPersonal').value;
+        if (!tecnicoId) {
+            document.getElementById('datosTecnicoHoy').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico</div>';
+            return;
+        }
+        
+        const hoy = new Date().toISOString().slice(0,10);
+        const startHoy = hoy + 'T00:00:00';
+        const endHoy = hoy + 'T23:59:59';
+        
+        // Jornada de hoy
+        const { data: jornada } = await sb
+            .from('jornadas')
+            .select('*')
+            .eq('tecnico_id', tecnicoId)
+            .gte('inicio', startHoy)
+            .lte('inicio', endHoy)
+            .maybeSingle();
+        
+        // Trabajos de hoy
+        const { data: trabajos } = await sb
+            .from('trabajos_piscina')
+            .select('*, piscina_id')
+            .eq('tecnico_id', tecnicoId)
+            .gte('inicio', startHoy)
+            .lte('inicio', endHoy);
+        
+        // Mediciones de hoy
+        const { data: mediciones } = await sb
+            .from('mediciones')
+            .select('*')
+            .eq('tecnico_id', tecnicoId)
+            .gte('created_at', startHoy)
+            .lte('created_at', endHoy);
+        
+        // Desplazamientos de hoy
+        const { data: desplazamientos } = await sb
+            .from('desplazamientos')
+            .select('*')
+            .eq('tecnico_id', tecnicoId)
+            .gte('inicio', startHoy)
+            .lte('inicio', endHoy);
+        
+        const tecnico = cachePerfiles[tecnicoId];
+        
+        let html = `<div class="medicion-card" style="background: #e0f2fe;">
+            <strong>👤 ${tecnico?.nick}${tecnico?.nombre ? ` (${tecnico.nombre})` : ''}</strong>
+            <div>📅 Resumen de hoy (${hoy})</div>
+        </div>`;
+        
+        // Jornada
+        if (jornada) {
+            const inicio = new Date(jornada.inicio);
+            const fin = jornada.fin ? new Date(jornada.fin) : null;
+            html += `<div class="medicion-card">
+                <strong>🕒 Jornada laboral</strong><br>
+                Inicio: ${inicio.toLocaleTimeString()}${fin ? ` · Fin: ${fin.toLocaleTimeString()}` : ' · En curso'}
+            </div>`;
+        } else {
+            html += `<div class="medicion-card">⚠️ No ha iniciado jornada hoy</div>`;
+        }
+        
+        // Trabajos
+        if (trabajos && trabajos.length > 0) {
+            html += `<div class="medicion-card"><strong>🏊 Trabajos realizados (${trabajos.length})</strong><br>`;
+            trabajos.forEach(t => {
+                const inicio = new Date(t.inicio);
+                const fin = t.fin ? new Date(t.fin) : null;
+                html += `• ${cachePiscinas[t.piscina_id] || '?'}: ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : 'En curso'}<br>`;
+            });
+            html += `</div>`;
+        }
+        
+        // Mediciones
+        if (mediciones && mediciones.length > 0) {
+            html += `<div class="medicion-card"><strong>🧪 Mediciones realizadas (${mediciones.length})</strong><br>`;
+            mediciones.forEach(m => {
+                html += `• ${cachePiscinas[m.piscina_id] || '?'}: Cloro ${m.cloro} | pH ${m.ph} | ${m.temperatura}°C<br>`;
+            });
+            html += `</div>`;
+        }
+        
+        // Desplazamientos
+        if (desplazamientos && desplazamientos.length > 0) {
+            html += `<div class="medicion-card"><strong>🚗 Desplazamientos (${desplazamientos.length})</strong><br>`;
+            desplazamientos.forEach(d => {
+                const inicio = new Date(d.inicio);
+                const fin = d.fin ? new Date(d.fin) : null;
+                html += `• Hacia ${cachePiscinas[d.piscina_destino_id] || '?'}: ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : 'En curso'}<br>`;
+            });
+            html += `</div>`;
+        }
+        
+        if ((!trabajos || trabajos.length === 0) && (!mediciones || mediciones.length === 0) && (!desplazamientos || desplazamientos.length === 0)) {
+            html += `<div class="medicion-card">📋 No hay actividad registrada hoy</div>`;
+        }
+        
+        document.getElementById('datosTecnicoHoy').innerHTML = html;
+    }
+
+    // ========== DISPONIBILIDAD SEMANAL ==========
+    async function cargarDisponibilidadSemanal() {
+        const tecnicoId = document.getElementById('selectorTecnicoDisponibilidad').value;
+        if (!tecnicoId) {
+            document.getElementById('calendarioDisponibilidad').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico</div>';
+            return;
+        }
+        
+        let fechaBase = document.getElementById('semanaDisponibilidad').value;
+        if (!fechaBase) {
+            fechaBase = formatDateYMD(new Date());
+            document.getElementById('semanaDisponibilidad').value = fechaBase;
+        }
+        
+        const fecha = new Date(fechaBase);
+        const diaSemana = fecha.getDay();
+        const inicioSemana = new Date(fecha);
+        inicioSemana.setDate(fecha.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1));
+        
+        const diasSemana = [];
+        for (let i = 0; i < 7; i++) {
+            const dia = new Date(inicioSemana);
+            dia.setDate(inicioSemana.getDate() + i);
+            diasSemana.push(dia);
+        }
+        
+        const fechas = diasSemana.map(d => formatDateYMD(d));
+        const { data: disponibilidad } = await sb
+            .from('disponibilidad_tecnicos')
+            .select('*')
+            .eq('tecnico_id', tecnicoId)
+            .in('fecha', fechas);
+        
+        disponibilidadActual = {};
+        disponibilidad?.forEach(d => {
+            disponibilidadActual[d.fecha] = d.tipo;
+        });
+        
+        const nombresDias = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+        let html = '';
+        
+        diasSemana.forEach((dia, idx) => {
+            const fechaStr = formatDateYMD(dia);
+            const tipo = disponibilidadActual[fechaStr] || 'trabajo';
+            let claseTipo = '';
+            let textoEstado = '';
+            
+            if (tipo === 'vacaciones') { claseTipo = 'vacaciones'; textoEstado = '🏖️'; }
+            else if (tipo === 'baja') { claseTipo = 'baja'; textoEstado = '🩺'; }
+            else if (tipo === 'descanso' || tipo === 'libranza') { claseTipo = 'descanso'; textoEstado = '💤'; }
+            else { textoEstado = '✅'; }
+            
+            html += `
+                <div class="dia-calendario ${claseTipo}" data-fecha="${fechaStr}" data-tipo-actual="${tipo}">
+                    <div class="dia-nombre">${nombresDias[idx]}</div>
+                    <div class="dia-numero">${dia.getDate()}</div>
+                    <div style="font-size: 0.7rem; margin-top: 4px;">${textoEstado}</div>
+                    <select class="tipo-select" style="font-size: 0.65rem; padding: 4px; margin-top: 6px;" data-fecha="${fechaStr}">
+                        <option value="trabajo" ${tipo === 'trabajo' ? 'selected' : ''}>✅ Trabajo</option>
+                        <option value="descanso" ${tipo === 'descanso' ? 'selected' : ''}>💤 Descanso</option>
+                        <option value="vacaciones" ${tipo === 'vacaciones' ? 'selected' : ''}>🏖️ Vacaciones</option>
+                        <option value="baja" ${tipo === 'baja' ? 'selected' : ''}>🩺 Baja</option>
+                    </select>
+                </div>
+            `;
+        });
+        
+        document.getElementById('calendarioDisponibilidad').innerHTML = html;
+        
+        // Eventos para los selects
+        document.querySelectorAll('.tipo-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const fecha = e.target.dataset.fecha;
+                disponibilidadActual[fecha] = e.target.value;
+            });
+        });
+    }
+    
+    async function guardarDisponibilidad() {
+        const tecnicoId = document.getElementById('selectorTecnicoDisponibilidad').value;
+        if (!tecnicoId) {
+            alert("Selecciona un técnico");
+            return;
+        }
+        
+        for (const [fecha, tipo] of Object.entries(disponibilidadActual)) {
+            const { error } = await sb
+                .from('disponibilidad_tecnicos')
+                .upsert({
+                    tecnico_id: tecnicoId,
+                    fecha: fecha,
+                    tipo: tipo,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'tecnico_id, fecha' });
+            
+            if (error) console.error("Error guardando:", error);
+        }
+        
+        alert("✅ Disponibilidad guardada correctamente");
+        await cargarDisponibilidadSemanal();
+    }
+
+    // ========== VACACIONES Y AUSENCIAS ==========
+    async function cargarAusenciasTecnico() {
+        const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
+        if (!tecnicoId) {
+            document.getElementById('listaAusencias').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico</div>';
+            return;
+        }
+        
+        // Cargar vacaciones
+        const { data: vacaciones } = await sb
+            .from('vacaciones_tecnicos')
+            .select('*')
+            .eq('tecnico_id', tecnicoId)
+            .order('fecha_inicio', { ascending: false });
+        
+        // Cargar incidencias
+        const { data: incidencias } = await sb
+            .from('incidencias_tecnicos')
+            .select('*')
+            .eq('tecnico_id', tecnicoId)
+            .order('fecha_inicio', { ascending: false });
+        
+        let html = '';
+        
+        if (vacaciones && vacaciones.length > 0) {
+            html += `<div class="medicion-card" style="background: #e0e7ff;"><strong>🏖️ VACACIONES</strong></div>`;
+            vacaciones.forEach(v => {
+                html += `<div class="medicion-card vacacion-card">
+                    <strong>📅 ${new Date(v.fecha_inicio).toLocaleDateString()} → ${new Date(v.fecha_fin).toLocaleDateString()}</strong>
+                    <div>📆 Total: ${v.dias_totales} días · Estado: ${v.estado}</div>
+                    <div>📝 ${v.observaciones || 'Sin observaciones'}</div>
+                    <button class="btn-danger eliminar-vacacion" data-id="${v.id}" style="width: auto; margin-top: 8px; font-size: 0.7rem;">🗑️ Eliminar</button>
+                </div>`;
+            });
+        }
+        
+        if (incidencias && incidencias.length > 0) {
+            html += `<div class="medicion-card" style="background: #fee2e2; margin-top: 12px;"><strong>📋 INCIDENCIAS</strong></div>`;
+            incidencias.forEach(i => {
+                const tipoTexto = {
+                    'baja_medica': '🩺 Baja médica',
+                    'permiso': '📋 Permiso',
+                    'formacion': '📚 Formación',
+                    'reunion': '🤝 Reunión',
+                    'otro': '📌 Otro'
+                }[i.tipo] || i.tipo;
+                
+                html += `<div class="medicion-card urgente">
+                    <strong>${tipoTexto}</strong>
+                    <div>📅 ${new Date(i.fecha_inicio).toLocaleDateString()} → ${new Date(i.fecha_fin).toLocaleDateString()}</div>
+                    <div>📝 ${i.descripcion || 'Sin descripción'}</div>
+                    <button class="btn-danger eliminar-incidencia" data-id="${i.id}" style="width: auto; margin-top: 8px; font-size: 0.7rem;">🗑️ Eliminar</button>
+                </div>`;
+            });
+        }
+        
+        if ((!vacaciones || vacaciones.length === 0) && (!incidencias || incidencias.length === 0)) {
+            html = '<div class="medicion-card">📋 No hay vacaciones o incidencias registradas</div>';
+        }
+        
+        document.getElementById('listaAusencias').innerHTML = html;
+        
+        // Eventos eliminar
+        document.querySelectorAll('.eliminar-vacacion').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (confirm("¿Eliminar esta solicitud de vacaciones?")) {
+                    await sb.from('vacaciones_tecnicos').delete().eq('id', btn.dataset.id);
+                    await cargarAusenciasTecnico();
+                }
+            });
+        });
+        
+        document.querySelectorAll('.eliminar-incidencia').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (confirm("¿Eliminar esta incidencia?")) {
+                    await sb.from('incidencias_tecnicos').delete().eq('id', btn.dataset.id);
+                    await cargarAusenciasTecnico();
+                }
+            });
+        });
+    }
+    
+    async function agregarAusencia() {
+        const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
+        if (!tecnicoId) {
+            alert("Selecciona un técnico");
+            return;
+        }
+        
+        const tipo = document.getElementById('nuevaAusenciaTipo').value;
+        const inicio = document.getElementById('nuevaAusenciaInicio').value;
+        const fin = document.getElementById('nuevaAusenciaFin').value;
+        const observaciones = document.getElementById('nuevaAusenciaObs').value;
+        
+        if (!inicio || !fin) {
+            alert("Selecciona fechas de inicio y fin");
+            return;
+        }
+        
+        const fechaInicio = new Date(inicio);
+        const fechaFin = new Date(fin);
+        const diffTime = Math.abs(fechaFin - fechaInicio);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        
+        if (tipo === 'vacaciones') {
+            const { error } = await sb.from('vacaciones_tecnicos').insert({
+                tecnico_id: tecnicoId,
+                fecha_inicio: inicio,
+                fecha_fin: fin,
+                dias_totales: diffDays,
+                estado: 'aprobada',
+                observaciones: observaciones
+            });
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                alert("✅ Vacaciones registradas");
+                document.getElementById('nuevaAusenciaInicio').value = '';
+                document.getElementById('nuevaAusenciaFin').value = '';
+                document.getElementById('nuevaAusenciaObs').value = '';
+                await cargarAusenciasTecnico();
+                await cargarDisponibilidadSemanal();
+            }
+        } else {
+            const { error } = await sb.from('incidencias_tecnicos').insert({
+                tecnico_id: tecnicoId,
+                tipo: tipo,
+                fecha_inicio: inicio,
+                fecha_fin: fin,
+                descripcion: observaciones
+            });
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                alert("✅ Incidencia registrada");
+                document.getElementById('nuevaAusenciaInicio').value = '';
+                document.getElementById('nuevaAusenciaFin').value = '';
+                document.getElementById('nuevaAusenciaObs').value = '';
+                await cargarAusenciasTecnico();
+                await cargarDisponibilidadSemanal();
+            }
+        }
+    }
+
+    // ========== RESTO DE FUNCIONES (supervisión) ==========
     async function cargarResumenCompacto() {
         const hoy = new Date().toISOString().slice(0,10);
         const startHoy = hoy + 'T00:00:00';
@@ -377,7 +876,6 @@
         document.getElementById('resumenActividadesCerradas').innerText = totalCerradas;
     }
 
-    // ========== TÉCNICOS ACTIVOS ==========
     async function cargarTecnicosActivos() {
         const hoy = new Date().toISOString().slice(0,10);
         const startHoy = hoy + 'T00:00:00';
@@ -464,7 +962,6 @@
         });
     }
 
-    // ========== PISCINAS EN TRABAJO ==========
     async function cargarPiscinasEnTrabajo() {
         const hoy = new Date().toISOString().slice(0,10);
         const startHoy = hoy + 'T00:00:00';
@@ -518,7 +1015,6 @@
         }
     }
 
-    // ========== ACTIVIDADES CERRADAS HOY ==========
     async function cargarActividadesCerradasHoy() {
         const hoy = new Date().toISOString().slice(0,10);
         const startHoy = hoy + 'T00:00:00';
@@ -602,7 +1098,6 @@
         }
     }
 
-    // ========== QUÍMICOS GASTADOS HOY ==========
     async function cargarQuimicosGastadosHoy() {
         const hoy = new Date().toISOString().slice(0,10);
         const startHoy = hoy + 'T00:00:00';
@@ -682,7 +1177,6 @@
         }
     }
 
-    // ========== MENSAJES URGENTES ==========
     async function cargarMensajesUrgentes() {
         const ayer = new Date();
         ayer.setDate(ayer.getDate() - 1);
@@ -737,7 +1231,6 @@
         });
     }
 
-    // ========== ACTUALIZAR CONSOLA ==========
     async function actualizarConsolaCompleta() {
         console.log("Actualizando consola...", new Date().toLocaleTimeString());
         await cargarResumenCompacto();
@@ -748,46 +1241,7 @@
         await cargarMensajesUrgentes();
     }
 
-    // ========== LOGIN ==========
-    async function hacerLogin() {
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-        if (!email || !password) {
-            document.getElementById('errorMsg').innerText = "Introduce email y contraseña";
-            return false;
-        }
-        const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
-        if (authError) {
-            document.getElementById('errorMsg').innerText = authError.message;
-            return false;
-        }
-        const { data: perfil, error: perfilError } = await sb.from('perfiles').select('rol').eq('id', authData.user.id).single();
-        if (perfilError || perfil.rol !== 'gerente') {
-            await sb.auth.signOut();
-            document.getElementById('errorMsg').innerText = "No tienes permisos de gerente";
-            return false;
-        }
-        currentUser = authData.user;
-        return true;
-    }
-
-    document.getElementById('btnLogin').onclick = async () => {
-        if (await hacerLogin()) {
-            document.getElementById('loginPanel').classList.add('oculto');
-            document.getElementById('dashboardPanel').classList.remove('oculto');
-            await cargarCaches();
-            await actualizarConsolaCompleta();
-            await cargarFiltrosTecnicos();
-            await cargarJornadasUltimos7();
-            await cargarMedicionesUltimos7();
-            await cargarTiemposUltimos7();
-            
-            if (intervaloActualizacion) clearInterval(intervaloActualizacion);
-            intervaloActualizacion = setInterval(actualizarConsolaCompleta, 30000);
-        }
-    };
-
-    // ========== FILTROS ==========
+    // ========== FILTROS Y BÚSQUEDAS ==========
     async function cargarFiltrosTecnicos() {
         const { data } = await sb.from('perfiles').select('id, nick').eq('rol', 'tecnico');
         const selects = ['filtroTecnicoJornadas', 'filtroTecnicoMediciones', 'filtroTecnicoTiempos'];
@@ -800,14 +1254,6 @@
                 });
             }
         });
-    }
-
-    // ========== JORNADAS ==========
-    async function cargarJornadasUltimos7() {
-        const hoy = new Date();
-        const hace7 = new Date();
-        hace7.setDate(hoy.getDate() - 7);
-        await ejecutarBusquedaJornadas(hace7.toISOString(), hoy.toISOString());
     }
 
     async function ejecutarBusquedaJornadas(start, end, tecnicoId = null) {
@@ -846,48 +1292,6 @@
         });
     }
 
-    document.getElementById('btnBuscarJornadas').onclick = async () => {
-        const desde = document.getElementById('jornadaDesde').value;
-        const hasta = document.getElementById('jornadaHasta').value;
-        const tecnicoId = document.getElementById('filtroTecnicoJornadas').value;
-        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
-        const start = new Date(`${desde}T00:00:00`).toISOString();
-        const end = new Date(`${hasta}T23:59:59`).toISOString();
-        await ejecutarBusquedaJornadas(start, end, tecnicoId);
-    };
-
-    document.getElementById('btnJornadasPDF').onclick = async () => {
-        const desde = document.getElementById('jornadaDesde').value;
-        const hasta = document.getElementById('jornadaHasta').value;
-        const tecnicoId = document.getElementById('filtroTecnicoJornadas').value;
-        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
-        const start = new Date(`${desde}T00:00:00`).toISOString();
-        const end = new Date(`${hasta}T23:59:59`).toISOString();
-        let query = sb.from('jornadas').select('*').gte('inicio', start).lte('inicio', end);
-        if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
-        const { data: jornadas } = await query.order('inicio', { ascending: false });
-        if (!jornadas || jornadas.length === 0) { alert("No hay datos"); return; }
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = `<h2>Jornadas (${desde} a ${hasta})</h2>`;
-        jornadas.forEach(j => {
-            const inicio = new Date(j.inicio);
-            const fin = j.fin ? new Date(j.fin) : null;
-            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
-                <strong>👤 ${cachePerfiles[j.tecnico_id]?.nick || '?'}</strong><br>
-                📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}
-            </div>`;
-        });
-        html2pdf().set({ filename: `jornadas_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
-    };
-
-    // ========== MEDICIONES ==========
-    async function cargarMedicionesUltimos7() {
-        const hoy = new Date();
-        const hace7 = new Date();
-        hace7.setDate(hoy.getDate() - 7);
-        await ejecutarBusquedaMediciones(hace7.toISOString(), hoy.toISOString());
-    }
-
     async function ejecutarBusquedaMediciones(start, end, tecnicoId = null) {
         let query = sb.from('mediciones').select('*').gte('created_at', start).lte('created_at', end);
         if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
@@ -915,48 +1319,6 @@
                             📅 ${formatDate(m.created_at)}`;
             contenedor.appendChild(div);
         });
-    }
-
-    document.getElementById('btnBuscarMediciones').onclick = async () => {
-        const desde = document.getElementById('medicionDesde').value;
-        const hasta = document.getElementById('medicionHasta').value;
-        const tecnicoId = document.getElementById('filtroTecnicoMediciones').value;
-        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
-        const start = new Date(`${desde}T00:00:00`).toISOString();
-        const end = new Date(`${hasta}T23:59:59`).toISOString();
-        await ejecutarBusquedaMediciones(start, end, tecnicoId);
-    };
-
-    document.getElementById('btnMedicionesPDF').onclick = async () => {
-        const desde = document.getElementById('medicionDesde').value;
-        const hasta = document.getElementById('medicionHasta').value;
-        const tecnicoId = document.getElementById('filtroTecnicoMediciones').value;
-        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
-        const start = new Date(`${desde}T00:00:00`).toISOString();
-        const end = new Date(`${hasta}T23:59:59`).toISOString();
-        let query = sb.from('mediciones').select('*').gte('created_at', start).lte('created_at', end);
-        if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
-        const { data: mediciones } = await query.order('created_at', { ascending: false });
-        if (!mediciones || mediciones.length === 0) { alert("No hay datos"); return; }
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = `<h2>Mediciones (${desde} a ${hasta})</h2>`;
-        mediciones.forEach(m => {
-            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
-                <strong>👤 ${cachePerfiles[m.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[m.piscina_id] || '?'}<br>
-                🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
-                📝 ${m.observaciones || ''}<br>
-                📅 ${formatDate(m.created_at)}
-            </div>`;
-        });
-        html2pdf().set({ filename: `mediciones_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
-    };
-
-    // ========== TIEMPOS ==========
-    async function cargarTiemposUltimos7() {
-        const hoy = new Date();
-        const hace7 = new Date();
-        hace7.setDate(hoy.getDate() - 7);
-        await ejecutarBusquedaTiempos(hace7.toISOString(), hoy.toISOString());
     }
 
     async function ejecutarBusquedaTiempos(start, end, tecnicoId = null) {
@@ -1051,6 +1413,119 @@
         contenedor.appendChild(totalDiv);
     }
 
+    // ========== LOGIN ==========
+    async function hacerLogin() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        if (!email || !password) {
+            document.getElementById('errorMsg').innerText = "Introduce email y contraseña";
+            return false;
+        }
+        const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
+        if (authError) {
+            document.getElementById('errorMsg').innerText = authError.message;
+            return false;
+        }
+        const { data: perfil, error: perfilError } = await sb.from('perfiles').select('rol').eq('id', authData.user.id).single();
+        if (perfilError || perfil.rol !== 'gerente') {
+            await sb.auth.signOut();
+            document.getElementById('errorMsg').innerText = "No tienes permisos de gerente";
+            return false;
+        }
+        currentUser = authData.user;
+        return true;
+    }
+
+    document.getElementById('btnLogin').onclick = async () => {
+        if (await hacerLogin()) {
+            document.getElementById('loginPanel').classList.add('oculto');
+            document.getElementById('dashboardPanel').classList.remove('oculto');
+            await cargarCaches();
+            await actualizarConsolaCompleta();
+            await cargarFiltrosTecnicos();
+            
+            // Cargar datos iniciales de históricos
+            const hoy = new Date();
+            const hace7 = new Date();
+            hace7.setDate(hoy.getDate() - 7);
+            await ejecutarBusquedaJornadas(hace7.toISOString(), hoy.toISOString());
+            await ejecutarBusquedaMediciones(hace7.toISOString(), hoy.toISOString());
+            await ejecutarBusquedaTiempos(hace7.toISOString(), hoy.toISOString());
+            
+            if (intervaloActualizacion) clearInterval(intervaloActualizacion);
+            intervaloActualizacion = setInterval(actualizarConsolaCompleta, 30000);
+        }
+    };
+
+    // Eventos de búsqueda
+    document.getElementById('btnBuscarJornadas').onclick = async () => {
+        const desde = document.getElementById('jornadaDesde').value;
+        const hasta = document.getElementById('jornadaHasta').value;
+        const tecnicoId = document.getElementById('filtroTecnicoJornadas').value;
+        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        await ejecutarBusquedaJornadas(start, end, tecnicoId);
+    };
+
+    document.getElementById('btnJornadasPDF').onclick = async () => {
+        const desde = document.getElementById('jornadaDesde').value;
+        const hasta = document.getElementById('jornadaHasta').value;
+        const tecnicoId = document.getElementById('filtroTecnicoJornadas').value;
+        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        let query = sb.from('jornadas').select('*').gte('inicio', start).lte('inicio', end);
+        if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
+        const { data: jornadas } = await query.order('inicio', { ascending: false });
+        if (!jornadas || jornadas.length === 0) { alert("No hay datos"); return; }
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `<h2>Jornadas (${desde} a ${hasta})</h2>`;
+        jornadas.forEach(j => {
+            const inicio = new Date(j.inicio);
+            const fin = j.fin ? new Date(j.fin) : null;
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
+                <strong>👤 ${cachePerfiles[j.tecnico_id]?.nick || '?'}</strong><br>
+                📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}
+            </div>`;
+        });
+        html2pdf().set({ filename: `jornadas_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
+    };
+
+    document.getElementById('btnBuscarMediciones').onclick = async () => {
+        const desde = document.getElementById('medicionDesde').value;
+        const hasta = document.getElementById('medicionHasta').value;
+        const tecnicoId = document.getElementById('filtroTecnicoMediciones').value;
+        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        await ejecutarBusquedaMediciones(start, end, tecnicoId);
+    };
+
+    document.getElementById('btnMedicionesPDF').onclick = async () => {
+        const desde = document.getElementById('medicionDesde').value;
+        const hasta = document.getElementById('medicionHasta').value;
+        const tecnicoId = document.getElementById('filtroTecnicoMediciones').value;
+        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        let query = sb.from('mediciones').select('*').gte('created_at', start).lte('created_at', end);
+        if (tecnicoId && tecnicoId !== '') query = query.eq('tecnico_id', tecnicoId);
+        const { data: mediciones } = await query.order('created_at', { ascending: false });
+        if (!mediciones || mediciones.length === 0) { alert("No hay datos"); return; }
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `<h2>Mediciones (${desde} a ${hasta})</h2>`;
+        mediciones.forEach(m => {
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
+                <strong>👤 ${cachePerfiles[m.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[m.piscina_id] || '?'}<br>
+                🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
+                📝 ${m.observaciones || ''}<br>
+                📅 ${formatDate(m.created_at)}
+            </div>`;
+        });
+        html2pdf().set({ filename: `mediciones_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
+    };
+
     document.getElementById('btnBuscarTiempos').onclick = async () => {
         const desde = document.getElementById('tiemposDesde').value;
         const hasta = document.getElementById('tiemposHasta').value;
@@ -1061,15 +1536,37 @@
         await ejecutarBusquedaTiempos(start, end, tecnicoId);
     };
 
-    // ========== EVENTOS ==========
+    // Eventos de gestión de personal
+    document.getElementById('selectorTecnicoPersonal').addEventListener('change', cargarDatosTecnicoHoy);
+    document.getElementById('selectorTecnicoDisponibilidad').addEventListener('change', cargarDisponibilidadSemanal);
+    document.getElementById('btnCargarDisponibilidad').addEventListener('click', cargarDisponibilidadSemanal);
+    document.getElementById('btnGuardarDisponibilidad').addEventListener('click', guardarDisponibilidad);
+    document.getElementById('selectorTecnicoVacaciones').addEventListener('change', cargarAusenciasTecnico);
+    document.getElementById('btnAgregarAusencia').addEventListener('click', agregarAusencia);
+    
+    // Eventos generales
     document.getElementById('btnRefreshConsola').onclick = actualizarConsolaCompleta;
     
-    // Acordeón para históricos (plegado por defecto)
     document.getElementById('toggleHistorico').addEventListener('click', () => {
         const content = document.getElementById('historicoContent');
         const flecha = document.querySelector('#toggleHistorico .flecha');
         content.classList.toggle('oculto');
         flecha.innerHTML = content.classList.contains('oculto') ? '▶' : '▼';
+    });
+
+    // Navegación pestañas consola supervisión
+    document.querySelectorAll('#tabActivos, #tabPiscinas, #tabCerradas, #tabQuimicos, #tabMensajes').forEach(tab => {
+        // Ya está manejado por el evento general de browser-tab
+    });
+    
+    document.querySelectorAll('.browser-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const parent = tab.closest('.card');
+            parent.querySelectorAll('.browser-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            parent.querySelectorAll('.browser-content').forEach(content => content.classList.add('oculto'));
+            document.getElementById(`tab${tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)}`).classList.remove('oculto');
+        });
     });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1078,15 +1575,6 @@
             btn.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.getElementById(`tab${btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)}`).classList.add('active');
-        });
-    });
-
-    document.querySelectorAll('.browser-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.browser-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.browser-content').forEach(content => content.classList.add('oculto'));
-            document.getElementById(`tab${tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)}`).classList.remove('oculto');
         });
     });
 
