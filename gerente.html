@@ -65,7 +65,6 @@
         .btn-info { background: #0284c7; }
         .oculto { display: none; }
         
-        /* Resumen compacto */
         .resumen-compacto {
             display: flex;
             gap: 12px;
@@ -106,7 +105,6 @@
         .resultados-area { margin-top: 12px; max-height: 350px; overflow-y: auto; }
         @media (max-width: 700px) { .row-flex { flex-direction: column; } }
         
-        /* Pestañas */
         .browser-tabs {
             display: flex;
             gap: 3px;
@@ -145,8 +143,6 @@
             border: 1px solid #e2e8f0;
             border-top: none;
         }
-        
-        /* Cards de estado */
         .activo-card {
             background: linear-gradient(135deg, #d4edda 0%, #c8e6d9 100%);
             border-left: 3px solid #2c7a4d;
@@ -163,11 +159,6 @@
             background: #fef3c7;
             border-left: 3px solid #d97706;
         }
-        .vacacion-card {
-            background: #e0e7ff;
-            border-left: 3px solid #4f46e5;
-        }
-        
         .refresh-header {
             display: flex;
             justify-content: space-between;
@@ -184,53 +175,6 @@
         .badge-trabajo { background: #2c7a4d; color: white; }
         .badge-desplazamiento { background: #e67e22; color: white; }
         .badge-descanso { background: #94a3b8; color: white; }
-        .badge-vacaciones { background: #4f46e5; color: white; }
-        .badge-baja { background: #dc2626; color: white; }
-        .badge-dia-libre { background: #16a34a; color: white; }
-        
-        .calendario {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            margin-top: 16px;
-        }
-        .dia-calendario {
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 8px;
-            text-align: center;
-            background: white;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .dia-calendario:hover {
-            background: #eef2ff;
-            transform: scale(1.02);
-        }
-        .dia-calendario.seleccionado {
-            background: #0077b6;
-            color: white;
-        }
-        .dia-calendario.vacaciones {
-            background: #e0e7ff;
-            border-color: #4f46e5;
-        }
-        .dia-calendario.baja {
-            background: #fee2e2;
-            border-color: #dc2626;
-        }
-        .dia-calendario.descanso {
-            background: #d4edda;
-            border-color: #2c7a4d;
-        }
-        .dia-numero {
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-        .dia-nombre {
-            font-size: 0.7rem;
-            color: #5b6e8c;
-        }
         
         .tabs {
             display: flex;
@@ -259,10 +203,66 @@
             gap: 10px;
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         .tecnico-selector select {
             flex: 2;
             margin: 0;
+        }
+        .tecnico-selector button {
+            flex: 0.5;
+            margin: 0;
+        }
+        
+        .calendario {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .dia-calendario {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 8px;
+            text-align: center;
+            background: white;
+            transition: all 0.2s;
+        }
+        .dia-calendario.vacaciones {
+            background: #e0e7ff;
+            border-color: #4f46e5;
+        }
+        .dia-calendario.baja {
+            background: #fee2e2;
+            border-color: #dc2626;
+        }
+        .dia-calendario.descanso {
+            background: #d4edda;
+            border-color: #2c7a4d;
+        }
+        .dia-calendario.trabajo {
+            background: #e0f2fe;
+            border-color: #0284c7;
+        }
+        .dia-numero {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .dia-nombre {
+            font-size: 0.7rem;
+            color: #5b6e8c;
+        }
+        .tipo-select {
+            font-size: 0.65rem;
+            padding: 4px;
+            margin-top: 6px;
+        }
+        
+        .form-ausencia {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 16px;
         }
     </style>
 </head>
@@ -341,7 +341,7 @@
                 <button class="browser-tab" data-tab="personal-vacaciones">🏖️ Vacaciones y ausencias</button>
             </div>
             
-            <!-- Pestaña 1: Datos del técnico (actividad de hoy) -->
+            <!-- Pestaña 1: Datos del técnico -->
             <div id="tabPersonalTecnicos" class="browser-content">
                 <div class="tecnico-selector">
                     <select id="selectorTecnicoPersonal">
@@ -374,7 +374,7 @@
                     </select>
                 </div>
                 
-                <div style="background: #f8fafc; padding: 16px; border-radius: 16px; margin-bottom: 16px;">
+                <div class="form-ausencia">
                     <h4 style="margin-bottom: 12px;">➕ Nueva solicitud</h4>
                     <div class="row-flex">
                         <div class="grupo"><label>Tipo</label>
@@ -496,7 +496,6 @@
         const startHoy = hoy + 'T00:00:00';
         const endHoy = hoy + 'T23:59:59';
         
-        // Jornada de hoy
         const { data: jornada } = await sb
             .from('jornadas')
             .select('*')
@@ -505,7 +504,6 @@
             .lte('inicio', endHoy)
             .maybeSingle();
         
-        // Trabajos de hoy
         const { data: trabajos } = await sb
             .from('trabajos_piscina')
             .select('*, piscina_id')
@@ -513,7 +511,6 @@
             .gte('inicio', startHoy)
             .lte('inicio', endHoy);
         
-        // Mediciones de hoy
         const { data: mediciones } = await sb
             .from('mediciones')
             .select('*')
@@ -521,7 +518,6 @@
             .gte('created_at', startHoy)
             .lte('created_at', endHoy);
         
-        // Desplazamientos de hoy
         const { data: desplazamientos } = await sb
             .from('desplazamientos')
             .select('*')
@@ -536,7 +532,6 @@
             <div>📅 Resumen de hoy (${hoy})</div>
         </div>`;
         
-        // Jornada
         if (jornada) {
             const inicio = new Date(jornada.inicio);
             const fin = jornada.fin ? new Date(jornada.fin) : null;
@@ -548,7 +543,6 @@
             html += `<div class="medicion-card">⚠️ No ha iniciado jornada hoy</div>`;
         }
         
-        // Trabajos
         if (trabajos && trabajos.length > 0) {
             html += `<div class="medicion-card"><strong>🏊 Trabajos realizados (${trabajos.length})</strong><br>`;
             trabajos.forEach(t => {
@@ -559,7 +553,6 @@
             html += `</div>`;
         }
         
-        // Mediciones
         if (mediciones && mediciones.length > 0) {
             html += `<div class="medicion-card"><strong>🧪 Mediciones realizadas (${mediciones.length})</strong><br>`;
             mediciones.forEach(m => {
@@ -568,7 +561,6 @@
             html += `</div>`;
         }
         
-        // Desplazamientos
         if (desplazamientos && desplazamientos.length > 0) {
             html += `<div class="medicion-card"><strong>🚗 Desplazamientos (${desplazamientos.length})</strong><br>`;
             desplazamientos.forEach(d => {
@@ -625,25 +617,18 @@
         });
         
         const nombresDias = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
-        let html = '';
+        let html = '<div class="calendario">';
         
         diasSemana.forEach((dia, idx) => {
             const fechaStr = formatDateYMD(dia);
             const tipo = disponibilidadActual[fechaStr] || 'trabajo';
-            let claseTipo = '';
-            let textoEstado = '';
-            
-            if (tipo === 'vacaciones') { claseTipo = 'vacaciones'; textoEstado = '🏖️'; }
-            else if (tipo === 'baja') { claseTipo = 'baja'; textoEstado = '🩺'; }
-            else if (tipo === 'descanso' || tipo === 'libranza') { claseTipo = 'descanso'; textoEstado = '💤'; }
-            else { textoEstado = '✅'; }
+            let claseTipo = tipo;
             
             html += `
-                <div class="dia-calendario ${claseTipo}" data-fecha="${fechaStr}" data-tipo-actual="${tipo}">
+                <div class="dia-calendario ${claseTipo}">
                     <div class="dia-nombre">${nombresDias[idx]}</div>
                     <div class="dia-numero">${dia.getDate()}</div>
-                    <div style="font-size: 0.7rem; margin-top: 4px;">${textoEstado}</div>
-                    <select class="tipo-select" style="font-size: 0.65rem; padding: 4px; margin-top: 6px;" data-fecha="${fechaStr}">
+                    <select class="tipo-select" data-fecha="${fechaStr}" style="width: 100%; font-size: 0.65rem; padding: 4px;">
                         <option value="trabajo" ${tipo === 'trabajo' ? 'selected' : ''}>✅ Trabajo</option>
                         <option value="descanso" ${tipo === 'descanso' ? 'selected' : ''}>💤 Descanso</option>
                         <option value="vacaciones" ${tipo === 'vacaciones' ? 'selected' : ''}>🏖️ Vacaciones</option>
@@ -652,14 +637,16 @@
                 </div>
             `;
         });
-        
+        html += '</div>';
         document.getElementById('calendarioDisponibilidad').innerHTML = html;
         
-        // Eventos para los selects
         document.querySelectorAll('.tipo-select').forEach(select => {
             select.addEventListener('change', (e) => {
                 const fecha = e.target.dataset.fecha;
                 disponibilidadActual[fecha] = e.target.value;
+                // Actualizar clase visual
+                const parent = e.target.closest('.dia-calendario');
+                parent.className = `dia-calendario ${e.target.value}`;
             });
         });
     }
@@ -691,83 +678,112 @@
     // ========== VACACIONES Y AUSENCIAS ==========
     async function cargarAusenciasTecnico() {
         const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
+        const contenedor = document.getElementById('listaAusencias');
+        
         if (!tecnicoId) {
-            document.getElementById('listaAusencias').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico</div>';
+            contenedor.innerHTML = '<div class="medicion-card">👈 Selecciona un técnico</div>';
             return;
         }
         
-        // Cargar vacaciones
-        const { data: vacaciones } = await sb
-            .from('vacaciones_tecnicos')
-            .select('*')
-            .eq('tecnico_id', tecnicoId)
-            .order('fecha_inicio', { ascending: false });
-        
-        // Cargar incidencias
-        const { data: incidencias } = await sb
-            .from('incidencias_tecnicos')
-            .select('*')
-            .eq('tecnico_id', tecnicoId)
-            .order('fecha_inicio', { ascending: false });
-        
-        let html = '';
-        
-        if (vacaciones && vacaciones.length > 0) {
-            html += `<div class="medicion-card" style="background: #e0e7ff;"><strong>🏖️ VACACIONES</strong></div>`;
-            vacaciones.forEach(v => {
-                html += `<div class="medicion-card vacacion-card">
-                    <strong>📅 ${new Date(v.fecha_inicio).toLocaleDateString()} → ${new Date(v.fecha_fin).toLocaleDateString()}</strong>
-                    <div>📆 Total: ${v.dias_totales} días · Estado: ${v.estado}</div>
-                    <div>📝 ${v.observaciones || 'Sin observaciones'}</div>
-                    <button class="btn-danger eliminar-vacacion" data-id="${v.id}" style="width: auto; margin-top: 8px; font-size: 0.7rem;">🗑️ Eliminar</button>
-                </div>`;
-            });
-        }
-        
-        if (incidencias && incidencias.length > 0) {
-            html += `<div class="medicion-card" style="background: #fee2e2; margin-top: 12px;"><strong>📋 INCIDENCIAS</strong></div>`;
-            incidencias.forEach(i => {
-                const tipoTexto = {
-                    'baja_medica': '🩺 Baja médica',
-                    'permiso': '📋 Permiso',
-                    'formacion': '📚 Formación',
-                    'reunion': '🤝 Reunión',
-                    'otro': '📌 Otro'
-                }[i.tipo] || i.tipo;
-                
-                html += `<div class="medicion-card urgente">
-                    <strong>${tipoTexto}</strong>
-                    <div>📅 ${new Date(i.fecha_inicio).toLocaleDateString()} → ${new Date(i.fecha_fin).toLocaleDateString()}</div>
-                    <div>📝 ${i.descripcion || 'Sin descripción'}</div>
-                    <button class="btn-danger eliminar-incidencia" data-id="${i.id}" style="width: auto; margin-top: 8px; font-size: 0.7rem;">🗑️ Eliminar</button>
-                </div>`;
-            });
-        }
-        
-        if ((!vacaciones || vacaciones.length === 0) && (!incidencias || incidencias.length === 0)) {
-            html = '<div class="medicion-card">📋 No hay vacaciones o incidencias registradas</div>';
-        }
-        
-        document.getElementById('listaAusencias').innerHTML = html;
-        
-        // Eventos eliminar
-        document.querySelectorAll('.eliminar-vacacion').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm("¿Eliminar esta solicitud de vacaciones?")) {
-                    await sb.from('vacaciones_tecnicos').delete().eq('id', btn.dataset.id);
-                    await cargarAusenciasTecnico();
+        try {
+            contenedor.innerHTML = '<div class="medicion-card">⏳ Cargando datos...</div>';
+            
+            const { data: vacaciones, error: errVac } = await sb
+                .from('vacaciones_tecnicos')
+                .select('*')
+                .eq('tecnico_id', tecnicoId)
+                .order('fecha_inicio', { ascending: false });
+            
+            if (errVac) throw errVac;
+            
+            const { data: incidencias, error: errInc } = await sb
+                .from('incidencias_tecnicos')
+                .select('*')
+                .eq('tecnico_id', tecnicoId)
+                .order('fecha_inicio', { ascending: false });
+            
+            if (errInc) throw errInc;
+            
+            let html = '';
+            const hoy = new Date();
+            
+            if (vacaciones && vacaciones.length > 0) {
+                html += `<div class="medicion-card" style="background: #e0e7ff; margin-bottom: 12px;"><strong>🏖️ VACACIONES</strong></div>`;
+                for (const v of vacaciones) {
+                    const fechaFin = new Date(v.fecha_fin);
+                    const esPasada = fechaFin < hoy;
+                    const estadoTexto = v.estado === 'disfrutada' ? '✅ Disfrutada' : (v.estado === 'aprobada' ? '👍 Aprobada' : '⏳ Pendiente');
+                    const bgColor = esPasada ? '#f3f4f6' : '#e0e7ff';
+                    
+                    html += `
+                        <div class="medicion-card" style="background: ${bgColor}; margin-bottom: 8px;">
+                            <strong>📅 ${v.fecha_inicio} → ${v.fecha_fin}</strong>
+                            <div>📆 Total: ${v.dias_totales} días · ${estadoTexto}</div>
+                            <div>📝 ${v.observaciones || 'Sin observaciones'}</div>
+                            <button class="eliminar-vacacion" data-id="${v.id}" style="background: #c2410c; width: auto; margin-top: 8px; padding: 4px 12px; font-size: 0.7rem;">🗑️ Eliminar</button>
+                        </div>
+                    `;
                 }
-            });
-        });
-        
-        document.querySelectorAll('.eliminar-incidencia').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm("¿Eliminar esta incidencia?")) {
-                    await sb.from('incidencias_tecnicos').delete().eq('id', btn.dataset.id);
-                    await cargarAusenciasTecnico();
+            } else {
+                html += `<div class="medicion-card">📋 No hay vacaciones registradas</div>`;
+            }
+            
+            if (incidencias && incidencias.length > 0) {
+                html += `<div class="medicion-card" style="background: #fee2e2; margin-top: 12px; margin-bottom: 12px;"><strong>📋 INCIDENCIAS</strong></div>`;
+                for (const i of incidencias) {
+                    const tipoTexto = {
+                        'baja_medica': '🩺 Baja médica',
+                        'permiso': '📋 Permiso',
+                        'formacion': '📚 Formación',
+                        'reunion': '🤝 Reunión',
+                        'otro': '📌 Otro'
+                    }[i.tipo] || i.tipo;
+                    
+                    const fechaFin = new Date(i.fecha_fin);
+                    const esPasada = fechaFin < hoy;
+                    const bgColor = esPasada ? '#f3f4f6' : '#fee2e2';
+                    
+                    html += `
+                        <div class="medicion-card" style="background: ${bgColor}; margin-bottom: 8px;">
+                            <strong>${tipoTexto}</strong>
+                            <div>📅 ${i.fecha_inicio} → ${i.fecha_fin}</div>
+                            <div>📝 ${i.descripcion || 'Sin descripción'}</div>
+                            <button class="eliminar-incidencia" data-id="${i.id}" style="background: #c2410c; width: auto; margin-top: 8px; padding: 4px 12px; font-size: 0.7rem;">🗑️ Eliminar</button>
+                        </div>
+                    `;
                 }
+            } else {
+                html += `<div class="medicion-card">📋 No hay incidencias registradas</div>`;
+            }
+            
+            contenedor.innerHTML = html;
+            
+            document.querySelectorAll('.eliminar-vacacion').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (confirm("¿Eliminar esta solicitud de vacaciones?")) {
+                        await sb.from('vacaciones_tecnicos').delete().eq('id', btn.dataset.id);
+                        await cargarAusenciasTecnico();
+                        await cargarDisponibilidadSemanal();
+                    }
+                });
             });
-        });
+            
+            document.querySelectorAll('.eliminar-incidencia').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (confirm("¿Eliminar esta incidencia?")) {
+                        await sb.from('incidencias_tecnicos').delete().eq('id', btn.dataset.id);
+                        await cargarAusenciasTecnico();
+                        await cargarDisponibilidadSemanal();
+                    }
+                });
+            });
+            
+        } catch (error) {
+            console.error("Error:", error);
+            contenedor.innerHTML = `<div class="medicion-card" style="color:red;">❌ Error: ${error.message}</div>`;
+        }
     }
     
     async function agregarAusencia() {
@@ -789,50 +805,46 @@
         
         const fechaInicio = new Date(inicio);
         const fechaFin = new Date(fin);
-        const diffTime = Math.abs(fechaFin - fechaInicio);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const diffDays = Math.ceil((fechaFin - fechaInicio) / (1000 * 60 * 60 * 24)) + 1;
         
-        if (tipo === 'vacaciones') {
-            const { error } = await sb.from('vacaciones_tecnicos').insert({
-                tecnico_id: tecnicoId,
-                fecha_inicio: inicio,
-                fecha_fin: fin,
-                dias_totales: diffDays,
-                estado: 'aprobada',
-                observaciones: observaciones
-            });
-            if (error) {
-                alert("Error: " + error.message);
-            } else {
+        try {
+            if (tipo === 'vacaciones') {
+                const { error } = await sb.from('vacaciones_tecnicos').insert({
+                    tecnico_id: tecnicoId,
+                    fecha_inicio: inicio,
+                    fecha_fin: fin,
+                    dias_totales: diffDays,
+                    estado: 'aprobada',
+                    observaciones: observaciones || 'Vacaciones registradas por gerente'
+                });
+                if (error) throw error;
                 alert("✅ Vacaciones registradas");
-                document.getElementById('nuevaAusenciaInicio').value = '';
-                document.getElementById('nuevaAusenciaFin').value = '';
-                document.getElementById('nuevaAusenciaObs').value = '';
-                await cargarAusenciasTecnico();
-                await cargarDisponibilidadSemanal();
-            }
-        } else {
-            const { error } = await sb.from('incidencias_tecnicos').insert({
-                tecnico_id: tecnicoId,
-                tipo: tipo,
-                fecha_inicio: inicio,
-                fecha_fin: fin,
-                descripcion: observaciones
-            });
-            if (error) {
-                alert("Error: " + error.message);
             } else {
+                const { error } = await sb.from('incidencias_tecnicos').insert({
+                    tecnico_id: tecnicoId,
+                    tipo: tipo,
+                    fecha_inicio: inicio,
+                    fecha_fin: fin,
+                    descripcion: observaciones || 'Registrado por gerente'
+                });
+                if (error) throw error;
                 alert("✅ Incidencia registrada");
-                document.getElementById('nuevaAusenciaInicio').value = '';
-                document.getElementById('nuevaAusenciaFin').value = '';
-                document.getElementById('nuevaAusenciaObs').value = '';
-                await cargarAusenciasTecnico();
-                await cargarDisponibilidadSemanal();
             }
+            
+            document.getElementById('nuevaAusenciaInicio').value = '';
+            document.getElementById('nuevaAusenciaFin').value = '';
+            document.getElementById('nuevaAusenciaObs').value = '';
+            
+            await cargarAusenciasTecnico();
+            await cargarDisponibilidadSemanal();
+            
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Error: " + error.message);
         }
     }
 
-    // ========== RESTO DE FUNCIONES (supervisión) ==========
+    // ========== RESTO DE FUNCIONES DE SUPERVISIÓN ==========
     async function cargarResumenCompacto() {
         const hoy = new Date().toISOString().slice(0,10);
         const startHoy = hoy + 'T00:00:00';
@@ -889,8 +901,7 @@
             .lte('inicio', endHoy);
         
         if (!jornadasActivas || jornadasActivas.length === 0) {
-            document.getElementById('tecnicosActivosList').innerHTML = 
-                '<div class="medicion-card">👨‍🔧 No hay técnicos con jornada activa hoy</div>';
+            document.getElementById('tecnicosActivosList').innerHTML = '<div class="medicion-card">👨‍🔧 No hay técnicos con jornada activa hoy</div>';
             return;
         }
         
@@ -927,24 +938,14 @@
                 desde = formatTime(trabajo.inicio);
             }
             
-            tecnicosActivos.push({
-                ...tecnico,
-                estado,
-                estadoTexto,
-                desde,
-                jornadaInicio: formatTime(jornada.inicio)
-            });
+            tecnicosActivos.push({ ...tecnico, estado, estadoTexto, desde, jornadaInicio: formatTime(jornada.inicio) });
         }
         
         const contenedor = document.getElementById('tecnicosActivosList');
         contenedor.innerHTML = '';
         
         tecnicosActivos.forEach(t => {
-            let badgeClass = '';
-            if (t.estado === 'trabajo') badgeClass = 'badge-trabajo';
-            else if (t.estado === 'desplazamiento') badgeClass = 'badge-desplazamiento';
-            else badgeClass = 'badge-descanso';
-            
+            let badgeClass = t.estado === 'trabajo' ? 'badge-trabajo' : (t.estado === 'desplazamiento' ? 'badge-desplazamiento' : 'badge-descanso');
             const div = document.createElement('div');
             div.className = `medicion-card activo-card`;
             div.innerHTML = `
@@ -953,10 +954,7 @@
                     <span class="badge ${badgeClass}">${t.estado === 'trabajo' ? 'TRABAJANDO' : (t.estado === 'desplazamiento' ? 'DESPLAZÁNDOSE' : 'DESCANSO')}</span>
                 </div>
                 <div>${t.estadoTexto}</div>
-                <div style="font-size: 0.7rem; color: #5b6e8c; margin-top: 6px;">
-                    🕒 Jornada: ${t.jornadaInicio}
-                    ${t.desde ? ` · Actividad: ${t.desde}` : ''}
-                </div>
+                <div style="font-size: 0.7rem; color: #5b6e8c; margin-top: 6px;">🕒 Jornada: ${t.jornadaInicio}${t.desde ? ` · Actividad: ${t.desde}` : ''}</div>
             `;
             contenedor.appendChild(div);
         });
@@ -989,28 +987,17 @@
             const tecnico = cachePerfiles[trabajo.jornadas?.tecnico_id];
             
             if (!piscinasMap.has(piscinaId)) {
-                piscinasMap.set(piscinaId, {
-                    nombre: piscinaNombre,
-                    tecnicos: []
-                });
+                piscinasMap.set(piscinaId, { nombre: piscinaNombre, tecnicos: [] });
             }
             if (tecnico) {
-                piscinasMap.get(piscinaId).tecnicos.push({
-                    nick: tecnico.nick,
-                    inicio: formatTime(trabajo.inicio)
-                });
+                piscinasMap.get(piscinaId).tecnicos.push({ nick: tecnico.nick, inicio: formatTime(trabajo.inicio) });
             }
         }
         
         for (const [id, data] of piscinasMap) {
             const div = document.createElement('div');
             div.className = 'medicion-card piscina-trabajo';
-            div.innerHTML = `
-                <strong>🏊 ${data.nombre}</strong>
-                <div style="margin-top: 6px; font-size: 0.8rem;">
-                    ${data.tecnicos.map(t => `👤 ${t.nick} (desde ${t.inicio})`).join('<br>')}
-                </div>
-            `;
+            div.innerHTML = `<strong>🏊 ${data.nombre}</strong><div style="margin-top: 6px; font-size: 0.8rem;">${data.tecnicos.map(t => `👤 ${t.nick} (desde ${t.inicio})`).join('<br>')}</div>`;
             contenedor.appendChild(div);
         }
     }
@@ -1020,24 +1007,11 @@
         const startHoy = hoy + 'T00:00:00';
         const endHoy = hoy + 'T23:59:59';
         
-        const { data: trabajos } = await sb
-            .from('trabajos_piscina')
-            .select('*')
-            .gte('fin', startHoy)
-            .lte('fin', endHoy)
-            .order('fin', { ascending: false });
-        
-        const { data: desplazamientos } = await sb
-            .from('desplazamientos')
-            .select('*')
-            .gte('fin', startHoy)
-            .lte('fin', endHoy)
-            .order('fin', { ascending: false });
+        const { data: trabajos } = await sb.from('trabajos_piscina').select('*').gte('fin', startHoy).lte('fin', endHoy).order('fin', { ascending: false });
+        const { data: desplazamientos } = await sb.from('desplazamientos').select('*').gte('fin', startHoy).lte('fin', endHoy).order('fin', { ascending: false });
         
         const contenedor = document.getElementById('actividadesCerradasList');
         contenedor.innerHTML = '';
-        
-        let totalActividades = 0;
         
         if (trabajos && trabajos.length > 0) {
             const titulo = document.createElement('div');
@@ -1048,21 +1022,15 @@
             contenedor.appendChild(titulo);
             
             trabajos.forEach(t => {
-                totalActividades++;
                 const tecnico = cachePerfiles[t.tecnico_id];
                 const inicio = new Date(t.inicio);
                 const fin = new Date(t.fin);
                 const diff = fin - inicio;
                 const horas = Math.floor(diff / 3600000);
                 const minutos = Math.floor((diff % 3600000) / 60000);
-                
                 const div = document.createElement('div');
                 div.className = 'medicion-card';
-                div.innerHTML = `
-                    <strong>👤 ${tecnico?.nick || '?'}</strong> · 🏊 ${cachePiscinas[t.piscina_id] || '?'}<br>
-                    🕒 ${formatTime(t.inicio)} → ${formatTime(t.fin)} (${horas}h ${minutos}m)<br>
-                    📝 ${t.observaciones || 'Sin observaciones'}
-                `;
+                div.innerHTML = `<strong>👤 ${tecnico?.nick || '?'}</strong> · 🏊 ${cachePiscinas[t.piscina_id] || '?'}<br>🕒 ${formatTime(t.inicio)} → ${formatTime(t.fin)} (${horas}h ${minutos}m)<br>📝 ${t.observaciones || 'Sin observaciones'}`;
                 contenedor.appendChild(div);
             });
         }
@@ -1076,24 +1044,18 @@
             contenedor.appendChild(titulo);
             
             desplazamientos.forEach(d => {
-                totalActividades++;
                 const tecnico = cachePerfiles[d.tecnico_id];
                 const inicio = new Date(d.inicio);
                 const fin = new Date(d.fin);
-                const diff = fin - inicio;
-                const minutos = Math.floor(diff / 60000);
-                
+                const minutos = Math.floor((fin - inicio) / 60000);
                 const div = document.createElement('div');
                 div.className = 'medicion-card';
-                div.innerHTML = `
-                    <strong>👤 ${tecnico?.nick || '?'}</strong> · 🚗 Hacia ${cachePiscinas[d.piscina_destino_id] || '?'}<br>
-                    🕒 ${formatTime(d.inicio)} → ${formatTime(d.fin)} (${minutos} minutos)
-                `;
+                div.innerHTML = `<strong>👤 ${tecnico?.nick || '?'}</strong> · 🚗 Hacia ${cachePiscinas[d.piscina_destino_id] || '?'}<br>🕒 ${formatTime(d.inicio)} → ${formatTime(d.fin)} (${minutos} minutos)`;
                 contenedor.appendChild(div);
             });
         }
         
-        if (totalActividades === 0) {
+        if ((!trabajos || trabajos.length === 0) && (!desplazamientos || desplazamientos.length === 0)) {
             contenedor.innerHTML = '<div class="medicion-card">📋 No hay actividades cerradas hoy</div>';
         }
     }
@@ -1103,28 +1065,18 @@
         const startHoy = hoy + 'T00:00:00';
         const endHoy = hoy + 'T23:59:59';
         
-        const { data: medicionesHoy } = await sb
-            .from('mediciones')
-            .select('id, created_at, piscina_id, tecnico_id')
-            .gte('created_at', startHoy)
-            .lte('created_at', endHoy)
-            .order('created_at', { ascending: false });
+        const { data: medicionesHoy } = await sb.from('mediciones').select('id, created_at, piscina_id, tecnico_id').gte('created_at', startHoy).lte('created_at', endHoy);
         
         if (!medicionesHoy || medicionesHoy.length === 0) {
-            document.getElementById('quimicosGastadosList').innerHTML = 
-                '<div class="medicion-card">🧪 No hay registros de químicos gastados hoy</div>';
+            document.getElementById('quimicosGastadosList').innerHTML = '<div class="medicion-card">🧪 No hay registros de químicos gastados hoy</div>';
             return;
         }
         
         const medicionIds = medicionesHoy.map(m => m.id);
-        const { data: productos } = await sb
-            .from('productos_utilizados')
-            .select('*, medicion_id')
-            .in('medicion_id', medicionIds);
+        const { data: productos } = await sb.from('productos_utilizados').select('*, medicion_id').in('medicion_id', medicionIds);
         
         if (!productos || productos.length === 0) {
-            document.getElementById('quimicosGastadosList').innerHTML = 
-                '<div class="medicion-card">🧪 No hay productos registrados en las mediciones de hoy</div>';
+            document.getElementById('quimicosGastadosList').innerHTML = '<div class="medicion-card">🧪 No hay productos registrados en las mediciones de hoy</div>';
             return;
         }
         
@@ -1157,22 +1109,13 @@
         resumenDiv.className = 'medicion-card';
         resumenDiv.style.background = '#e0f2e9';
         resumenDiv.style.fontWeight = 'bold';
-        resumenDiv.innerHTML = `📊 RESUMEN TOTAL DE QUÍMICOS HOY<br>
-            ${Array.from(quimicosMap.entries()).map(([nombre, data]) => 
-                `🧪 ${nombre}: ${data.cantidad.toFixed(2)} ${data.unidad}`
-            ).join('<br>')}`;
+        resumenDiv.innerHTML = `📊 RESUMEN TOTAL DE QUÍMICOS HOY<br>${Array.from(quimicosMap.entries()).map(([nombre, data]) => `🧪 ${nombre}: ${data.cantidad.toFixed(2)} ${data.unidad}`).join('<br>')}`;
         contenedor.appendChild(resumenDiv);
         
         for (const [nombre, data] of quimicosMap) {
             const div = document.createElement('div');
             div.className = 'medicion-card quimico-card';
-            div.innerHTML = `
-                <strong>🧪 ${nombre}</strong> - Total: ${data.cantidad.toFixed(2)} ${data.unidad}
-                <div style="margin-top: 8px; font-size: 0.75rem; color: #5b6e8c;">
-                    📋 Usado en:
-                    ${data.mediciones.map(m => `<br>• 🏊 ${m.piscina} | 👤 ${m.tecnico} | 🕒 ${m.hora}`).join('')}
-                </div>
-            `;
+            div.innerHTML = `<strong>🧪 ${nombre}</strong> - Total: ${data.cantidad.toFixed(2)} ${data.unidad}<div style="margin-top: 8px; font-size: 0.75rem; color: #5b6e8c;">📋 Usado en:${data.mediciones.map(m => `<br>• 🏊 ${m.piscina} | 👤 ${m.tecnico} | 🕒 ${m.hora}`).join('')}</div>`;
             contenedor.appendChild(div);
         }
     }
@@ -1181,17 +1124,12 @@
         const ayer = new Date();
         ayer.setDate(ayer.getDate() - 1);
         
-        const { data: medicionesRecientes } = await sb
-            .from('mediciones')
-            .select('*')
-            .gte('created_at', ayer.toISOString())
-            .order('created_at', { ascending: false });
+        const { data: medicionesRecientes } = await sb.from('mediciones').select('*').gte('created_at', ayer.toISOString()).order('created_at', { ascending: false });
         
         const contenedor = document.getElementById('mensajesUrgentesList');
         contenedor.innerHTML = '';
         
         const urgentes = [];
-        
         if (medicionesRecientes) {
             for (const m of medicionesRecientes) {
                 const alertas = [];
@@ -1202,12 +1140,7 @@
                 if (m.temperatura > 30) alertas.push('⚠️ Temperatura ALTA (> 30°C)');
                 
                 if (alertas.length > 0) {
-                    urgentes.push({
-                        ...m,
-                        alertas,
-                        tecnico: cachePerfiles[m.tecnico_id],
-                        piscina: cachePiscinas[m.piscina_id]
-                    });
+                    urgentes.push({ ...m, alertas, tecnico: cachePerfiles[m.tecnico_id], piscina: cachePiscinas[m.piscina_id] });
                 }
             }
         }
@@ -1220,19 +1153,12 @@
         urgentes.forEach(u => {
             const div = document.createElement('div');
             div.className = 'medicion-card urgente';
-            div.innerHTML = `
-                <strong>⚠️ ALERTA - ${u.piscina || '?'}</strong><br>
-                <strong>👤 Técnico: ${u.tecnico?.nick || '?'}</strong><br>
-                📅 ${formatDate(u.created_at)}<br>
-                ${u.alertas.map(a => `🔴 ${a}`).join('<br>')}<br>
-                📝 ${u.observaciones || 'Sin observaciones adicionales'}
-            `;
+            div.innerHTML = `<strong>⚠️ ALERTA - ${u.piscina || '?'}</strong><br><strong>👤 Técnico: ${u.tecnico?.nick || '?'}</strong><br>📅 ${formatDate(u.created_at)}<br>${u.alertas.map(a => `🔴 ${a}`).join('<br>')}<br>📝 ${u.observaciones || 'Sin observaciones adicionales'}`;
             contenedor.appendChild(div);
         });
     }
 
     async function actualizarConsolaCompleta() {
-        console.log("Actualizando consola...", new Date().toLocaleTimeString());
         await cargarResumenCompacto();
         await cargarTecnicosActivos();
         await cargarPiscinasEnTrabajo();
@@ -1249,9 +1175,7 @@
             const select = document.getElementById(id);
             if (select) {
                 select.innerHTML = '<option value="">Todos los técnicos</option>';
-                if (data) data.forEach(t => {
-                    select.innerHTML += `<option value="${t.id}">${t.nick}</option>`;
-                });
+                if (data) data.forEach(t => { select.innerHTML += `<option value="${t.id}">${t.nick}</option>`; });
             }
         });
     }
@@ -1263,16 +1187,8 @@
         
         const contenedor = document.getElementById('listaJornadas');
         contenedor.innerHTML = '';
-        
-        if (error) {
-            contenedor.innerHTML = `<div class="jornada-card">Error: ${error.message}</div>`;
-            return;
-        }
-        
-        if (!jornadas || jornadas.length === 0) {
-            contenedor.innerHTML = '<div class="jornada-card">No hay jornadas en este período</div>';
-            return;
-        }
+        if (error) { contenedor.innerHTML = `<div class="jornada-card">Error: ${error.message}</div>`; return; }
+        if (!jornadas || jornadas.length === 0) { contenedor.innerHTML = '<div class="jornada-card">No hay jornadas en este período</div>'; return; }
         
         jornadas.forEach(j => {
             const inicio = new Date(j.inicio);
@@ -1286,8 +1202,7 @@
             } else { duracion = ' (en curso)'; }
             const div = document.createElement('div');
             div.className = 'jornada-card';
-            div.innerHTML = `<strong>👤 ${cachePerfiles[j.tecnico_id]?.nick || '?'}</strong><br>
-                            📅 ${inicio.toLocaleDateString()} · 🕒 ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : '—'}${duracion}`;
+            div.innerHTML = `<strong>👤 ${cachePerfiles[j.tecnico_id]?.nick || '?'}</strong><br>📅 ${inicio.toLocaleDateString()} · 🕒 ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : '—'}${duracion}`;
             contenedor.appendChild(div);
         });
     }
@@ -1299,24 +1214,13 @@
         
         const contenedor = document.getElementById('listaMediciones');
         contenedor.innerHTML = '';
-        
-        if (error) {
-            contenedor.innerHTML = `<div class="medicion-card">Error: ${error.message}</div>`;
-            return;
-        }
-        
-        if (!mediciones || mediciones.length === 0) {
-            contenedor.innerHTML = '<div class="medicion-card">No hay mediciones en este período</div>';
-            return;
-        }
+        if (error) { contenedor.innerHTML = `<div class="medicion-card">Error: ${error.message}</div>`; return; }
+        if (!mediciones || mediciones.length === 0) { contenedor.innerHTML = '<div class="medicion-card">No hay mediciones en este período</div>'; return; }
         
         mediciones.forEach(m => {
             const div = document.createElement('div');
             div.className = 'medicion-card';
-            div.innerHTML = `<strong>👤 ${cachePerfiles[m.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[m.piscina_id] || '?'}<br>
-                            🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
-                            📝 ${m.observaciones || 'Sin observaciones'}<br>
-                            📅 ${formatDate(m.created_at)}`;
+            div.innerHTML = `<strong>👤 ${cachePerfiles[m.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[m.piscina_id] || '?'}<br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || 'Sin observaciones'}<br>📅 ${formatDate(m.created_at)}`;
             contenedor.appendChild(div);
         });
     }
@@ -1333,8 +1237,7 @@
         const contenedor = document.getElementById('listaTiempos');
         contenedor.innerHTML = '';
         
-        let totalTrabajo = 0;
-        let totalDesplazamiento = 0;
+        let totalTrabajo = 0, totalDesplazamiento = 0;
         
         if (trabajos && trabajos.length > 0) {
             const titulo = document.createElement('div');
@@ -1347,8 +1250,7 @@
             trabajos.forEach(t => {
                 const inicio = new Date(t.inicio);
                 const fin = t.fin ? new Date(t.fin) : null;
-                let duracion = 0;
-                let duracionTexto = 'En curso';
+                let duracion = 0, duracionTexto = 'En curso';
                 if (fin) {
                     duracion = (fin - inicio) / 1000;
                     totalTrabajo += duracion;
@@ -1358,9 +1260,7 @@
                 }
                 const div = document.createElement('div');
                 div.className = 'medicion-card';
-                div.innerHTML = `<strong>👤 ${cachePerfiles[t.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[t.piscina_id] || '?'}<br>
-                                🕒 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}<br>
-                                ⏱️ Duración: ${duracionTexto}`;
+                div.innerHTML = `<strong>👤 ${cachePerfiles[t.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[t.piscina_id] || '?'}<br>🕒 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}<br>⏱️ Duración: ${duracionTexto}`;
                 contenedor.appendChild(div);
             });
         }
@@ -1376,8 +1276,7 @@
             desplazamientos.forEach(d => {
                 const inicio = new Date(d.inicio);
                 const fin = d.fin ? new Date(d.fin) : null;
-                let duracion = 0;
-                let duracionTexto = 'En curso';
+                let duracion = 0, duracionTexto = 'En curso';
                 if (fin) {
                     duracion = (fin - inicio) / 1000;
                     totalDesplazamiento += duracion;
@@ -1387,9 +1286,7 @@
                 }
                 const div = document.createElement('div');
                 div.className = 'medicion-card';
-                div.innerHTML = `<strong>👤 ${cachePerfiles[d.tecnico_id]?.nick || '?'}</strong> · 🏊 Hacia: ${cachePiscinas[d.piscina_destino_id] || '?'}<br>
-                                🕒 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}<br>
-                                ⏱️ Duración: ${duracionTexto}`;
+                div.innerHTML = `<strong>👤 ${cachePerfiles[d.tecnico_id]?.nick || '?'}</strong> · 🏊 Hacia: ${cachePiscinas[d.piscina_destino_id] || '?'}<br>🕒 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}<br>⏱️ Duración: ${duracionTexto}`;
                 contenedor.appendChild(div);
             });
         }
@@ -1407,9 +1304,7 @@
         const totalDiv = document.createElement('div');
         totalDiv.className = 'medicion-card';
         totalDiv.style.background = '#e0f2e9';
-        totalDiv.innerHTML = `<strong>📊 RESUMEN TOTAL</strong><br>
-                            🏊 Tiempo trabajando: ${totalHorasTrabajo}h ${totalMinutosTrabajo}m<br>
-                            🚗 Tiempo en desplazamientos: ${totalHorasDesp}h ${totalMinutosDesp}m`;
+        totalDiv.innerHTML = `<strong>📊 RESUMEN TOTAL</strong><br>🏊 Tiempo trabajando: ${totalHorasTrabajo}h ${totalMinutosTrabajo}m<br>🚗 Tiempo en desplazamientos: ${totalHorasDesp}h ${totalMinutosDesp}m`;
         contenedor.appendChild(totalDiv);
     }
 
@@ -1417,21 +1312,11 @@
     async function hacerLogin() {
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
-        if (!email || !password) {
-            document.getElementById('errorMsg').innerText = "Introduce email y contraseña";
-            return false;
-        }
+        if (!email || !password) { document.getElementById('errorMsg').innerText = "Introduce email y contraseña"; return false; }
         const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
-        if (authError) {
-            document.getElementById('errorMsg').innerText = authError.message;
-            return false;
-        }
+        if (authError) { document.getElementById('errorMsg').innerText = authError.message; return false; }
         const { data: perfil, error: perfilError } = await sb.from('perfiles').select('rol').eq('id', authData.user.id).single();
-        if (perfilError || perfil.rol !== 'gerente') {
-            await sb.auth.signOut();
-            document.getElementById('errorMsg').innerText = "No tienes permisos de gerente";
-            return false;
-        }
+        if (perfilError || perfil.rol !== 'gerente') { await sb.auth.signOut(); document.getElementById('errorMsg').innerText = "No tienes permisos de gerente"; return false; }
         currentUser = authData.user;
         return true;
     }
@@ -1444,7 +1329,6 @@
             await actualizarConsolaCompleta();
             await cargarFiltrosTecnicos();
             
-            // Cargar datos iniciales de históricos
             const hoy = new Date();
             const hace7 = new Date();
             hace7.setDate(hoy.getDate() - 7);
@@ -1484,10 +1368,7 @@
         jornadas.forEach(j => {
             const inicio = new Date(j.inicio);
             const fin = j.fin ? new Date(j.fin) : null;
-            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
-                <strong>👤 ${cachePerfiles[j.tecnico_id]?.nick || '?'}</strong><br>
-                📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}
-            </div>`;
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;"><strong>👤 ${cachePerfiles[j.tecnico_id]?.nick || '?'}</strong><br>📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}</div>`;
         });
         html2pdf().set({ filename: `jornadas_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
     };
@@ -1516,12 +1397,7 @@
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = `<h2>Mediciones (${desde} a ${hasta})</h2>`;
         mediciones.forEach(m => {
-            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
-                <strong>👤 ${cachePerfiles[m.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[m.piscina_id] || '?'}<br>
-                🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
-                📝 ${m.observaciones || ''}<br>
-                📅 ${formatDate(m.created_at)}
-            </div>`;
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;"><strong>👤 ${cachePerfiles[m.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[m.piscina_id] || '?'}<br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || ''}<br>📅 ${formatDate(m.created_at)}</div>`;
         });
         html2pdf().set({ filename: `mediciones_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
     };
@@ -1544,7 +1420,6 @@
     document.getElementById('selectorTecnicoVacaciones').addEventListener('change', cargarAusenciasTecnico);
     document.getElementById('btnAgregarAusencia').addEventListener('click', agregarAusencia);
     
-    // Eventos generales
     document.getElementById('btnRefreshConsola').onclick = actualizarConsolaCompleta;
     
     document.getElementById('toggleHistorico').addEventListener('click', () => {
@@ -1554,11 +1429,7 @@
         flecha.innerHTML = content.classList.contains('oculto') ? '▶' : '▼';
     });
 
-    // Navegación pestañas consola supervisión
-    document.querySelectorAll('#tabActivos, #tabPiscinas, #tabCerradas, #tabQuimicos, #tabMensajes').forEach(tab => {
-        // Ya está manejado por el evento general de browser-tab
-    });
-    
+    // Navegación pestañas
     document.querySelectorAll('.browser-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const parent = tab.closest('.card');
