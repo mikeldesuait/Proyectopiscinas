@@ -635,22 +635,41 @@
     }
 
     async function finalizarActividad() {
-        if (!trabajoActivo) return;
-        const observaciones = document.getElementById('obs').value.trim() || "Actividad finalizada";
-        
-        const { error } = await sb.from('trabajos_piscina').update({ 
-            fin: new Date().toISOString(), 
-            observaciones: observaciones 
-        }).eq('id', trabajoActivo.id);
-        if (error) { 
-            mostrarMensaje(error.message, 'error'); 
-            return; 
-        }
-        trabajoActivo = null;
-        actualizarConsola();
-        mostrarMensaje("✅ Actividad finalizada", 'exito');
-        await cargarMedicionesDeJornadaActiva();
+    if (!trabajoActivo) return;
+    
+    const observaciones = document.getElementById('obs').value.trim() || "Actividad finalizada";
+    
+    const { error } = await sb.from('trabajos_piscina').update({ 
+        fin: new Date().toISOString(), 
+        observaciones: observaciones 
+    }).eq('id', trabajoActivo.id);
+    
+    if (error) { 
+        mostrarMensaje(error.message, 'error'); 
+        return; 
     }
+    
+    trabajoActivo = null;
+    
+    // 1️⃣ LIMPIAR FORMULARIO DE MEDICIÓN
+    document.getElementById('cloro').value = '';
+    document.getElementById('ph').value = '';
+    document.getElementById('temp').value = '';
+    document.getElementById('obs').value = '';
+    productosTemp = [];
+    renderizarProductos();
+    
+    // 2️⃣ LIMPIAR PISCINA SELECCIONADA
+    piscinaSeleccionadaId = null;
+    piscinaSeleccionadaData = null;
+    document.getElementById('buscarPiscina').value = '';
+    document.getElementById('piscinaSeleccionadaId').value = '';
+    localStorage.removeItem('ultimaPiscina');
+    
+    actualizarConsola();  // Esto refrescará la consola y mostrará el estado "sin piscina"
+    mostrarMensaje("✅ Actividad finalizada y piscina deseleccionada", 'exito');
+    await cargarMedicionesDeJornadaActiva();
+}
 
     // ========== MEDICIONES ==========
     async function cargarMedicionesDeJornadaActiva() {
