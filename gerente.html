@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Gerente · Aqua Garden</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -13,7 +13,7 @@
             background: #eef2ff;
             padding: 24px;
         }
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { max-width: 1200px; margin: 0 auto; }
         .card {
             background: white;
             border-radius: 28px;
@@ -23,24 +23,28 @@
             border: 1px solid rgba(0,119,182,0.1);
         }
         .card-header {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 600;
             margin-bottom: 18px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             border-left: 5px solid #0077b6;
             padding-left: 18px;
             color: #1e4663;
+            cursor: pointer;
         }
+        .card-header:hover { background: #f8fafc; }
+        .card-header .flecha { margin-left: auto; font-size: 1.2rem; }
+        .card-content { padding-top: 16px; }
         button, input, select {
-            padding: 10px 16px;
+            padding: 12px 16px;
             border-radius: 40px;
             border: 1px solid #cad2db;
             font-size: 0.9rem;
             background: #fff;
+            width: 100%;
+            margin: 5px 0;
         }
         button {
             background: #0066cc;
@@ -52,10 +56,7 @@
         }
         button:hover { background: #0052a3; transform: translateY(-1px); }
         .btn-pdf { background: #c2410c; }
-        .btn-pdf:hover { background: #9a330a; }
         .btn-buscar { background: #475569; }
-        .btn-sync { background: #2c7a4d; }
-        .btn-sync:hover { background: #1f5e3a; }
         .oculto { display: none; }
         .estadisticas {
             display: grid;
@@ -72,128 +73,128 @@
         }
         .stat-value { font-size: 2rem; font-weight: 700; color: #1e4663; }
         .stat-label { font-size: 0.8rem; color: #5b6e8c; margin-top: 8px; }
-        .row-flex { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
+        .row-flex { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
         .grupo { flex: 1; min-width: 150px; }
-        .grupo-buscar { flex: 1; min-width: 250px; }
         label { font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 4px; display: block; }
-        .buscar-wrapper { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-        .buscar-wrapper input { flex: 1; }
-        .buscar-wrapper button { width: auto; }
-        .medicion-card, .jornada-card, .tecnico-card, .evento-card, .piscina-card {
+        .medicion-card, .jornada-card, .tecnico-card {
             background: #f8fafc;
             border-radius: 20px;
             padding: 12px 16px;
             margin-bottom: 8px;
             border-left: 4px solid #0077b6;
         }
-        .piscina-card { border-left-color: #2c7a4d; }
-        .evento-card { border-left-color: #e67e22; }
-        .resultados-area { margin-top: 16px; max-height: 500px; overflow-y: auto; }
-        .selector-vista { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-        .vista-btn { background: #e2e8f0; color: #1e4663; }
-        .vista-btn.active { background: #0066cc; color: white; }
-        .top-buttons { display: flex; gap: 12px; align-items: center; }
-        .info-seleccion { font-size: 0.75rem; color: #2c7a4d; margin-top: 4px; }
-        .select-label { font-size: 0.7rem; color: #475569; margin-top: 8px; margin-bottom: 4px; }
-        .piscina-detalle { font-size: 0.8rem; color: #2c7a4d; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
-        .grid-datos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+        .resultados-area { margin-top: 16px; max-height: 400px; overflow-y: auto; }
+        .badge { background: #e0f2fe; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; display: inline-block; margin: 4px; }
         @media (max-width: 700px) { .row-flex { flex-direction: column; } }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .tab-btn {
+            background: none;
+            color: #475569;
+            padding: 10px 20px;
+            margin: 0;
+            width: auto;
+            border-radius: 40px 40px 0 0;
+        }
+        .tab-btn.active {
+            background: #0077b6;
+            color: white;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
 <div class="container">
     <!-- Login -->
     <div id="loginPanel" class="card">
-        <div class="card-header">👔 Acceso Gerente</div>
+        <div class="card-header" style="cursor:default;">👔 Acceso Gerente</div>
         <input type="email" id="email" placeholder="Email" value="gerente@mipiscina.com">
         <input type="password" id="password" placeholder="Contraseña">
         <button id="btnLogin">Iniciar sesión</button>
         <div id="errorMsg" style="color:red; margin-top:12px;"></div>
     </div>
 
-    <!-- Dashboard (oculto hasta login) -->
     <div id="dashboardPanel" class="oculto">
         <!-- Estadísticas -->
         <div class="card">
-            <div class="card-header">
-                <span>📊 Resumen general</span>
-                <div class="top-buttons">
-                    <button id="btnSync" class="btn-sync">🔄 Sincronizar</button>
-                    <button id="btnLogout" style="background:#475569;">🚪 Salir</button>
-                </div>
-            </div>
+            <div class="card-header" style="cursor:default;">📊 Resumen general</div>
             <div class="estadisticas">
                 <div class="stat-card"><div class="stat-value" id="totalTecnicos">0</div><div class="stat-label">Técnicos</div></div>
                 <div class="stat-card"><div class="stat-value" id="jornadasActivas">0</div><div class="stat-label">Jornadas activas hoy</div></div>
                 <div class="stat-card"><div class="stat-value" id="totalMediciones">0</div><div class="stat-label">Mediciones totales</div></div>
-                <div class="stat-card"><div class="stat-value" id="totalPiscinas">0</div><div class="stat-label">Piscinas</div></div>
             </div>
         </div>
 
         <!-- Últimas 5 mediciones -->
         <div class="card">
-            <div class="card-header">📈 Últimas 5 mediciones globales</div>
+            <div class="card-header" style="cursor:default;">📈 Últimas 5 mediciones globales</div>
             <div id="ultimasMediciones" class="resultados-area"></div>
         </div>
 
-        <!-- Filtros de búsqueda (buscadores + desplegables) -->
+        <!-- Listado de técnicos -->
         <div class="card">
-            <div class="card-header">🔍 Filtros de búsqueda</div>
-            
-            <div class="row-flex">
-                <div class="grupo-buscar">
-                    <label>👤 Buscar técnico</label>
-                    <div class="buscar-wrapper">
-                        <input type="text" id="buscarTecnico" placeholder="Escribe nombre para buscar rápido...">
-                        <button id="btnBuscarTecnico" class="btn-buscar">🔍 Buscar</button>
-                    </div>
-                    <div id="infoTecnicoSeleccionado" class="info-seleccion"></div>
-                    <div class="select-label">O selecciona del listado:</div>
-                    <select id="filtroTecnico">
-                        <option value="">Todos los técnicos</option>
-                    </select>
-                </div>
-                
-                <div class="grupo-buscar">
-                    <label>🏊 Buscar piscina</label>
-                    <div class="buscar-wrapper">
-                        <input type="text" id="buscarPiscina" placeholder="Escribe nombre para buscar rápido...">
-                        <button id="btnBuscarPiscina" class="btn-buscar">🔍 Buscar</button>
-                    </div>
-                    <div id="infoPiscinaSeleccionada" class="info-seleccion"></div>
-                    <div class="select-label">O selecciona del listado:</div>
-                    <select id="filtroPiscina">
-                        <option value="">Todas las piscinas</option>
-                    </select>
-                </div>
+            <div class="card-header" id="toggleTecnicos">
+                👥 Listado de técnicos
+                <span class="flecha">▼</span>
+            </div>
+            <div id="tecnicosContent" class="card-content oculto">
+                <div id="tecnicosList" class="resultados-area"></div>
             </div>
         </div>
 
-        <!-- Datos de la piscina seleccionada -->
-        <div class="card" id="piscinaDetalleCard" style="display: none;">
-            <div class="card-header">🏊 Datos de la piscina</div>
-            <div id="piscinaDetalle" class="resultados-area"></div>
-            <div class="row-flex" style="margin-top: 16px;">
-                <button id="btnVerMedicionesPiscina" class="btn-buscar">📊 Ver mediciones de esta piscina</button>
+        <!-- Tabs para históricos -->
+        <div class="card">
+            <div class="card-header" style="cursor:default;">📋 Históricos</div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="jornadas">📋 Jornadas</button>
+                <button class="tab-btn" data-tab="mediciones">📊 Mediciones</button>
+                <button class="tab-btn" data-tab="tiempos">⏱️ Tiempos</button>
+            </div>
+
+            <!-- Tab Jornadas -->
+            <div id="tabJornadas" class="tab-content active">
+                <div class="row-flex">
+                    <div class="grupo"><label>Fecha desde</label><input type="date" id="jornadaDesde"></div>
+                    <div class="grupo"><label>Fecha hasta</label><input type="date" id="jornadaHasta"></div>
+                    <div class="grupo"><label>Técnico</label><select id="filtroTecnicoJornadas"><option value="">Todos</option></select></div>
+                    <button id="btnBuscarJornadas" class="btn-buscar">🔍 Buscar</button>
+                    <button id="btnJornadasPDF" class="btn-pdf">📄 PDF</button>
+                </div>
+                <div id="listaJornadas" class="resultados-area"></div>
+            </div>
+
+            <!-- Tab Mediciones -->
+            <div id="tabMediciones" class="tab-content">
+                <div class="row-flex">
+                    <div class="grupo"><label>Fecha desde</label><input type="date" id="medicionDesde"></div>
+                    <div class="grupo"><label>Fecha hasta</label><input type="date" id="medicionHasta"></div>
+                    <div class="grupo"><label>Técnico</label><select id="filtroTecnicoMediciones"><option value="">Todos</option></select></div>
+                    <button id="btnBuscarMediciones" class="btn-buscar">🔍 Buscar</button>
+                    <button id="btnMedicionesPDF" class="btn-pdf">📄 PDF</button>
+                </div>
+                <div id="listaMediciones" class="resultados-area"></div>
+            </div>
+
+            <!-- Tab Tiempos (análisis de productividad) -->
+            <div id="tabTiempos" class="tab-content">
+                <div class="row-flex">
+                    <div class="grupo"><label>Fecha desde</label><input type="date" id="tiemposDesde"></div>
+                    <div class="grupo"><label>Fecha hasta</label><input type="date" id="tiemposHasta"></div>
+                    <div class="grupo"><label>Técnico</label><select id="filtroTecnicoTiempos"><option value="">Todos</option></select></div>
+                    <button id="btnBuscarTiempos" class="btn-buscar">🔍 Buscar</button>
+                </div>
+                <div id="listaTiempos" class="resultados-area"></div>
             </div>
         </div>
 
-        <!-- Selector de vista y fechas -->
-        <div class="card">
-            <div class="card-header">📋 Histórico general</div>
-            <div class="selector-vista">
-                <button id="vistaUnificadaBtn" class="vista-btn active">📅 Vista unificada (todo junto)</button>
-                <button id="vistaJornadasBtn" class="vista-btn">🕒 Solo jornadas</button>
-                <button id="vistaMedicionesBtn" class="vista-btn">📊 Solo mediciones</button>
-            </div>
-            <div class="row-flex">
-                <div class="grupo"><label>Fecha desde</label><input type="date" id="fechaDesde"></div>
-                <div class="grupo"><label>Fecha hasta</label><input type="date" id="fechaHasta"></div>
-                <button id="btnBuscar" class="btn-buscar">🔍 Buscar</button>
-                <button id="btnPDF" class="btn-pdf">📄 Descargar PDF</button>
-            </div>
-            <div id="listaHistorico" class="resultados-area"></div>
-        </div>
+        <button id="btnLogout" style="background:#475569; margin-top:20px;">🚪 Cerrar sesión</button>
     </div>
 </div>
 
@@ -203,365 +204,383 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
-    let tecnicosList = [];
-    let piscinasList = [];
-    let tecnicosMap = {};
-    let piscinasMap = {};
-    let piscinasDetalle = {};
-    let vistaActual = 'unificada';
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
+    function formatDateShort(iso) { return iso ? new Date(iso).toLocaleDateString() : '—'; }
 
-    async function sincronizarTodo() {
-        document.getElementById('btnSync').innerHTML = '🔄 Sincronizando...';
-        document.getElementById('btnSync').disabled = true;
-        try {
-            await cargarListasCompletas();
-            await cargarEstadisticas();
+    // ========== LOGIN ==========
+    async function hacerLogin() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        if (!email || !password) {
+            document.getElementById('errorMsg').innerText = "Introduce email y contraseña";
+            return false;
+        }
+        const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
+        if (authError) {
+            document.getElementById('errorMsg').innerText = authError.message;
+            return false;
+        }
+        const { data: perfil, error: perfilError } = await sb.from('perfiles').select('rol').eq('id', authData.user.id).single();
+        if (perfilError || perfil.rol !== 'gerente') {
+            await sb.auth.signOut();
+            document.getElementById('errorMsg').innerText = "No tienes permisos de gerente";
+            return false;
+        }
+        currentUser = authData.user;
+        return true;
+    }
+
+    document.getElementById('btnLogin').onclick = async () => {
+        if (await hacerLogin()) {
+            document.getElementById('loginPanel').classList.add('oculto');
+            document.getElementById('dashboardPanel').classList.remove('oculto');
+            await cargarResumen();
             await cargarUltimasMediciones();
-            if (document.getElementById('fechaDesde').value && document.getElementById('fechaHasta').value) {
-                await cargarHistorico();
-            }
-            // Si hay una piscina seleccionada, actualizar sus datos
-            const piscinaId = document.getElementById('filtroPiscina').value;
-            if (piscinaId && piscinasDetalle[piscinaId]) {
-                mostrarDetallePiscina(piscinaId);
-            }
-        } catch (err) { console.error(err); }
-        finally {
-            document.getElementById('btnSync').innerHTML = '🔄 Sincronizar';
-            document.getElementById('btnSync').disabled = false;
+            await cargarTecnicos();
+            await cargarFiltrosTecnicos();
+            await cargarJornadasUltimos7();
+            await cargarMedicionesUltimos7();
+            await cargarTiemposUltimos7();
         }
-    }
+    };
 
-    async function cargarListasCompletas() {
-        const { data: tecnicos } = await sb.from('perfiles').select('id, nick, nombre').eq('rol', 'tecnico').order('nick');
-        tecnicosList = tecnicos || [];
-        tecnicosMap = {};
-        tecnicosList.forEach(t => { tecnicosMap[t.id] = t.nick || t.nombre; });
-        
-        const { data: piscinas } = await sb.from('piscinas').select('*').order('nombre');
-        piscinasList = piscinas || [];
-        piscinasMap = {};
-        piscinasDetalle = {};
-        piscinasList.forEach(p => { 
-            piscinasMap[p.id] = p.nombre; 
-            piscinasDetalle[p.id] = p;
-        });
-        
-        const selectTec = document.getElementById('filtroTecnico');
-        const valorActualTec = selectTec.value;
-        selectTec.innerHTML = '<option value="">Todos los técnicos</option>';
-        tecnicosList.forEach(t => { selectTec.innerHTML += `<option value="${t.id}">${t.nick || t.nombre}</option>`; });
-        if (valorActualTec && tecnicosMap[valorActualTec]) selectTec.value = valorActualTec;
-        
-        const selectPisc = document.getElementById('filtroPiscina');
-        const valorActualPisc = selectPisc.value;
-        selectPisc.innerHTML = '<option value="">Todas las piscinas</option>';
-        piscinasList.forEach(p => { selectPisc.innerHTML += `<option value="${p.id}">${p.nombre}</option>`; });
-        if (valorActualPisc && piscinasMap[valorActualPisc]) selectPisc.value = valorActualPisc;
-        
-        document.getElementById('totalPiscinas').innerText = piscinasList.length;
-        
-        // Si hay piscina seleccionada, mostrar sus datos
-        if (valorActualPisc && piscinasDetalle[valorActualPisc]) {
-            mostrarDetallePiscina(valorActualPisc);
-        } else {
-            document.getElementById('piscinaDetalleCard').style.display = 'none';
-        }
-    }
-
-    function mostrarDetallePiscina(piscinaId) {
-        const p = piscinasDetalle[piscinaId];
-        if (!p) return;
-        
-        const container = document.getElementById('piscinaDetalle');
-        container.innerHTML = `
-            <div class="piscina-card">
-                <strong>🏊 ${p.nombre}</strong>
-                <div class="grid-datos">
-                    ${p.localidad ? `<div><strong>📍 Localidad:</strong> ${p.localidad}</div>` : ''}
-                    ${p.direccion ? `<div><strong>🗺️ Dirección:</strong> ${p.direccion}</div>` : ''}
-                    ${p.codigo_postal ? `<div><strong>📮 Código postal:</strong> ${p.codigo_postal}</div>` : ''}
-                    ${p.telefono_contacto ? `<div><strong>📞 Teléfono:</strong> ${p.telefono_contacto}</div>` : ''}
-                    ${p.capacidad ? `<div><strong>👥 Capacidad:</strong> ${p.capacidad} personas</div>` : ''}
-                </div>
-                ${(p.localidad || p.direccion || p.codigo_postal || p.telefono_contacto || p.capacidad) ? '' : '<div class="piscina-detalle">No hay datos adicionales registrados para esta piscina</div>'}
-            </div>
-        `;
-        document.getElementById('piscinaDetalleCard').style.display = 'block';
-    }
-
-    function buscarTecnico() {
-        const texto = document.getElementById('buscarTecnico').value.toLowerCase();
-        const encontrado = tecnicosList.find(t => 
-            (t.nick?.toLowerCase().includes(texto) || t.nombre?.toLowerCase().includes(texto))
-        );
-        const select = document.getElementById('filtroTecnico');
-        if (encontrado) {
-            select.value = encontrado.id;
-            document.getElementById('infoTecnicoSeleccionado').innerHTML = `✅ Seleccionado: ${encontrado.nick || encontrado.nombre}`;
-        } else if (texto) {
-            document.getElementById('infoTecnicoSeleccionado').innerHTML = `❌ No se encontró "${texto}"`;
-            select.value = '';
-        } else {
-            select.value = '';
-            document.getElementById('infoTecnicoSeleccionado').innerHTML = '';
-        }
-    }
-
-    function buscarPiscina() {
-        const texto = document.getElementById('buscarPiscina').value.toLowerCase();
-        const encontrado = piscinasList.find(p => 
-            p.nombre.toLowerCase().includes(texto) || 
-            (p.localidad && p.localidad.toLowerCase().includes(texto)) ||
-            (p.direccion && p.direccion.toLowerCase().includes(texto))
-        );
-        const select = document.getElementById('filtroPiscina');
-        if (encontrado) {
-            select.value = encontrado.id;
-            let detalle = `✅ Seleccionada: ${encontrado.nombre}`;
-            if (encontrado.localidad) detalle += ` · ${encontrado.localidad}`;
-            if (encontrado.direccion) detalle += ` · ${encontrado.direccion}`;
-            document.getElementById('infoPiscinaSeleccionada').innerHTML = detalle;
-            mostrarDetallePiscina(encontrado.id);
-        } else if (texto) {
-            document.getElementById('infoPiscinaSeleccionada').innerHTML = `❌ No se encontró "${texto}"`;
-            select.value = '';
-            document.getElementById('piscinaDetalleCard').style.display = 'none';
-        } else {
-            select.value = '';
-            document.getElementById('infoPiscinaSeleccionada').innerHTML = '';
-            document.getElementById('piscinaDetalleCard').style.display = 'none';
-        }
-    }
-
-    async function cargarEstadisticas() {
+    // ========== RESUMEN ==========
+    async function cargarResumen() {
         const { data: tecnicos } = await sb.from('perfiles').select('id').eq('rol', 'tecnico');
         document.getElementById('totalTecnicos').innerText = tecnicos?.length || 0;
+        
         const hoy = new Date().toISOString().slice(0,10);
         const { data: activas } = await sb.from('jornadas').select('id').is('fin', null).gte('inicio', hoy+'T00:00:00').lte('inicio', hoy+'T23:59:59');
         document.getElementById('jornadasActivas').innerText = activas?.length || 0;
+        
         const { data: mediciones } = await sb.from('mediciones').select('id', { count: 'exact' });
         document.getElementById('totalMediciones').innerText = mediciones?.length || 0;
     }
 
+    // ========== ÚLTIMAS 5 MEDICIONES ==========
     async function cargarUltimasMediciones() {
-        const { data } = await sb.from('mediciones').select('*').order('created_at', { ascending: false }).limit(5);
-        const container = document.getElementById('ultimasMediciones');
-        container.innerHTML = '';
-        if (!data || data.length === 0) { container.innerHTML = '<div class="medicion-card">No hay mediciones</div>'; return; }
-        
-        for (const m of data) {
-            let piscinaNombre = piscinasMap[m.piscina_id] || '?';
-            let piscinaDetalleHtml = '';
-            if (piscinasDetalle[m.piscina_id] && (piscinasDetalle[m.piscina_id].localidad || piscinasDetalle[m.piscina_id].direccion)) {
-                const p = piscinasDetalle[m.piscina_id];
-                piscinaDetalleHtml = `<div class="piscina-detalle">📍 ${p.localidad || ''} ${p.direccion ? '- ' + p.direccion : ''}</div>`;
-            }
-            let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
-            if (!tecnicosMap[m.tecnico_id] && m.tecnico_id) {
-                const { data: t } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
-                if (t) tecnicoNombre = t.nick;
-            }
-            container.innerHTML += `
-                <div class="medicion-card">
-                    <strong>👤 ${tecnicoNombre}</strong> · 🏊 ${piscinaNombre}<br>
-                    ${piscinaDetalleHtml}
-                    🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
-                    📅 ${formatDate(m.created_at)}
-                </div>`;
+        const { data } = await sb
+            .from('mediciones')
+            .select('*, piscinas(nombre), perfiles(nick)')
+            .order('created_at', { ascending: false })
+            .limit(5);
+        const contenedor = document.getElementById('ultimasMediciones');
+        contenedor.innerHTML = '';
+        if (!data || data.length === 0) {
+            contenedor.innerHTML = '<div class="medicion-card">No hay mediciones</div>';
+            return;
         }
+        data.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'medicion-card';
+            div.innerHTML = `<strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>
+                            🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
+                            📅 ${formatDate(m.created_at)}`;
+            contenedor.appendChild(div);
+        });
     }
 
-    async function cargarHistorico() {
-        const desde = document.getElementById('fechaDesde').value;
-        const hasta = document.getElementById('fechaHasta').value;
-        const tecnicoId = document.getElementById('filtroTecnico').value;
-        const piscinaId = document.getElementById('filtroPiscina').value;
-        
+    // ========== LISTADO DE TÉCNICOS ==========
+    async function cargarTecnicos() {
+        const { data } = await sb.from('perfiles').select('nick, nombre').eq('rol', 'tecnico').order('nick');
+        const contenedor = document.getElementById('tecnicosList');
+        contenedor.innerHTML = '';
+        if (!data || data.length === 0) {
+            contenedor.innerHTML = '<div class="tecnico-card">No hay técnicos</div>';
+            return;
+        }
+        data.forEach(t => {
+            const div = document.createElement('div');
+            div.className = 'tecnico-card';
+            div.innerHTML = `<strong>@${t.nick}</strong> · ${t.nombre || ''}`;
+            contenedor.appendChild(div);
+        });
+    }
+
+    // ========== FILTROS DE TÉCNICOS ==========
+    async function cargarFiltrosTecnicos() {
+        const { data } = await sb.from('perfiles').select('id, nick').eq('rol', 'tecnico');
+        const selects = ['filtroTecnicoJornadas', 'filtroTecnicoMediciones', 'filtroTecnicoTiempos'];
+        selects.forEach(id => {
+            const select = document.getElementById(id);
+            if (select) {
+                select.innerHTML = '<option value="">Todos los técnicos</option>';
+                if (data) data.forEach(t => {
+                    select.innerHTML += `<option value="${t.id}">${t.nick}</option>`;
+                });
+            }
+        });
+    }
+
+    // ========== JORNADAS ==========
+    async function cargarJornadasUltimos7() {
+        const hoy = new Date();
+        const hace7 = new Date();
+        hace7.setDate(hoy.getDate() - 7);
+        const start = hace7.toISOString();
+        const end = hoy.toISOString();
+        await ejecutarBusquedaJornadas(start, end);
+    }
+
+    async function ejecutarBusquedaJornadas(start, end, tecnicoId = null) {
+        let query = sb.from('jornadas').select('*, perfiles(nick)').gte('inicio', start).lte('inicio', end);
+        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
+        const { data } = await query.order('inicio', { ascending: false });
+        const contenedor = document.getElementById('listaJornadas');
+        contenedor.innerHTML = '';
+        if (!data || data.length === 0) {
+            contenedor.innerHTML = '<div class="jornada-card">No hay jornadas en este período</div>';
+            return;
+        }
+        data.forEach(j => {
+            const inicio = new Date(j.inicio);
+            const fin = j.fin ? new Date(j.fin) : null;
+            let duracion = '';
+            if (fin) {
+                const diff = fin - inicio;
+                const horas = Math.floor(diff / 3600000);
+                const minutos = Math.floor((diff % 3600000) / 60000);
+                duracion = ` (${horas}h ${minutos}m)`;
+            } else { duracion = ' (en curso)'; }
+            const div = document.createElement('div');
+            div.className = 'jornada-card';
+            div.innerHTML = `<strong>👤 ${j.perfiles?.nick || '?'}</strong><br>
+                            📅 ${inicio.toLocaleDateString()} · 🕒 ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : '—'}${duracion}`;
+            contenedor.appendChild(div);
+        });
+    }
+
+    document.getElementById('btnBuscarJornadas').onclick = async () => {
+        const desde = document.getElementById('jornadaDesde').value;
+        const hasta = document.getElementById('jornadaHasta').value;
+        const tecnicoId = document.getElementById('filtroTecnicoJornadas').value;
         if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
         const start = new Date(`${desde}T00:00:00`).toISOString();
         const end = new Date(`${hasta}T23:59:59`).toISOString();
-        
-        let eventos = [];
-        
-        if (vistaActual === 'unificada' || vistaActual === 'jornadas') {
-            let queryJ = sb.from('jornadas').select('*').gte('inicio', start).lte('inicio', end);
-            if (tecnicoId) queryJ = queryJ.eq('tecnico_id', tecnicoId);
-            const { data: jornadas } = await queryJ.order('inicio', { ascending: false });
-            if (jornadas) {
-                for (const j of jornadas) {
-                    let tecnicoNombre = tecnicosMap[j.tecnico_id] || '?';
-                    if (!tecnicosMap[j.tecnico_id] && j.tecnico_id) {
-                        const { data: t } = await sb.from('perfiles').select('nick').eq('id', j.tecnico_id).single();
-                        if (t) tecnicoNombre = t.nick;
-                    }
-                    eventos.push({
-                        fecha: new Date(j.inicio),
-                        tipo: 'jornada',
-                        titulo: `Jornada de ${tecnicoNombre}`,
-                        detalle: `Inicio: ${formatDate(j.inicio)} | Fin: ${formatDate(j.fin)}`
-                    });
-                }
-            }
-        }
-        
-        if (vistaActual === 'unificada' || vistaActual === 'mediciones') {
-            let queryM = sb.from('mediciones').select('*').gte('created_at', start).lte('created_at', end);
-            if (tecnicoId) queryM = queryM.eq('tecnico_id', tecnicoId);
-            if (piscinaId) queryM = queryM.eq('piscina_id', piscinaId);
-            const { data: mediciones } = await queryM.order('created_at', { ascending: false });
-            if (mediciones) {
-                for (const m of mediciones) {
-                    let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
-                    let piscinaNombre = piscinasMap[m.piscina_id] || '?';
-                    let piscinaDetalleHtml = '';
-                    if (piscinasDetalle[m.piscina_id] && (piscinasDetalle[m.piscina_id].localidad || piscinasDetalle[m.piscina_id].direccion)) {
-                        const p = piscinasDetalle[m.piscina_id];
-                        piscinaDetalleHtml = `<div class="piscina-detalle">📍 ${p.localidad || ''} ${p.direccion ? '- ' + p.direccion : ''}</div>`;
-                    }
-                    if (!tecnicosMap[m.tecnico_id] && m.tecnico_id) {
-                        const { data: t } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
-                        if (t) tecnicoNombre = t.nick;
-                    }
-                    eventos.push({
-                        fecha: new Date(m.created_at),
-                        tipo: 'medicion',
-                        titulo: `Medición en ${piscinaNombre} por ${tecnicoNombre}`,
-                        detalle: `${piscinaDetalleHtml}<br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || 'Sin observaciones'}`
-                    });
-                }
-            }
-        }
-        
-        eventos.sort((a, b) => b.fecha - a.fecha);
-        
-        const container = document.getElementById('listaHistorico');
-        container.innerHTML = '';
-        if (eventos.length === 0) {
-            container.innerHTML = '<div class="evento-card">No hay eventos en el rango seleccionado</div>';
-            return;
-        }
-        
-        for (const ev of eventos) {
-            const cardClass = ev.tipo === 'jornada' ? 'jornada-card' : 'medicion-card';
-            container.innerHTML += `
-                <div class="${cardClass}">
-                    <strong>📅 ${ev.fecha.toLocaleString()} - ${ev.tipo === 'jornada' ? '🕒' : '📊'} ${ev.titulo}</strong><br>
-                    ${ev.detalle}
-                </div>`;
-        }
-        window.eventosActuales = eventos;
-    }
+        await ejecutarBusquedaJornadas(start, end, tecnicoId);
+        window.jornadasData = { start, end, tecnicoId };
+    };
 
-    async function descargarPDF() {
-        if (!window.eventosActuales || window.eventosActuales.length === 0) { alert("Primero busca datos"); return; }
-        const desde = document.getElementById('fechaDesde').value;
-        const hasta = document.getElementById('fechaHasta').value;
-        const tecnicoId = document.getElementById('filtroTecnico').value;
-        const piscinaId = document.getElementById('filtroPiscina').value;
-        const tecnicoNombre = tecnicosMap[tecnicoId] || (tecnicoId ? 'Técnico específico' : 'Todos');
-        const piscinaNombre = piscinasMap[piscinaId] || (piscinaId ? 'Piscina específica' : 'Todas');
-        
+    document.getElementById('btnJornadasPDF').onclick = async () => {
+        const desde = document.getElementById('jornadaDesde').value;
+        const hasta = document.getElementById('jornadaHasta').value;
+        const tecnicoId = document.getElementById('filtroTecnicoJornadas').value;
+        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        let query = sb.from('jornadas').select('*, perfiles(nick)').gte('inicio', start).lte('inicio', end);
+        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
+        const { data } = await query.order('inicio', { ascending: false });
+        if (!data || data.length === 0) { alert("No hay datos"); return; }
         const tempDiv = document.createElement('div');
-        tempDiv.style.padding = '20px';
-        tempDiv.style.fontFamily = 'system-ui';
-        tempDiv.innerHTML = `<h2>Histórico (${desde} a ${hasta})</h2>
-                            <p>Técnico: ${tecnicoNombre} | Piscina: ${piscinaNombre} | Vista: ${vistaActual === 'unificada' ? 'Unificada' : (vistaActual === 'jornadas' ? 'Jornadas' : 'Mediciones')}</p>`;
-        
-        for (const ev of window.eventosActuales) {
-            tempDiv.innerHTML += `<div style="border-left:4px solid ${ev.tipo === 'jornada' ? '#0077b6' : '#e67e22'}; margin:10px 0; padding:10px;">
-                                    <strong>📅 ${ev.fecha.toLocaleString()}</strong><br>
-                                    <strong>${ev.tipo === 'jornada' ? '🕒 Jornada' : '📊 Medición'}</strong><br>
-                                    ${ev.detalle.replace(/<br>/g, '\n')}
-                                   </div>`;
-        }
-        html2pdf().set({ filename: `historico_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
+        tempDiv.innerHTML = `<h2>Jornadas (${desde} a ${hasta})</h2>`;
+        data.forEach(j => {
+            const inicio = new Date(j.inicio);
+            const fin = j.fin ? new Date(j.fin) : null;
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
+                <strong>👤 ${j.perfiles?.nick || '?'}</strong><br>
+                📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}
+            </div>`;
+        });
+        html2pdf().set({ filename: `jornadas_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
+    };
+
+    // ========== MEDICIONES ==========
+    async function cargarMedicionesUltimos7() {
+        const hoy = new Date();
+        const hace7 = new Date();
+        hace7.setDate(hoy.getDate() - 7);
+        const start = hace7.toISOString();
+        const end = hoy.toISOString();
+        await ejecutarBusquedaMediciones(start, end);
     }
 
-    async function verMedicionesDePiscina() {
-        const piscinaId = document.getElementById('filtroPiscina').value;
-        if (!piscinaId) {
-            alert("Selecciona una piscina primero");
+    async function ejecutarBusquedaMediciones(start, end, tecnicoId = null) {
+        let query = sb.from('mediciones').select('*, piscinas(nombre), perfiles(nick)').gte('created_at', start).lte('created_at', end);
+        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
+        const { data } = await query.order('created_at', { ascending: false });
+        const contenedor = document.getElementById('listaMediciones');
+        contenedor.innerHTML = '';
+        if (!data || data.length === 0) {
+            contenedor.innerHTML = '<div class="medicion-card">No hay mediciones en este período</div>';
             return;
         }
-        // Cambiar la vista a "mediciones" y establecer fechas amplias para ver todas
-        vistaActual = 'mediciones';
-        document.getElementById('vistaUnificadaBtn').classList.remove('active');
-        document.getElementById('vistaJornadasBtn').classList.remove('active');
-        document.getElementById('vistaMedicionesBtn').classList.add('active');
+        data.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'medicion-card';
+            div.innerHTML = `<strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>
+                            🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
+                            📝 ${m.observaciones || 'Sin observaciones'}<br>
+                            📅 ${formatDate(m.created_at)}`;
+            contenedor.appendChild(div);
+        });
+    }
+
+    document.getElementById('btnBuscarMediciones').onclick = async () => {
+        const desde = document.getElementById('medicionDesde').value;
+        const hasta = document.getElementById('medicionHasta').value;
+        const tecnicoId = document.getElementById('filtroTecnicoMediciones').value;
+        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        await ejecutarBusquedaMediciones(start, end, tecnicoId);
+    };
+
+    document.getElementById('btnMedicionesPDF').onclick = async () => {
+        const desde = document.getElementById('medicionDesde').value;
+        const hasta = document.getElementById('medicionHasta').value;
+        const tecnicoId = document.getElementById('filtroTecnicoMediciones').value;
+        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        let query = sb.from('mediciones').select('*, piscinas(nombre), perfiles(nick)').gte('created_at', start).lte('created_at', end);
+        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
+        const { data } = await query.order('created_at', { ascending: false });
+        if (!data || data.length === 0) { alert("No hay datos"); return; }
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `<h2>Mediciones (${desde} a ${hasta})</h2>`;
+        data.forEach(m => {
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
+                <strong>👤 ${m.perfiles?.nick || '?'}</strong> · 🏊 ${m.piscinas?.nombre || '?'}<br>
+                🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
+                📝 ${m.observaciones || ''}<br>
+                📅 ${formatDate(m.created_at)}
+            </div>`;
+        });
+        html2pdf().set({ filename: `mediciones_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
+    };
+
+    // ========== TIEMPOS (productividad) ==========
+    async function cargarTiemposUltimos7() {
+        const hoy = new Date();
+        const hace7 = new Date();
+        hace7.setDate(hoy.getDate() - 7);
+        const start = hace7.toISOString();
+        const end = hoy.toISOString();
+        await ejecutarBusquedaTiempos(start, end);
+    }
+
+    async function ejecutarBusquedaTiempos(start, end, tecnicoId = null) {
+        // Obtener trabajos (tiempo real trabajando en piscinas)
+        let queryTrabajos = sb.from('trabajos_piscina').select('*, piscinas(nombre), perfiles(nick)').gte('inicio', start).lte('inicio', end);
+        if (tecnicoId) queryTrabajos = queryTrabajos.eq('tecnico_id', tecnicoId);
+        const { data: trabajos } = await queryTrabajos.order('inicio', { ascending: false });
         
-        // Establecer fechas amplias para ver todas las mediciones
-        const fechaDesde = document.getElementById('fechaDesde');
-        const fechaHasta = document.getElementById('fechaHasta');
-        if (!fechaDesde.value) {
-            fechaDesde.value = '2024-01-01';
+        // Obtener desplazamientos
+        let queryDesplazamientos = sb.from('desplazamientos').select('*, piscinas!piscina_destino_id(nombre), perfiles(nick)').gte('inicio', start).lte('inicio', end);
+        if (tecnicoId) queryDesplazamientos = queryDesplazamientos.eq('tecnico_id', tecnicoId);
+        const { data: desplazamientos } = await queryDesplazamientos.order('inicio', { ascending: false });
+        
+        const contenedor = document.getElementById('listaTiempos');
+        contenedor.innerHTML = '';
+        
+        let totalTrabajo = 0;
+        let totalDesplazamiento = 0;
+        
+        if (trabajos && trabajos.length > 0) {
+            const titulo = document.createElement('div');
+            titulo.className = 'consola-titulo';
+            titulo.textContent = '🏊 Tiempos de trabajo en piscina';
+            titulo.style.marginTop = '16px';
+            contenedor.appendChild(titulo);
+            
+            trabajos.forEach(t => {
+                const inicio = new Date(t.inicio);
+                const fin = t.fin ? new Date(t.fin) : null;
+                let duracion = 0;
+                let duracionTexto = 'En curso';
+                if (fin) {
+                    duracion = (fin - inicio) / 1000;
+                    totalTrabajo += duracion;
+                    const horas = Math.floor(duracion / 3600);
+                    const minutos = Math.floor((duracion % 3600) / 60);
+                    duracionTexto = `${horas}h ${minutos}m`;
+                }
+                const div = document.createElement('div');
+                div.className = 'medicion-card';
+                div.innerHTML = `<strong>👤 ${t.perfiles?.nick || '?'}</strong> · 🏊 ${t.piscinas?.nombre || '?'}<br>
+                                🕒 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}<br>
+                                ⏱️ Duración: ${duracionTexto}`;
+                contenedor.appendChild(div);
+            });
         }
-        if (!fechaHasta.value) {
-            fechaHasta.value = new Date().toISOString().slice(0,10);
+        
+        if (desplazamientos && desplazamientos.length > 0) {
+            const titulo = document.createElement('div');
+            titulo.className = 'consola-titulo';
+            titulo.textContent = '🚗 Tiempos de desplazamiento';
+            contenedor.appendChild(titulo);
+            
+            desplazamientos.forEach(d => {
+                const inicio = new Date(d.inicio);
+                const fin = d.fin ? new Date(d.fin) : null;
+                let duracion = 0;
+                let duracionTexto = 'En curso';
+                if (fin) {
+                    duracion = (fin - inicio) / 1000;
+                    totalDesplazamiento += duracion;
+                    const horas = Math.floor(duracion / 3600);
+                    const minutos = Math.floor((duracion % 3600) / 60);
+                    duracionTexto = `${horas}h ${minutos}m`;
+                }
+                const div = document.createElement('div');
+                div.className = 'medicion-card';
+                div.innerHTML = `<strong>👤 ${d.perfiles?.nick || '?'}</strong> · 🏊 Hacia: ${d.piscinas?.nombre || '?'}<br>
+                                🕒 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}<br>
+                                ⏱️ Duración: ${duracionTexto}`;
+                contenedor.appendChild(div);
+            });
         }
-        await cargarHistorico();
+        
+        // Totales
+        if (trabajos?.length === 0 && desplazamientos?.length === 0) {
+            contenedor.innerHTML = '<div class="medicion-card">No hay datos de tiempos en este período</div>';
+            return;
+        }
+        
+        const totalHorasTrabajo = Math.floor(totalTrabajo / 3600);
+        const totalMinutosTrabajo = Math.floor((totalTrabajo % 3600) / 60);
+        const totalHorasDesp = Math.floor(totalDesplazamiento / 3600);
+        const totalMinutosDesp = Math.floor((totalDesplazamiento % 3600) / 60);
+        
+        const totalDiv = document.createElement('div');
+        totalDiv.className = 'medicion-card';
+        totalDiv.style.background = '#e0f2e9';
+        totalDiv.innerHTML = `<strong>📊 RESUMEN TOTAL</strong><br>
+                            🏊 Tiempo trabajando: ${totalHorasTrabajo}h ${totalMinutosTrabajo}m<br>
+                            🚗 Tiempo en desplazamientos: ${totalHorasDesp}h ${totalMinutosDesp}m`;
+        contenedor.appendChild(totalDiv);
     }
 
-    function setVista(vista) {
-        vistaActual = vista;
-        document.getElementById('vistaUnificadaBtn').classList.toggle('active', vista === 'unificada');
-        document.getElementById('vistaJornadasBtn').classList.toggle('active', vista === 'jornadas');
-        document.getElementById('vistaMedicionesBtn').classList.toggle('active', vista === 'mediciones');
-        if (document.getElementById('fechaDesde').value && document.getElementById('fechaHasta').value) {
-            cargarHistorico();
-        }
-    }
-
-    // Login
-    document.getElementById('btnLogin').onclick = async () => {
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-        const errorDiv = document.getElementById('errorMsg');
-        errorDiv.innerText = '';
-        try {
-            const { data, error } = await sb.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-            const { data: perfil } = await sb.from('perfiles').select('rol').eq('id', data.user.id).single();
-            if (!perfil || perfil.rol !== 'gerente') throw new Error('No tienes permisos de gerente');
-            currentUser = data.user;
-            document.getElementById('loginPanel').classList.add('oculto');
-            document.getElementById('dashboardPanel').classList.remove('oculto');
-            await cargarListasCompletas();
-            await cargarEstadisticas();
-            await cargarUltimasMediciones();
-            const hoy = new Date();
-            const hace7 = new Date();
-            hace7.setDate(hoy.getDate() - 7);
-            document.getElementById('fechaDesde').value = hace7.toISOString().slice(0,10);
-            document.getElementById('fechaHasta').value = hoy.toISOString().slice(0,10);
-            await cargarHistorico();
-        } catch (err) { errorDiv.innerText = err.message; }
+    document.getElementById('btnBuscarTiempos').onclick = async () => {
+        const desde = document.getElementById('tiemposDesde').value;
+        const hasta = document.getElementById('tiemposHasta').value;
+        const tecnicoId = document.getElementById('filtroTecnicoTiempos').value;
+        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        await ejecutarBusquedaTiempos(start, end, tecnicoId);
     };
 
-    document.getElementById('btnSync').onclick = sincronizarTodo;
+    // ========== ACORDEONES Y TABS ==========
+    document.getElementById('toggleTecnicos').addEventListener('click', () => {
+        const content = document.getElementById('tecnicosContent');
+        const flecha = document.querySelector('#toggleTecnicos .flecha');
+        content.classList.toggle('oculto');
+        flecha.innerHTML = content.classList.contains('oculto') ? '▼' : '▲';
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(`tab${btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)}`).classList.add('active');
+        });
+    });
+
     document.getElementById('btnLogout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
-    document.getElementById('btnBuscar').onclick = cargarHistorico;
-    document.getElementById('btnPDF').onclick = descargarPDF;
-    document.getElementById('btnVerMedicionesPiscina').onclick = verMedicionesDePiscina;
-    document.getElementById('vistaUnificadaBtn').onclick = () => setVista('unificada');
-    document.getElementById('vistaJornadasBtn').onclick = () => setVista('jornadas');
-    document.getElementById('vistaMedicionesBtn').onclick = () => setVista('mediciones');
-    document.getElementById('btnBuscarTecnico').onclick = buscarTecnico;
-    document.getElementById('btnBuscarPiscina').onclick = buscarPiscina;
-    document.getElementById('buscarTecnico').addEventListener('keypress', (e) => { if (e.key === 'Enter') buscarTecnico(); });
-    document.getElementById('buscarPiscina').addEventListener('keypress', (e) => { if (e.key === 'Enter') buscarPiscina(); });
-    document.getElementById('filtroTecnico').onchange = () => { document.getElementById('infoTecnicoSeleccionado').innerHTML = ''; };
-    document.getElementById('filtroPiscina').onchange = () => { 
-        document.getElementById('infoPiscinaSeleccionada').innerHTML = '';
-        const piscinaId = document.getElementById('filtroPiscina').value;
-        if (piscinaId && piscinasDetalle[piscinaId]) {
-            mostrarDetallePiscina(piscinaId);
-        } else {
-            document.getElementById('piscinaDetalleCard').style.display = 'none';
-        }
-    };
 </script>
 </body>
 </html>
