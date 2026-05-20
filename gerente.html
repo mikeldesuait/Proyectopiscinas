@@ -25,18 +25,19 @@
         .card-header {
             font-size: 1.2rem;
             font-weight: 600;
-            margin-bottom: 16px;
+            margin-bottom: 0;
             display: flex;
             align-items: center;
             gap: 10px;
             border-left: 4px solid #0077b6;
-            padding-left: 14px;
+            padding: 12px 14px;
             color: #1e4663;
             cursor: pointer;
+            border-radius: 20px;
         }
         .card-header:hover { background: #f8fafc; }
         .card-header .flecha { margin-left: auto; font-size: 1.1rem; }
-        .card-content { padding-top: 12px; }
+        .card-content { padding: 16px 0 0 0; }
         button, input, select {
             padding: 10px 14px;
             border-radius: 40px;
@@ -60,6 +61,7 @@
         .btn-refresh { background: #2c7a4d; width: auto; padding: 6px 12px; font-size: 0.8rem; }
         .oculto { display: none; }
         
+        /* Resumen compacto */
         .resumen-compacto {
             display: flex;
             gap: 12px;
@@ -89,7 +91,7 @@
         .row-flex { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
         .grupo { flex: 1; min-width: 130px; }
         label { font-size: 0.7rem; font-weight: 600; color: #475569; margin-bottom: 3px; display: block; }
-        .medicion-card, .jornada-card, .tecnico-card {
+        .medicion-card, .jornada-card {
             background: #f8fafc;
             border-radius: 16px;
             padding: 10px 14px;
@@ -259,62 +261,50 @@
             </div>
         </div>
 
-        <!-- Últimas 5 mediciones -->
+        <!-- Históricos (plegado por defecto) -->
         <div class="card">
-            <div class="card-header" style="cursor:default;">📈 Últimas 5 mediciones globales</div>
-            <div id="ultimasMediciones" class="resultados-area"></div>
-        </div>
-
-        <!-- Listado de técnicos -->
-        <div class="card">
-            <div class="card-header" id="toggleTecnicos">
-                👥 Listado de técnicos
-                <span class="flecha">▼</span>
+            <div class="card-header" id="toggleHistorico">
+                📋 Históricos de jornadas, mediciones y tiempos
+                <span class="flecha">▶</span>
             </div>
-            <div id="tecnicosContent" class="card-content oculto">
-                <div id="tecnicosList" class="resultados-area"></div>
-            </div>
-        </div>
-
-        <!-- Tabs para históricos -->
-        <div class="card">
-            <div class="card-header" style="cursor:default;">📋 Históricos</div>
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="jornadas">📋 Jornadas</button>
-                <button class="tab-btn" data-tab="mediciones">📊 Mediciones</button>
-                <button class="tab-btn" data-tab="tiempos">⏱️ Tiempos</button>
-            </div>
-
-            <div id="tabJornadas" class="tab-content active">
-                <div class="row-flex">
-                    <div class="grupo"><label>Fecha desde</label><input type="date" id="jornadaDesde"></div>
-                    <div class="grupo"><label>Fecha hasta</label><input type="date" id="jornadaHasta"></div>
-                    <div class="grupo"><label>Técnico</label><select id="filtroTecnicoJornadas"><option value="">Todos</option></select></div>
-                    <button id="btnBuscarJornadas" class="btn-buscar">🔍 Buscar</button>
-                    <button id="btnJornadasPDF" class="btn-pdf">📄 PDF</button>
+            <div id="historicoContent" class="card-content oculto">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="jornadas">📋 Jornadas</button>
+                    <button class="tab-btn" data-tab="mediciones">📊 Mediciones</button>
+                    <button class="tab-btn" data-tab="tiempos">⏱️ Tiempos</button>
                 </div>
-                <div id="listaJornadas" class="resultados-area"></div>
-            </div>
 
-            <div id="tabMediciones" class="tab-content">
-                <div class="row-flex">
-                    <div class="grupo"><label>Fecha desde</label><input type="date" id="medicionDesde"></div>
-                    <div class="grupo"><label>Fecha hasta</label><input type="date" id="medicionHasta"></div>
-                    <div class="grupo"><label>Técnico</label><select id="filtroTecnicoMediciones"><option value="">Todos</option></select></div>
-                    <button id="btnBuscarMediciones" class="btn-buscar">🔍 Buscar</button>
-                    <button id="btnMedicionesPDF" class="btn-pdf">📄 PDF</button>
+                <div id="tabJornadas" class="tab-content active">
+                    <div class="row-flex">
+                        <div class="grupo"><label>Fecha desde</label><input type="date" id="jornadaDesde"></div>
+                        <div class="grupo"><label>Fecha hasta</label><input type="date" id="jornadaHasta"></div>
+                        <div class="grupo"><label>Técnico</label><select id="filtroTecnicoJornadas"><option value="">Todos</option></select></div>
+                        <button id="btnBuscarJornadas" class="btn-buscar">🔍 Buscar</button>
+                        <button id="btnJornadasPDF" class="btn-pdf">📄 PDF</button>
+                    </div>
+                    <div id="listaJornadas" class="resultados-area"></div>
                 </div>
-                <div id="listaMediciones" class="resultados-area"></div>
-            </div>
 
-            <div id="tabTiempos" class="tab-content">
-                <div class="row-flex">
-                    <div class="grupo"><label>Fecha desde</label><input type="date" id="tiemposDesde"></div>
-                    <div class="grupo"><label>Fecha hasta</label><input type="date" id="tiemposHasta"></div>
-                    <div class="grupo"><label>Técnico</label><select id="filtroTecnicoTiempos"><option value="">Todos</option></select></div>
-                    <button id="btnBuscarTiempos" class="btn-buscar">🔍 Buscar</button>
+                <div id="tabMediciones" class="tab-content">
+                    <div class="row-flex">
+                        <div class="grupo"><label>Fecha desde</label><input type="date" id="medicionDesde"></div>
+                        <div class="grupo"><label>Fecha hasta</label><input type="date" id="medicionHasta"></div>
+                        <div class="grupo"><label>Técnico</label><select id="filtroTecnicoMediciones"><option value="">Todos</option></select></div>
+                        <button id="btnBuscarMediciones" class="btn-buscar">🔍 Buscar</button>
+                        <button id="btnMedicionesPDF" class="btn-pdf">📄 PDF</button>
+                    </div>
+                    <div id="listaMediciones" class="resultados-area"></div>
                 </div>
-                <div id="listaTiempos" class="resultados-area"></div>
+
+                <div id="tabTiempos" class="tab-content">
+                    <div class="row-flex">
+                        <div class="grupo"><label>Fecha desde</label><input type="date" id="tiemposDesde"></div>
+                        <div class="grupo"><label>Fecha hasta</label><input type="date" id="tiemposHasta"></div>
+                        <div class="grupo"><label>Técnico</label><select id="filtroTecnicoTiempos"><option value="">Todos</option></select></div>
+                        <button id="btnBuscarTiempos" class="btn-buscar">🔍 Buscar</button>
+                    </div>
+                    <div id="listaTiempos" class="resultados-area"></div>
+                </div>
             </div>
         </div>
 
@@ -402,7 +392,7 @@
         
         if (!jornadasActivas || jornadasActivas.length === 0) {
             document.getElementById('tecnicosActivosList').innerHTML = 
-                '<div class="tecnico-card">👨‍🔧 No hay técnicos con jornada activa hoy</div>';
+                '<div class="medicion-card">👨‍🔧 No hay técnicos con jornada activa hoy</div>';
             return;
         }
         
@@ -458,7 +448,7 @@
             else badgeClass = 'badge-descanso';
             
             const div = document.createElement('div');
-            div.className = `tecnico-card activo-card`;
+            div.className = `medicion-card activo-card`;
             div.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                     <strong>👤 ${t.nick}${t.nombre ? ` (${t.nombre})` : ''}</strong>
@@ -491,7 +481,7 @@
         contenedor.innerHTML = '';
         
         if (!trabajosActivos || trabajosActivos.length === 0) {
-            contenedor.innerHTML = '<div class="tecnico-card">✅ No hay piscinas con trabajo activo hoy</div>';
+            contenedor.innerHTML = '<div class="medicion-card">✅ No hay piscinas con trabajo activo hoy</div>';
             return;
         }
         
@@ -608,7 +598,7 @@
         }
         
         if (totalActividades === 0) {
-            contenedor.innerHTML = '<div class="tecnico-card">📋 No hay actividades cerradas hoy</div>';
+            contenedor.innerHTML = '<div class="medicion-card">📋 No hay actividades cerradas hoy</div>';
         }
     }
 
@@ -627,7 +617,7 @@
         
         if (!medicionesHoy || medicionesHoy.length === 0) {
             document.getElementById('quimicosGastadosList').innerHTML = 
-                '<div class="tecnico-card">🧪 No hay registros de químicos gastados hoy</div>';
+                '<div class="medicion-card">🧪 No hay registros de químicos gastados hoy</div>';
             return;
         }
         
@@ -639,7 +629,7 @@
         
         if (!productos || productos.length === 0) {
             document.getElementById('quimicosGastadosList').innerHTML = 
-                '<div class="tecnico-card">🧪 No hay productos registrados en las mediciones de hoy</div>';
+                '<div class="medicion-card">🧪 No hay productos registrados en las mediciones de hoy</div>';
             return;
         }
         
@@ -729,7 +719,7 @@
         }
         
         if (urgentes.length === 0) {
-            contenedor.innerHTML = '<div class="tecnico-card">✅ No hay observaciones urgentes en las últimas 24h</div>';
+            contenedor.innerHTML = '<div class="medicion-card">✅ No hay observaciones urgentes en las últimas 24h</div>';
             return;
         }
         
@@ -787,8 +777,6 @@
             document.getElementById('dashboardPanel').classList.remove('oculto');
             await cargarCaches();
             await actualizarConsolaCompleta();
-            await cargarUltimasMediciones();
-            await cargarTecnicos();
             await cargarFiltrosTecnicos();
             await cargarJornadasUltimos7();
             await cargarMedicionesUltimos7();
@@ -798,54 +786,6 @@
             intervaloActualizacion = setInterval(actualizarConsolaCompleta, 30000);
         }
     };
-
-    // ========== ÚLTIMAS MEDICIONES ==========
-    async function cargarUltimasMediciones() {
-        const { data: mediciones, error } = await sb
-            .from('mediciones')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(5);
-        
-        const contenedor = document.getElementById('ultimasMediciones');
-        contenedor.innerHTML = '';
-        
-        if (error) {
-            contenedor.innerHTML = `<div class="medicion-card">Error: ${error.message}</div>`;
-            return;
-        }
-        
-        if (!mediciones || mediciones.length === 0) {
-            contenedor.innerHTML = '<div class="medicion-card">No hay mediciones registradas</div>';
-            return;
-        }
-        
-        mediciones.forEach(m => {
-            const div = document.createElement('div');
-            div.className = 'medicion-card';
-            div.innerHTML = `<strong>👤 ${cachePerfiles[m.tecnico_id]?.nick || '?'}</strong> · 🏊 ${cachePiscinas[m.piscina_id] || '?'}<br>
-                            🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
-                            📅 ${formatDate(m.created_at)}`;
-            contenedor.appendChild(div);
-        });
-    }
-
-    // ========== LISTADO DE TÉCNICOS ==========
-    async function cargarTecnicos() {
-        const { data } = await sb.from('perfiles').select('nick, nombre').eq('rol', 'tecnico').order('nick');
-        const contenedor = document.getElementById('tecnicosList');
-        contenedor.innerHTML = '';
-        if (!data || data.length === 0) {
-            contenedor.innerHTML = '<div class="tecnico-card">No hay técnicos</div>';
-            return;
-        }
-        data.forEach(t => {
-            const div = document.createElement('div');
-            div.className = 'tecnico-card';
-            div.innerHTML = `<strong>@${t.nick}</strong> · ${t.nombre || ''}`;
-            contenedor.appendChild(div);
-        });
-    }
 
     // ========== FILTROS ==========
     async function cargarFiltrosTecnicos() {
@@ -1124,11 +1064,12 @@
     // ========== EVENTOS ==========
     document.getElementById('btnRefreshConsola').onclick = actualizarConsolaCompleta;
     
-    document.getElementById('toggleTecnicos').addEventListener('click', () => {
-        const content = document.getElementById('tecnicosContent');
-        const flecha = document.querySelector('#toggleTecnicos .flecha');
+    // Acordeón para históricos (plegado por defecto)
+    document.getElementById('toggleHistorico').addEventListener('click', () => {
+        const content = document.getElementById('historicoContent');
+        const flecha = document.querySelector('#toggleHistorico .flecha');
         content.classList.toggle('oculto');
-        flecha.innerHTML = content.classList.contains('oculto') ? '▼' : '▲';
+        flecha.innerHTML = content.classList.contains('oculto') ? '▶' : '▼';
     });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
