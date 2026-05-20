@@ -60,7 +60,6 @@
         .btn-refresh { background: #2c7a4d; width: auto; padding: 6px 12px; font-size: 0.8rem; }
         .oculto { display: none; }
         
-        /* Resumen compacto */
         .resumen-compacto {
             display: flex;
             gap: 12px;
@@ -87,21 +86,6 @@
             margin-top: 4px;
         }
         
-        .estadisticas {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        .stat-card {
-            background: #f8fafc;
-            border-radius: 20px;
-            padding: 12px;
-            text-align: center;
-            border-left: 3px solid #0077b6;
-        }
-        .stat-value { font-size: 1.5rem; font-weight: 700; color: #1e4663; }
-        .stat-label { font-size: 0.7rem; color: #5b6e8c; margin-top: 4px; }
         .row-flex { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
         .grupo { flex: 1; min-width: 130px; }
         label { font-size: 0.7rem; font-weight: 600; color: #475569; margin-bottom: 3px; display: block; }
@@ -116,7 +100,6 @@
         .resultados-area { margin-top: 12px; max-height: 350px; overflow-y: auto; }
         @media (max-width: 700px) { .row-flex { flex-direction: column; } }
         
-        /* Pestañas tipo navegador */
         .browser-tabs {
             display: flex;
             gap: 3px;
@@ -124,6 +107,7 @@
             padding: 6px 10px 0 10px;
             border-radius: 14px 14px 0 0;
             border-bottom: 1px solid #e2e8f0;
+            flex-wrap: wrap;
         }
         .browser-tab {
             padding: 8px 16px;
@@ -132,7 +116,7 @@
             border-radius: 10px 10px 0 0;
             cursor: pointer;
             font-weight: 500;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #475569;
             transition: all 0.2s;
             width: auto;
@@ -166,15 +150,15 @@
             background: #e0f2fe;
             border-left: 3px solid #0284c7;
         }
+        .quimico-card {
+            background: #fef3c7;
+            border-left: 3px solid #d97706;
+        }
         .refresh-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
-        }
-        .timestamp {
-            font-size: 0.7rem;
-            color: #64748b;
         }
         .badge {
             display: inline-block;
@@ -212,7 +196,6 @@
 </head>
 <body>
 <div class="container">
-    <!-- Login -->
     <div id="loginPanel" class="card">
         <div class="card-header" style="cursor:default;">👔 Acceso Gerente</div>
         <input type="email" id="email" placeholder="Email" value="gerente@mipiscina.com">
@@ -250,8 +233,9 @@
             <div class="browser-tabs">
                 <button class="browser-tab active" data-tab="activos">👥 Técnicos activos</button>
                 <button class="browser-tab" data-tab="piscinas">🏊 Piscinas en trabajo</button>
-                <button class="browser-tab" data-tab="cerradas">📋 Actividades cerradas (hoy)</button>
-                <button class="browser-tab" data-tab="mensajes">⚠️ Observaciones urgentes</button>
+                <button class="browser-tab" data-tab="cerradas">📋 Actividades cerradas</button>
+                <button class="browser-tab" data-tab="quimicos">🧪 Químicos gastados hoy</button>
+                <button class="browser-tab" data-tab="mensajes">⚠️ Alertas</button>
             </div>
             
             <div id="tabActivos" class="browser-content">
@@ -264,6 +248,10 @@
             
             <div id="tabCerradas" class="browser-content oculto">
                 <div id="actividadesCerradasList" class="resultados-area"></div>
+            </div>
+            
+            <div id="tabQuimicos" class="browser-content oculto">
+                <div id="quimicosGastadosList" class="resultados-area"></div>
             </div>
             
             <div id="tabMensajes" class="browser-content oculto">
@@ -361,7 +349,6 @@
         const startHoy = hoy + 'T00:00:00';
         const endHoy = hoy + 'T23:59:59';
         
-        // Técnicos activos
         const { data: jornadasActivas } = await sb
             .from('jornadas')
             .select('tecnico_id')
@@ -373,7 +360,6 @@
         jornadasActivas?.forEach(j => tecnicosUnicos.add(j.tecnico_id));
         document.getElementById('resumenTecnicosActivos').innerText = tecnicosUnicos.size || 0;
         
-        // Piscinas activas
         const { data: trabajosActivos } = await sb
             .from('trabajos_piscina')
             .select('piscina_id')
@@ -385,7 +371,6 @@
         trabajosActivos?.forEach(t => piscinasUnicas.add(t.piscina_id));
         document.getElementById('resumenPiscinasActivas').innerText = piscinasUnicas.size || 0;
         
-        // Actividades cerradas hoy
         const { data: trabajosCerrados } = await sb
             .from('trabajos_piscina')
             .select('id')
@@ -442,18 +427,15 @@
             
             let estado = 'descanso';
             let estadoTexto = '💤 En descanso';
-            let destino = '';
             let desde = '';
             
             if (desplazamiento) {
                 estado = 'desplazamiento';
                 estadoTexto = `🚗 Desplazándose a ${cachePiscinas[desplazamiento.piscina_destino_id] || '?'}`;
-                destino = cachePiscinas[desplazamiento.piscina_destino_id];
                 desde = formatTime(desplazamiento.inicio);
             } else if (trabajo) {
                 estado = 'trabajo';
                 estadoTexto = `🏊 Trabajando en ${cachePiscinas[trabajo.piscina_id] || '?'}`;
-                destino = cachePiscinas[trabajo.piscina_id];
                 desde = formatTime(trabajo.inicio);
             }
             
@@ -461,7 +443,6 @@
                 ...tecnico,
                 estado,
                 estadoTexto,
-                destino,
                 desde,
                 jornadaInicio: formatTime(jornada.inicio)
             });
@@ -481,9 +462,9 @@
             div.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                     <strong>👤 ${t.nick}${t.nombre ? ` (${t.nombre})` : ''}</strong>
-                    <span class="badge ${badgeClass}" style="margin-top: 4px;">${t.estado === 'trabajo' ? 'TRABAJANDO' : (t.estado === 'desplazamiento' ? 'DESPLAZÁNDOSE' : 'DESCANSO')}</span>
+                    <span class="badge ${badgeClass}">${t.estado === 'trabajo' ? 'TRABAJANDO' : (t.estado === 'desplazamiento' ? 'DESPLAZÁNDOSE' : 'DESCANSO')}</span>
                 </div>
-                <div style="margin-top: 4px;">${t.estadoTexto}</div>
+                <div>${t.estadoTexto}</div>
                 <div style="font-size: 0.7rem; color: #5b6e8c; margin-top: 6px;">
                     🕒 Jornada: ${t.jornadaInicio}
                     ${t.desde ? ` · Actividad: ${t.desde}` : ''}
@@ -631,6 +612,86 @@
         }
     }
 
+    // ========== QUÍMICOS GASTADOS HOY ==========
+    async function cargarQuimicosGastadosHoy() {
+        const hoy = new Date().toISOString().slice(0,10);
+        const startHoy = hoy + 'T00:00:00';
+        const endHoy = hoy + 'T23:59:59';
+        
+        const { data: medicionesHoy } = await sb
+            .from('mediciones')
+            .select('id, created_at, piscina_id, tecnico_id')
+            .gte('created_at', startHoy)
+            .lte('created_at', endHoy)
+            .order('created_at', { ascending: false });
+        
+        if (!medicionesHoy || medicionesHoy.length === 0) {
+            document.getElementById('quimicosGastadosList').innerHTML = 
+                '<div class="tecnico-card">🧪 No hay registros de químicos gastados hoy</div>';
+            return;
+        }
+        
+        const medicionIds = medicionesHoy.map(m => m.id);
+        const { data: productos } = await sb
+            .from('productos_utilizados')
+            .select('*, medicion_id')
+            .in('medicion_id', medicionIds);
+        
+        if (!productos || productos.length === 0) {
+            document.getElementById('quimicosGastadosList').innerHTML = 
+                '<div class="tecnico-card">🧪 No hay productos registrados en las mediciones de hoy</div>';
+            return;
+        }
+        
+        const quimicosMap = new Map();
+        for (const prod of productos) {
+            const nombre = prod.producto_nombre;
+            const cantidad = prod.cantidad || 0;
+            const unidad = prod.unidad || 'unidad';
+            
+            if (!quimicosMap.has(nombre)) {
+                quimicosMap.set(nombre, { cantidad: 0, unidad: unidad, mediciones: [] });
+            }
+            const item = quimicosMap.get(nombre);
+            item.cantidad += cantidad;
+            
+            const medicion = medicionesHoy.find(m => m.id === prod.medicion_id);
+            if (medicion) {
+                item.mediciones.push({
+                    piscina: cachePiscinas[medicion.piscina_id] || '?',
+                    tecnico: cachePerfiles[medicion.tecnico_id]?.nick || '?',
+                    hora: formatTime(medicion.created_at)
+                });
+            }
+        }
+        
+        const contenedor = document.getElementById('quimicosGastadosList');
+        contenedor.innerHTML = '';
+        
+        const resumenDiv = document.createElement('div');
+        resumenDiv.className = 'medicion-card';
+        resumenDiv.style.background = '#e0f2e9';
+        resumenDiv.style.fontWeight = 'bold';
+        resumenDiv.innerHTML = `📊 RESUMEN TOTAL DE QUÍMICOS HOY<br>
+            ${Array.from(quimicosMap.entries()).map(([nombre, data]) => 
+                `🧪 ${nombre}: ${data.cantidad.toFixed(2)} ${data.unidad}`
+            ).join('<br>')}`;
+        contenedor.appendChild(resumenDiv);
+        
+        for (const [nombre, data] of quimicosMap) {
+            const div = document.createElement('div');
+            div.className = 'medicion-card quimico-card';
+            div.innerHTML = `
+                <strong>🧪 ${nombre}</strong> - Total: ${data.cantidad.toFixed(2)} ${data.unidad}
+                <div style="margin-top: 8px; font-size: 0.75rem; color: #5b6e8c;">
+                    📋 Usado en:
+                    ${data.mediciones.map(m => `<br>• 🏊 ${m.piscina} | 👤 ${m.tecnico} | 🕒 ${m.hora}`).join('')}
+                </div>
+            `;
+            contenedor.appendChild(div);
+        }
+    }
+
     // ========== MENSAJES URGENTES ==========
     async function cargarMensajesUrgentes() {
         const ayer = new Date();
@@ -686,13 +747,14 @@
         });
     }
 
-    // ========== ACTUALIZAR CONSOLA COMPLETA ==========
+    // ========== ACTUALIZAR CONSOLA ==========
     async function actualizarConsolaCompleta() {
         console.log("Actualizando consola...", new Date().toLocaleTimeString());
         await cargarResumenCompacto();
         await cargarTecnicosActivos();
         await cargarPiscinasEnTrabajo();
         await cargarActividadesCerradasHoy();
+        await cargarQuimicosGastadosHoy();
         await cargarMensajesUrgentes();
     }
 
