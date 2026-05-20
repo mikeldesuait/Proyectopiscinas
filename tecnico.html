@@ -170,6 +170,21 @@
     </div>
 
     <div id="dashboardPanel" class="oculto">
+        <!-- Header con información del técnico -->
+        <div class="card" style="background: linear-gradient(135deg, #0077b6 0%, #00a8e8 100%); color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;">👨‍🔧 Técnico</div>
+                    <div style="font-size: 1.5rem; font-weight: 700;" id="nombreTecnico">Cargando...</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;" id="emailTecnico"></div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 2rem;">🏊</div>
+                    <div style="font-size: 0.7rem; opacity: 0.8;">Aqua Garden</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Jornada laboral -->
         <div class="card">
             <div class="card-header" style="cursor:default;">🕒 Jornada laboral</div>
@@ -294,6 +309,26 @@
         if (piscina.telefono_contacto) html += `📞 ${piscina.telefono_contacto}<br>`;
         if (piscina.capacidad) html += `👥 Capacidad: ${piscina.capacidad} personas`;
         container.innerHTML = html;
+    }
+
+    // ========== INFO TÉCNICO ==========
+    async function cargarInfoTecnico() {
+        const { data: { user } } = await sb.auth.getUser();
+        if (user) {
+            const { data: perfil } = await sb
+                .from('perfiles')
+                .select('nick, nombre')
+                .eq('id', user.id)
+                .single();
+            
+            if (perfil) {
+                document.getElementById('nombreTecnico').innerHTML = `${perfil.nombre || perfil.nick} 👋`;
+                document.getElementById('emailTecnico').innerHTML = user.email;
+            } else {
+                document.getElementById('nombreTecnico').innerHTML = user.email.split('@')[0];
+                document.getElementById('emailTecnico').innerHTML = user.email;
+            }
+        }
     }
 
     // ========== RECUPERAR ESTADO DESPUÉS DE RECARGAR ==========
@@ -798,10 +833,12 @@
         return true;
     }
 
+    // Evento principal de login
     document.getElementById('btnLogin').onclick = async () => {
         if (await hacerLogin()) {
             document.getElementById('loginPanel').classList.add('oculto');
             document.getElementById('dashboardPanel').classList.remove('oculto');
+            await cargarInfoTecnico();
             await cargarPiscinas();
         }
     };
