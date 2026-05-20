@@ -612,39 +612,41 @@
     }
 
     async function llegadaPiscina() {
-        if (!desplazamientoActivo) return;
-        
-        const { error } = await sb.from('desplazamientos').update({ fin: new Date().toISOString() }).eq('id', desplazamientoActivo.id);
-        if (error) { 
-            mostrarMensaje(error.message, 'error'); 
-            return; 
-        }
-        desplazamientoActivo = null;
-        actualizarConsola();
-        mostrarMensaje("📍 Llegada a piscina registrada", 'exito');
+    if (!desplazamientoActivo) return;
+    
+    // Finalizar desplazamiento
+    const { error } = await sb.from('desplazamientos').update({ 
+        fin: new Date().toISOString() 
+    }).eq('id', desplazamientoActivo.id);
+    
+    if (error) { 
+        mostrarMensaje(error.message, 'error'); 
+        return; 
     }
-
-    // ========== ACTIVIDAD ==========
-    async function iniciarActividad() {
-        if (!jornadaActiva) { mostrarMensaje("Inicia la jornada primero", 'error'); return; }
-        if (!piscinaSeleccionadaId) { mostrarMensaje("Selecciona una piscina", 'error'); return; }
-        if (trabajoActivo) { mostrarMensaje("Ya hay una actividad activa", 'error'); return; }
-        
-        const { data, error } = await sb.from('trabajos_piscina').insert({
-            jornada_id: jornadaActiva.id,
-            piscina_id: piscinaSeleccionadaId,
-            tecnico_id: currentUserId,
-            inicio: new Date().toISOString()
-        }).select();
-        if (error) { 
-            mostrarMensaje(error.message, 'error'); 
-            return; 
-        }
-        trabajoActivo = data[0];
-        actualizarConsola();
-        mostrarMensaje("🏊 Actividad iniciada", 'exito');
-        await cargarMedicionesDeJornadaActiva();
+    
+    desplazamientoActivo = null;
+    
+    // 🆕 INICIAR ACTIVIDAD AUTOMÁTICAMENTE
+    const { data: trabajo, error: errTrabajo } = await sb.from('trabajos_piscina').insert({
+        jornada_id: jornadaActiva.id,
+        piscina_id: piscinaSeleccionadaId,
+        tecnico_id: currentUserId,
+        inicio: new Date().toISOString()
+    }).select();
+    
+    if (errTrabajo) { 
+        mostrarMensaje(errTrabajo.message, 'error'); 
+        return; 
     }
+    
+    trabajoActivo = trabajo[0];
+    
+    // Actualizar la consola (mostrará el formulario de medición automáticamente)
+    actualizarConsola();
+    
+    mostrarMensaje("📍 Llegada registrada. Actividad iniciada automáticamente.", 'exito');
+    await cargarMedicionesDeJornadaActiva();
+}
 
     async function finalizarActividad() {
         if (!trabajoActivo) return;
