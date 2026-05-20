@@ -28,7 +28,9 @@
             margin-bottom: 18px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
             border-left: 5px solid #0077b6;
             padding-left: 18px;
             color: #1e4663;
@@ -52,6 +54,8 @@
         .btn-pdf { background: #c2410c; }
         .btn-pdf:hover { background: #9a330a; }
         .btn-buscar { background: #475569; }
+        .btn-sync { background: #2c7a4d; }
+        .btn-sync:hover { background: #1f5e3a; }
         .oculto { display: none; }
         .estadisticas {
             display: grid;
@@ -71,15 +75,19 @@
         .row-flex { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
         .grupo { flex: 1; min-width: 150px; }
         label { font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 4px; display: block; }
-        .medicion-card, .jornada-card, .tecnico-card {
+        .medicion-card, .jornada-card, .tecnico-card, .evento-card {
             background: #f8fafc;
             border-radius: 20px;
             padding: 12px 16px;
             margin-bottom: 8px;
             border-left: 4px solid #0077b6;
         }
-        .resultados-area { margin-top: 16px; max-height: 400px; overflow-y: auto; }
-        .fecha-historico { font-size: 0.8rem; color: #5b6e8c; margin-bottom: 8px; }
+        .evento-card { border-left-color: #e67e22; }
+        .resultados-area { margin-top: 16px; max-height: 500px; overflow-y: auto; }
+        .selector-vista { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .vista-btn { background: #e2e8f0; color: #1e4663; }
+        .vista-btn.active { background: #0066cc; color: white; }
+        .top-buttons { display: flex; gap: 12px; align-items: center; }
         @media (max-width: 700px) { .row-flex { flex-direction: column; } }
     </style>
 </head>
@@ -98,11 +106,18 @@
     <div id="dashboardPanel" class="oculto">
         <!-- Estadísticas -->
         <div class="card">
-            <div class="card-header">📊 Resumen general</div>
+            <div class="card-header">
+                <span>📊 Resumen general</span>
+                <div class="top-buttons">
+                    <button id="btnSync" class="btn-sync">🔄 Sincronizar</button>
+                    <button id="btnLogout" style="background:#475569;">🚪 Salir</button>
+                </div>
+            </div>
             <div class="estadisticas">
                 <div class="stat-card"><div class="stat-value" id="totalTecnicos">0</div><div class="stat-label">Técnicos</div></div>
                 <div class="stat-card"><div class="stat-value" id="jornadasActivas">0</div><div class="stat-label">Jornadas activas hoy</div></div>
                 <div class="stat-card"><div class="stat-value" id="totalMediciones">0</div><div class="stat-label">Mediciones totales</div></div>
+                <div class="stat-card"><div class="stat-value" id="totalPiscinas">0</div><div class="stat-label">Piscinas</div></div>
             </div>
         </div>
 
@@ -112,39 +127,31 @@
             <div id="ultimasMediciones" class="resultados-area"></div>
         </div>
 
-        <!-- Listado de técnicos -->
+        <!-- Listado de técnicos y piscinas -->
         <div class="card">
-            <div class="card-header">👥 Técnicos</div>
-            <div id="tecnicosList" class="resultados-area"></div>
-        </div>
-
-        <!-- Histórico de jornadas -->
-        <div class="card">
-            <div class="card-header">📋 Histórico de jornadas</div>
+            <div class="card-header">👥 Técnicos y 🏊 Piscinas</div>
             <div class="row-flex">
-                <div class="grupo"><label>Fecha desde</label><input type="date" id="jornadaDesde"></div>
-                <div class="grupo"><label>Fecha hasta</label><input type="date" id="jornadaHasta"></div>
-                <div class="grupo"><label>Técnico</label><select id="filtroTecnicoJornadas"><option value="">Todos</option></select></div>
-                <button id="btnBuscarJornadas" class="btn-buscar">🔍 Buscar</button>
-                <button id="btnJornadasPDF" class="btn-pdf">📄 Descargar PDF</button>
+                <div class="grupo"><label>Filtrar por técnico</label><select id="filtroTecnico"><option value="">Todos los técnicos</option></select></div>
+                <div class="grupo"><label>Filtrar por piscina</label><select id="filtroPiscina"><option value="">Todas las piscinas</option></select></div>
             </div>
-            <div id="listaJornadas" class="resultados-area"></div>
         </div>
 
-        <!-- Histórico de mediciones -->
+        <!-- Selector de vista y fechas -->
         <div class="card">
-            <div class="card-header">📊 Histórico de mediciones</div>
-            <div class="row-flex">
-                <div class="grupo"><label>Fecha desde</label><input type="date" id="medicionDesde"></div>
-                <div class="grupo"><label>Fecha hasta</label><input type="date" id="medicionHasta"></div>
-                <div class="grupo"><label>Técnico</label><select id="filtroTecnicoMediciones"><option value="">Todos</option></select></div>
-                <button id="btnBuscarMediciones" class="btn-buscar">🔍 Buscar</button>
-                <button id="btnMedicionesPDF" class="btn-pdf">📄 Descargar PDF</button>
+            <div class="card-header">📋 Histórico general</div>
+            <div class="selector-vista">
+                <button id="vistaUnificadaBtn" class="vista-btn active">📅 Vista unificada (todo junto)</button>
+                <button id="vistaJornadasBtn" class="vista-btn">🕒 Solo jornadas</button>
+                <button id="vistaMedicionesBtn" class="vista-btn">📊 Solo mediciones</button>
             </div>
-            <div id="listaMediciones" class="resultados-area"></div>
+            <div class="row-flex">
+                <div class="grupo"><label>Fecha desde</label><input type="date" id="fechaDesde"></div>
+                <div class="grupo"><label>Fecha hasta</label><input type="date" id="fechaHasta"></div>
+                <button id="btnBuscar" class="btn-buscar">🔍 Buscar</button>
+                <button id="btnPDF" class="btn-pdf">📄 Descargar PDF</button>
+            </div>
+            <div id="listaHistorico" class="resultados-area"></div>
         </div>
-
-        <button id="btnLogout" style="background:#475569; margin-top:20px;">🚪 Cerrar sesión</button>
     </div>
 </div>
 
@@ -154,30 +161,62 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
-    let tecnicosMap = {}; // Para almacenar nombres de técnicos
+    let tecnicosMap = {};
+    let piscinasMap = {};
+    let vistaActual = 'unificada';
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
 
-    // Cargar todos los técnicos para usar en filtros y nombres
-    async function cargarTecnicosMap() {
-        const { data } = await sb.from('perfiles').select('id, nick, nombre').eq('rol', 'tecnico');
-        if (data) {
-            tecnicosMap = {};
-            data.forEach(t => { tecnicosMap[t.id] = t.nick || t.nombre; });
+    // Función de sincronización: recarga todos los datos
+    async function sincronizarTodo() {
+        document.getElementById('btnSync').innerHTML = '🔄 Sincronizando...';
+        document.getElementById('btnSync').disabled = true;
+        try {
+            await Promise.all([
+                cargarSelects(),
+                cargarEstadisticas(),
+                cargarUltimasMediciones(),
+                (async () => {
+                    if (document.getElementById('fechaDesde').value && document.getElementById('fechaHasta').value) {
+                        await cargarHistorico();
+                    }
+                })()
+            ]);
+        } catch (err) {
+            console.error("Error al sincronizar:", err);
+        } finally {
+            document.getElementById('btnSync').innerHTML = '🔄 Sincronizar';
+            document.getElementById('btnSync').disabled = false;
         }
-        return data || [];
     }
 
-    async function cargarSelectsTecnicos() {
-        const data = await cargarTecnicosMap();
-        const selectJ = document.getElementById('filtroTecnicoJornadas');
-        const selectM = document.getElementById('filtroTecnicoMediciones');
-        selectJ.innerHTML = '<option value="">Todos los técnicos</option>';
-        selectM.innerHTML = '<option value="">Todos los técnicos</option>';
-        if (data) data.forEach(t => {
-            selectJ.innerHTML += `<option value="${t.id}">${t.nick}</option>`;
-            selectM.innerHTML += `<option value="${t.id}">${t.nick}</option>`;
-        });
+    async function cargarSelects() {
+        // Cargar técnicos
+        const { data: tecnicos } = await sb.from('perfiles').select('id, nick').eq('rol', 'tecnico');
+        const selectTec = document.getElementById('filtroTecnico');
+        const currentTecValue = selectTec.value;
+        selectTec.innerHTML = '<option value="">Todos los técnicos</option>';
+        if (tecnicos) {
+            tecnicos.forEach(t => {
+                tecnicosMap[t.id] = t.nick;
+                selectTec.innerHTML += `<option value="${t.id}">${t.nick}</option>`;
+            });
+        }
+        if (currentTecValue && tecnicosMap[currentTecValue]) selectTec.value = currentTecValue;
+        
+        // Cargar piscinas
+        const { data: piscinas } = await sb.from('piscinas').select('id, nombre').order('nombre');
+        const selectPisc = document.getElementById('filtroPiscina');
+        const currentPiscValue = selectPisc.value;
+        selectPisc.innerHTML = '<option value="">Todas las piscinas</option>';
+        if (piscinas) {
+            piscinas.forEach(p => {
+                piscinasMap[p.id] = p.nombre;
+                selectPisc.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+            });
+        }
+        if (currentPiscValue && piscinasMap[currentPiscValue]) selectPisc.value = currentPiscValue;
+        document.getElementById('totalPiscinas').innerText = piscinas?.length || 0;
     }
 
     async function cargarEstadisticas() {
@@ -191,27 +230,21 @@
     }
 
     async function cargarUltimasMediciones() {
-        const { data, error } = await sb
-            .from('mediciones')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(5);
-        
+        const { data } = await sb.from('mediciones').select('*').order('created_at', { ascending: false }).limit(5);
         const container = document.getElementById('ultimasMediciones');
         container.innerHTML = '';
-        if (error) { container.innerHTML = `<div class="medicion-card">Error: ${error.message}</div>`; return; }
         if (!data || data.length === 0) { container.innerHTML = '<div class="medicion-card">No hay mediciones</div>'; return; }
         
         for (const m of data) {
-            let piscinaNombre = '?';
-            let tecnicoNombre = '?';
-            if (m.piscina_id) {
-                const { data: piscina } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
-                if (piscina) piscinaNombre = piscina.nombre;
+            let piscinaNombre = piscinasMap[m.piscina_id] || '?';
+            let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
+            if (!piscinasMap[m.piscina_id]) {
+                const { data: p } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
+                if (p) piscinaNombre = p.nombre;
             }
-            if (m.tecnico_id) {
-                const { data: perfil } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
-                if (perfil) tecnicoNombre = perfil.nick;
+            if (!tecnicosMap[m.tecnico_id]) {
+                const { data: t } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
+                if (t) tecnicoNombre = t.nick;
             }
             container.innerHTML += `
                 <div class="medicion-card">
@@ -222,142 +255,117 @@
         }
     }
 
-    async function cargarTecnicosList() {
-        const { data } = await sb.from('perfiles').select('nick, nombre').eq('rol', 'tecnico').order('nick');
-        const container = document.getElementById('tecnicosList');
-        container.innerHTML = '';
-        if (!data || data.length === 0) { container.innerHTML = '<div class="tecnico-card">No hay técnicos</div>'; return; }
-        data.forEach(t => { container.innerHTML += `<div class="tecnico-card"><strong>@${t.nick}</strong> · ${t.nombre || ''}</div>`; });
-    }
-
-    // JORNADAS
-    async function buscarJornadas() {
-        const desde = document.getElementById('jornadaDesde').value;
-        const hasta = document.getElementById('jornadaHasta').value;
+    async function cargarHistorico() {
+        const desde = document.getElementById('fechaDesde').value;
+        const hasta = document.getElementById('fechaHasta').value;
+        const tecnicoId = document.getElementById('filtroTecnico').value;
+        const piscinaId = document.getElementById('filtroPiscina').value;
+        
         if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
         const start = new Date(`${desde}T00:00:00`).toISOString();
         const end = new Date(`${hasta}T23:59:59`).toISOString();
-        const tecnicoId = document.getElementById('filtroTecnicoJornadas').value;
         
-        let query = sb.from('jornadas').select('*').gte('inicio', start).lte('inicio', end);
-        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
-        const { data } = await query.order('inicio', { ascending: false });
+        let eventos = [];
         
-        const container = document.getElementById('listaJornadas');
-        container.innerHTML = '';
-        if (!data || data.length === 0) { container.innerHTML = '<div class="jornada-card">No hay jornadas</div>'; return; }
-        
-        for (const j of data) {
-            let tecnicoNombre = '?';
-            if (j.tecnico_id && tecnicosMap[j.tecnico_id]) {
-                tecnicoNombre = tecnicosMap[j.tecnico_id];
-            } else if (j.tecnico_id) {
-                const { data: perfil } = await sb.from('perfiles').select('nick').eq('id', j.tecnico_id).single();
-                if (perfil) tecnicoNombre = perfil.nick;
-            }
-            const inicio = new Date(j.inicio);
-            const fin = j.fin ? new Date(j.fin) : null;
-            let duracion = '';
-            if (fin) { const diff = fin - inicio; const horas = Math.floor(diff/3600000); const mins = Math.floor((diff%3600000)/60000); duracion = ` (${horas}h ${mins}m)`; }
-            container.innerHTML += `
-                <div class="jornada-card">
-                    <strong>👤 ${tecnicoNombre}</strong><br>
-                    📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}${duracion}
-                </div>`;
-        }
-        window.jornadasData = data;
-    }
-
-    async function descargarJornadasPDF() {
-        if (!window.jornadasData || window.jornadasData.length === 0) { alert("Primero busca jornadas"); return; }
-        const desde = document.getElementById('jornadaDesde').value;
-        const hasta = document.getElementById('jornadaHasta').value;
-        const tempDiv = document.createElement('div');
-        tempDiv.style.padding = '20px';
-        tempDiv.style.fontFamily = 'system-ui';
-        tempDiv.innerHTML = `<h2>Jornadas (${desde} a ${hasta})</h2>`;
-        
-        for (const j of window.jornadasData) {
-            let tecnicoNombre = tecnicosMap[j.tecnico_id] || '?';
-            const inicio = new Date(j.inicio);
-            const fin = j.fin ? new Date(j.fin) : null;
-            let duracion = '';
-            if (fin) { const diff = fin - inicio; const horas = Math.floor(diff/3600000); const mins = Math.floor((diff%3600000)/60000); duracion = ` (${horas}h ${mins}m)`; }
-            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
-                                    <strong>👤 ${tecnicoNombre}</strong><br>
-                                    📅 ${inicio.toLocaleString()} → ${fin ? fin.toLocaleString() : '—'}${duracion}
-                                   </div>`;
-        }
-        html2pdf().set({ filename: `jornadas_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
-    }
-
-    // MEDICIONES
-    async function buscarMediciones() {
-        const desde = document.getElementById('medicionDesde').value;
-        const hasta = document.getElementById('medicionHasta').value;
-        if (!desde || !hasta) { alert("Selecciona rango de fechas"); return; }
-        const start = new Date(`${desde}T00:00:00`).toISOString();
-        const end = new Date(`${hasta}T23:59:59`).toISOString();
-        const tecnicoId = document.getElementById('filtroTecnicoMediciones').value;
-        
-        let query = sb.from('mediciones').select('*').gte('created_at', start).lte('created_at', end);
-        if (tecnicoId) query = query.eq('tecnico_id', tecnicoId);
-        const { data } = await query.order('created_at', { ascending: false });
-        
-        const container = document.getElementById('listaMediciones');
-        container.innerHTML = '';
-        if (!data || data.length === 0) { container.innerHTML = '<div class="medicion-card">No hay mediciones</div>'; return; }
-        
-        for (const m of data) {
-            let piscinaNombre = '?';
-            let tecnicoNombre = '?';
-            if (m.piscina_id) {
-                const { data: piscina } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
-                if (piscina) piscinaNombre = piscina.nombre;
-            }
-            if (m.tecnico_id) {
-                if (tecnicosMap[m.tecnico_id]) {
-                    tecnicoNombre = tecnicosMap[m.tecnico_id];
-                } else {
-                    const { data: perfil } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
-                    if (perfil) tecnicoNombre = perfil.nick;
+        if (vistaActual === 'unificada' || vistaActual === 'jornadas') {
+            let queryJ = sb.from('jornadas').select('*').gte('inicio', start).lte('inicio', end);
+            if (tecnicoId) queryJ = queryJ.eq('tecnico_id', tecnicoId);
+            const { data: jornadas } = await queryJ.order('inicio', { ascending: false });
+            if (jornadas) {
+                for (const j of jornadas) {
+                    let tecnicoNombre = tecnicosMap[j.tecnico_id] || '?';
+                    if (!tecnicosMap[j.tecnico_id]) {
+                        const { data: t } = await sb.from('perfiles').select('nick').eq('id', j.tecnico_id).single();
+                        if (t) tecnicoNombre = t.nick;
+                    }
+                    eventos.push({
+                        fecha: new Date(j.inicio),
+                        tipo: 'jornada',
+                        titulo: `Jornada de ${tecnicoNombre}`,
+                        detalle: `Inicio: ${formatDate(j.inicio)} | Fin: ${formatDate(j.fin)}`
+                    });
                 }
             }
+        }
+        
+        if (vistaActual === 'unificada' || vistaActual === 'mediciones') {
+            let queryM = sb.from('mediciones').select('*').gte('created_at', start).lte('created_at', end);
+            if (tecnicoId) queryM = queryM.eq('tecnico_id', tecnicoId);
+            if (piscinaId) queryM = queryM.eq('piscina_id', piscinaId);
+            const { data: mediciones } = await queryM.order('created_at', { ascending: false });
+            if (mediciones) {
+                for (const m of mediciones) {
+                    let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
+                    let piscinaNombre = piscinasMap[m.piscina_id] || '?';
+                    if (!tecnicosMap[m.tecnico_id]) {
+                        const { data: t } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
+                        if (t) tecnicoNombre = t.nick;
+                    }
+                    if (!piscinasMap[m.piscina_id]) {
+                        const { data: p } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
+                        if (p) piscinaNombre = p.nombre;
+                    }
+                    eventos.push({
+                        fecha: new Date(m.created_at),
+                        tipo: 'medicion',
+                        titulo: `Medición en ${piscinaNombre} por ${tecnicoNombre}`,
+                        detalle: `🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || 'Sin observaciones'}`
+                    });
+                }
+            }
+        }
+        
+        eventos.sort((a, b) => b.fecha - a.fecha);
+        
+        const container = document.getElementById('listaHistorico');
+        container.innerHTML = '';
+        if (eventos.length === 0) {
+            container.innerHTML = '<div class="evento-card">No hay eventos en el rango seleccionado</div>';
+            return;
+        }
+        
+        for (const ev of eventos) {
+            const cardClass = ev.tipo === 'jornada' ? 'jornada-card' : 'medicion-card';
             container.innerHTML += `
-                <div class="medicion-card">
-                    <strong>👤 ${tecnicoNombre}</strong> · 🏊 ${piscinaNombre}<br>
-                    🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
-                    📝 ${m.observaciones || 'Sin observaciones'}<br>
-                    📅 ${formatDate(m.created_at)}
+                <div class="${cardClass}">
+                    <strong>📅 ${ev.fecha.toLocaleString()} - ${ev.tipo === 'jornada' ? '🕒' : '📊'} ${ev.titulo}</strong><br>
+                    ${ev.detalle}
                 </div>`;
         }
-        window.medicionesData = data;
+        window.eventosActuales = eventos;
     }
 
-    async function descargarMedicionesPDF() {
-        if (!window.medicionesData || window.medicionesData.length === 0) { alert("Primero busca mediciones"); return; }
-        const desde = document.getElementById('medicionDesde').value;
-        const hasta = document.getElementById('medicionHasta').value;
+    async function descargarPDF() {
+        if (!window.eventosActuales || window.eventosActuales.length === 0) { alert("Primero busca datos"); return; }
+        const desde = document.getElementById('fechaDesde').value;
+        const hasta = document.getElementById('fechaHasta').value;
+        const tecnicoNombre = document.getElementById('filtroTecnico').selectedOptions[0]?.text || 'Todos';
+        const piscinaNombre = document.getElementById('filtroPiscina').selectedOptions[0]?.text || 'Todas';
+        
         const tempDiv = document.createElement('div');
         tempDiv.style.padding = '20px';
         tempDiv.style.fontFamily = 'system-ui';
-        tempDiv.innerHTML = `<h2>Mediciones (${desde} a ${hasta})</h2>`;
+        tempDiv.innerHTML = `<h2>Histórico (${desde} a ${hasta})</h2>
+                            <p>Técnico: ${tecnicoNombre} | Piscina: ${piscinaNombre} | Vista: ${vistaActual === 'unificada' ? 'Unificada' : (vistaActual === 'jornadas' ? 'Jornadas' : 'Mediciones')}</p>`;
         
-        for (const m of window.medicionesData) {
-            let piscinaNombre = '?';
-            let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
-            if (m.piscina_id) {
-                const { data: piscina } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
-                if (piscina) piscinaNombre = piscina.nombre;
-            }
-            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;">
-                                    <strong>👤 ${tecnicoNombre}</strong> · 🏊 ${piscinaNombre}<br>
-                                    🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
-                                    📝 ${m.observaciones || ''}<br>
-                                    📅 ${formatDate(m.created_at)}
+        for (const ev of window.eventosActuales) {
+            tempDiv.innerHTML += `<div style="border-left:4px solid ${ev.tipo === 'jornada' ? '#0077b6' : '#e67e22'}; margin:10px 0; padding:10px;">
+                                    <strong>📅 ${ev.fecha.toLocaleString()}</strong><br>
+                                    <strong>${ev.tipo === 'jornada' ? '🕒 Jornada' : '📊 Medición'}</strong><br>
+                                    ${ev.detalle.replace(/<br>/g, '\n')}
                                    </div>`;
         }
-        html2pdf().set({ filename: `mediciones_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
+        html2pdf().set({ filename: `historico_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
+    }
+
+    function setVista(vista) {
+        vistaActual = vista;
+        document.getElementById('vistaUnificadaBtn').classList.toggle('active', vista === 'unificada');
+        document.getElementById('vistaJornadasBtn').classList.toggle('active', vista === 'jornadas');
+        document.getElementById('vistaMedicionesBtn').classList.toggle('active', vista === 'mediciones');
+        if (document.getElementById('fechaDesde').value && document.getElementById('fechaHasta').value) {
+            cargarHistorico();
+        }
     }
 
     // Login
@@ -374,18 +382,25 @@
             currentUser = data.user;
             document.getElementById('loginPanel').classList.add('oculto');
             document.getElementById('dashboardPanel').classList.remove('oculto');
-            await cargarSelectsTecnicos();
+            await cargarSelects();
             await cargarEstadisticas();
             await cargarUltimasMediciones();
-            await cargarTecnicosList();
+            const hoy = new Date();
+            const hace7 = new Date();
+            hace7.setDate(hoy.getDate() - 7);
+            document.getElementById('fechaDesde').value = hace7.toISOString().slice(0,10);
+            document.getElementById('fechaHasta').value = hoy.toISOString().slice(0,10);
+            await cargarHistorico();
         } catch (err) { errorDiv.innerText = err.message; }
     };
 
+    document.getElementById('btnSync').onclick = sincronizarTodo;
     document.getElementById('btnLogout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
-    document.getElementById('btnBuscarJornadas').onclick = buscarJornadas;
-    document.getElementById('btnJornadasPDF').onclick = descargarJornadasPDF;
-    document.getElementById('btnBuscarMediciones').onclick = buscarMediciones;
-    document.getElementById('btnMedicionesPDF').onclick = descargarMedicionesPDF;
+    document.getElementById('btnBuscar').onclick = cargarHistorico;
+    document.getElementById('btnPDF').onclick = descargarPDF;
+    document.getElementById('vistaUnificadaBtn').onclick = () => setVista('unificada');
+    document.getElementById('vistaJornadasBtn').onclick = () => setVista('jornadas');
+    document.getElementById('vistaMedicionesBtn').onclick = () => setVista('mediciones');
 </script>
 </body>
 </html>
