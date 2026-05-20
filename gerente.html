@@ -256,6 +256,7 @@
             font-size: 0.65rem;
             padding: 4px;
             margin-top: 6px;
+            width: 100%;
         }
         
         .form-ausencia {
@@ -263,6 +264,14 @@
             padding: 16px;
             border-radius: 16px;
             margin-bottom: 16px;
+        }
+        
+        .mensaje-error {
+            color: #dc2626;
+            background: #fee2e2;
+            padding: 12px;
+            border-radius: 12px;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -302,7 +311,7 @@
                 <button id="btnRefreshConsola" class="btn-refresh">🔄 Actualizar</button>
             </div>
             
-            <div class="browser-tabs">
+            <div class="browser-tabs" id="supervisionTabs">
                 <button class="browser-tab active" data-tab="activos">👥 Técnicos activos</button>
                 <button class="browser-tab" data-tab="piscinas">🏊 Piscinas en trabajo</button>
                 <button class="browser-tab" data-tab="cerradas">📋 Actividades cerradas</button>
@@ -313,19 +322,15 @@
             <div id="tabActivos" class="browser-content">
                 <div id="tecnicosActivosList" class="resultados-area"></div>
             </div>
-            
             <div id="tabPiscinas" class="browser-content oculto">
                 <div id="piscinasTrabajoList" class="resultados-area"></div>
             </div>
-            
             <div id="tabCerradas" class="browser-content oculto">
                 <div id="actividadesCerradasList" class="resultados-area"></div>
             </div>
-            
             <div id="tabQuimicos" class="browser-content oculto">
                 <div id="quimicosGastadosList" class="resultados-area"></div>
             </div>
-            
             <div id="tabMensajes" class="browser-content oculto">
                 <div id="mensajesUrgentesList" class="resultados-area"></div>
             </div>
@@ -335,23 +340,22 @@
         <div class="card">
             <div class="card-header" style="cursor:default;">👔 Gestión de personal</div>
             
-            <div class="browser-tabs">
+            <div class="browser-tabs" id="personalTabs">
                 <button class="browser-tab active" data-tab="personal-tecnicos">👥 Datos del técnico</button>
                 <button class="browser-tab" data-tab="personal-disponibilidad">📅 Disponibilidad semanal</button>
                 <button class="browser-tab" data-tab="personal-vacaciones">🏖️ Vacaciones y ausencias</button>
             </div>
             
-            <!-- Pestaña 1: Datos del técnico -->
             <div id="tabPersonalTecnicos" class="browser-content">
                 <div class="tecnico-selector">
                     <select id="selectorTecnicoPersonal">
                         <option value="">Selecciona un técnico...</option>
                     </select>
+                    <button id="btnCargarDatosPersonal" class="btn-info">📊 Cargar datos</button>
                 </div>
                 <div id="datosTecnicoHoy" class="resultados-area"></div>
             </div>
             
-            <!-- Pestaña 2: Disponibilidad semanal -->
             <div id="tabPersonalDisponibilidad" class="browser-content oculto">
                 <div class="tecnico-selector">
                     <select id="selectorTecnicoDisponibilidad">
@@ -366,12 +370,12 @@
                 </div>
             </div>
             
-            <!-- Pestaña 3: Vacaciones y ausencias -->
             <div id="tabPersonalVacaciones" class="browser-content oculto">
                 <div class="tecnico-selector">
                     <select id="selectorTecnicoVacaciones">
                         <option value="">Selecciona un técnico...</option>
                     </select>
+                    <button id="btnCargarAusencias" class="btn-info">📋 Cargar datos</button>
                 </div>
                 
                 <div class="form-ausencia">
@@ -470,25 +474,33 @@
         const { data: perfiles } = await sb.from('perfiles').select('id, nick, nombre, rol');
         perfiles?.forEach(p => cachePerfiles[p.id] = { nick: p.nick, nombre: p.nombre, rol: p.rol });
         
-        // Cargar selectores de técnicos
+        await cargarSelectoresTecnicos();
+    }
+    
+    async function cargarSelectoresTecnicos() {
         const tecnicos = Object.values(cachePerfiles).filter(p => p.rol === 'tecnico');
         const selectores = ['selectorTecnicoPersonal', 'selectorTecnicoDisponibilidad', 'selectorTecnicoVacaciones'];
-        selectores.forEach(id => {
+        
+        for (const id of selectores) {
             const select = document.getElementById(id);
             if (select) {
+                const valorActual = select.value;
                 select.innerHTML = '<option value="">Selecciona un técnico...</option>';
                 tecnicos.forEach(t => {
                     select.innerHTML += `<option value="${t.id}">${t.nick}${t.nombre ? ` - ${t.nombre}` : ''}</option>`;
                 });
+                if (valorActual && tecnicos.some(t => t.id === valorActual)) {
+                    select.value = valorActual;
+                }
             }
-        });
+        }
     }
 
     // ========== DATOS DEL TÉCNICO HOY ==========
     async function cargarDatosTecnicoHoy() {
         const tecnicoId = document.getElementById('selectorTecnicoPersonal').value;
-        if (!tecnicoId) {
-            document.getElementById('datosTecnicoHoy').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico</div>';
+        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
+            document.getElementById('datosTecnicoHoy').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
             return;
         }
         
@@ -496,93 +508,95 @@
         const startHoy = hoy + 'T00:00:00';
         const endHoy = hoy + 'T23:59:59';
         
-        const { data: jornada } = await sb
-            .from('jornadas')
-            .select('*')
-            .eq('tecnico_id', tecnicoId)
-            .gte('inicio', startHoy)
-            .lte('inicio', endHoy)
-            .maybeSingle();
-        
-        const { data: trabajos } = await sb
-            .from('trabajos_piscina')
-            .select('*, piscina_id')
-            .eq('tecnico_id', tecnicoId)
-            .gte('inicio', startHoy)
-            .lte('inicio', endHoy);
-        
-        const { data: mediciones } = await sb
-            .from('mediciones')
-            .select('*')
-            .eq('tecnico_id', tecnicoId)
-            .gte('created_at', startHoy)
-            .lte('created_at', endHoy);
-        
-        const { data: desplazamientos } = await sb
-            .from('desplazamientos')
-            .select('*')
-            .eq('tecnico_id', tecnicoId)
-            .gte('inicio', startHoy)
-            .lte('inicio', endHoy);
-        
-        const tecnico = cachePerfiles[tecnicoId];
-        
-        let html = `<div class="medicion-card" style="background: #e0f2fe;">
-            <strong>👤 ${tecnico?.nick}${tecnico?.nombre ? ` (${tecnico.nombre})` : ''}</strong>
-            <div>📅 Resumen de hoy (${hoy})</div>
-        </div>`;
-        
-        if (jornada) {
-            const inicio = new Date(jornada.inicio);
-            const fin = jornada.fin ? new Date(jornada.fin) : null;
-            html += `<div class="medicion-card">
-                <strong>🕒 Jornada laboral</strong><br>
-                Inicio: ${inicio.toLocaleTimeString()}${fin ? ` · Fin: ${fin.toLocaleTimeString()}` : ' · En curso'}
+        try {
+            const { data: jornada } = await sb
+                .from('jornadas')
+                .select('*')
+                .eq('tecnico_id', tecnicoId)
+                .gte('inicio', startHoy)
+                .lte('inicio', endHoy)
+                .maybeSingle();
+            
+            const { data: trabajos } = await sb
+                .from('trabajos_piscina')
+                .select('*, piscina_id')
+                .eq('tecnico_id', tecnicoId)
+                .gte('inicio', startHoy)
+                .lte('inicio', endHoy);
+            
+            const { data: mediciones } = await sb
+                .from('mediciones')
+                .select('*')
+                .eq('tecnico_id', tecnicoId)
+                .gte('created_at', startHoy)
+                .lte('created_at', endHoy);
+            
+            const { data: desplazamientos } = await sb
+                .from('desplazamientos')
+                .select('*')
+                .eq('tecnico_id', tecnicoId)
+                .gte('inicio', startHoy)
+                .lte('inicio', endHoy);
+            
+            const tecnico = cachePerfiles[tecnicoId];
+            
+            let html = `<div class="medicion-card" style="background: #e0f2fe;">
+                <strong>👤 ${tecnico?.nick}${tecnico?.nombre ? ` (${tecnico.nombre})` : ''}</strong>
+                <div>📅 Resumen de hoy (${hoy})</div>
             </div>`;
-        } else {
-            html += `<div class="medicion-card">⚠️ No ha iniciado jornada hoy</div>`;
+            
+            if (jornada) {
+                const inicio = new Date(jornada.inicio);
+                const fin = jornada.fin ? new Date(jornada.fin) : null;
+                html += `<div class="medicion-card"><strong>🕒 Jornada laboral</strong><br>Inicio: ${inicio.toLocaleTimeString()}${fin ? ` · Fin: ${fin.toLocaleTimeString()}` : ' · En curso'}</div>`;
+            } else {
+                html += `<div class="medicion-card">⚠️ No ha iniciado jornada hoy</div>`;
+            }
+            
+            if (trabajos && trabajos.length > 0) {
+                html += `<div class="medicion-card"><strong>🏊 Trabajos realizados (${trabajos.length})</strong><br>`;
+                trabajos.forEach(t => {
+                    const inicio = new Date(t.inicio);
+                    const fin = t.fin ? new Date(t.fin) : null;
+                    html += `• ${cachePiscinas[t.piscina_id] || '?'}: ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : 'En curso'}<br>`;
+                });
+                html += `</div>`;
+            }
+            
+            if (mediciones && mediciones.length > 0) {
+                html += `<div class="medicion-card"><strong>🧪 Mediciones realizadas (${mediciones.length})</strong><br>`;
+                mediciones.forEach(m => {
+                    html += `• ${cachePiscinas[m.piscina_id] || '?'}: Cloro ${m.cloro} | pH ${m.ph} | ${m.temperatura}°C<br>`;
+                });
+                html += `</div>`;
+            }
+            
+            if (desplazamientos && desplazamientos.length > 0) {
+                html += `<div class="medicion-card"><strong>🚗 Desplazamientos (${desplazamientos.length})</strong><br>`;
+                desplazamientos.forEach(d => {
+                    const inicio = new Date(d.inicio);
+                    const fin = d.fin ? new Date(d.fin) : null;
+                    html += `• Hacia ${cachePiscinas[d.piscina_destino_id] || '?'}: ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : 'En curso'}<br>`;
+                });
+                html += `</div>`;
+            }
+            
+            if ((!trabajos || trabajos.length === 0) && (!mediciones || mediciones.length === 0) && (!desplazamientos || desplazamientos.length === 0)) {
+                html += `<div class="medicion-card">📋 No hay actividad registrada hoy</div>`;
+            }
+            
+            document.getElementById('datosTecnicoHoy').innerHTML = html;
+        } catch (error) {
+            console.error("Error:", error);
+            document.getElementById('datosTecnicoHoy').innerHTML = `<div class="mensaje-error">❌ Error al cargar datos: ${error.message}</div>`;
         }
-        
-        if (trabajos && trabajos.length > 0) {
-            html += `<div class="medicion-card"><strong>🏊 Trabajos realizados (${trabajos.length})</strong><br>`;
-            trabajos.forEach(t => {
-                const inicio = new Date(t.inicio);
-                const fin = t.fin ? new Date(t.fin) : null;
-                html += `• ${cachePiscinas[t.piscina_id] || '?'}: ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : 'En curso'}<br>`;
-            });
-            html += `</div>`;
-        }
-        
-        if (mediciones && mediciones.length > 0) {
-            html += `<div class="medicion-card"><strong>🧪 Mediciones realizadas (${mediciones.length})</strong><br>`;
-            mediciones.forEach(m => {
-                html += `• ${cachePiscinas[m.piscina_id] || '?'}: Cloro ${m.cloro} | pH ${m.ph} | ${m.temperatura}°C<br>`;
-            });
-            html += `</div>`;
-        }
-        
-        if (desplazamientos && desplazamientos.length > 0) {
-            html += `<div class="medicion-card"><strong>🚗 Desplazamientos (${desplazamientos.length})</strong><br>`;
-            desplazamientos.forEach(d => {
-                const inicio = new Date(d.inicio);
-                const fin = d.fin ? new Date(d.fin) : null;
-                html += `• Hacia ${cachePiscinas[d.piscina_destino_id] || '?'}: ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : 'En curso'}<br>`;
-            });
-            html += `</div>`;
-        }
-        
-        if ((!trabajos || trabajos.length === 0) && (!mediciones || mediciones.length === 0) && (!desplazamientos || desplazamientos.length === 0)) {
-            html += `<div class="medicion-card">📋 No hay actividad registrada hoy</div>`;
-        }
-        
-        document.getElementById('datosTecnicoHoy').innerHTML = html;
     }
 
     // ========== DISPONIBILIDAD SEMANAL ==========
     async function cargarDisponibilidadSemanal() {
         const tecnicoId = document.getElementById('selectorTecnicoDisponibilidad').value;
-        if (!tecnicoId) {
-            document.getElementById('calendarioDisponibilidad').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico</div>';
+        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
+            document.getElementById('calendarioDisponibilidad').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
             return;
         }
         
@@ -622,13 +636,12 @@
         diasSemana.forEach((dia, idx) => {
             const fechaStr = formatDateYMD(dia);
             const tipo = disponibilidadActual[fechaStr] || 'trabajo';
-            let claseTipo = tipo;
             
             html += `
-                <div class="dia-calendario ${claseTipo}">
+                <div class="dia-calendario ${tipo}">
                     <div class="dia-nombre">${nombresDias[idx]}</div>
                     <div class="dia-numero">${dia.getDate()}</div>
-                    <select class="tipo-select" data-fecha="${fechaStr}" style="width: 100%; font-size: 0.65rem; padding: 4px;">
+                    <select class="tipo-select" data-fecha="${fechaStr}">
                         <option value="trabajo" ${tipo === 'trabajo' ? 'selected' : ''}>✅ Trabajo</option>
                         <option value="descanso" ${tipo === 'descanso' ? 'selected' : ''}>💤 Descanso</option>
                         <option value="vacaciones" ${tipo === 'vacaciones' ? 'selected' : ''}>🏖️ Vacaciones</option>
@@ -644,7 +657,6 @@
             select.addEventListener('change', (e) => {
                 const fecha = e.target.dataset.fecha;
                 disponibilidadActual[fecha] = e.target.value;
-                // Actualizar clase visual
                 const parent = e.target.closest('.dia-calendario');
                 parent.className = `dia-calendario ${e.target.value}`;
             });
@@ -653,11 +665,12 @@
     
     async function guardarDisponibilidad() {
         const tecnicoId = document.getElementById('selectorTecnicoDisponibilidad').value;
-        if (!tecnicoId) {
-            alert("Selecciona un técnico");
+        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
+            alert("❌ Selecciona un técnico válido");
             return;
         }
         
+        let guardados = 0;
         for (const [fecha, tipo] of Object.entries(disponibilidadActual)) {
             const { error } = await sb
                 .from('disponibilidad_tecnicos')
@@ -668,10 +681,10 @@
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'tecnico_id, fecha' });
             
-            if (error) console.error("Error guardando:", error);
+            if (!error) guardados++;
         }
         
-        alert("✅ Disponibilidad guardada correctamente");
+        alert(`✅ ${guardados} días guardados correctamente`);
         await cargarDisponibilidadSemanal();
     }
 
@@ -680,8 +693,8 @@
         const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
         const contenedor = document.getElementById('listaAusencias');
         
-        if (!tecnicoId) {
-            contenedor.innerHTML = '<div class="medicion-card">👈 Selecciona un técnico</div>';
+        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
+            contenedor.innerHTML = '<div class="medicion-card">👈 Selecciona un técnico válido</div>';
             return;
         }
         
@@ -708,7 +721,7 @@
             const hoy = new Date();
             
             if (vacaciones && vacaciones.length > 0) {
-                html += `<div class="medicion-card" style="background: #e0e7ff; margin-bottom: 12px;"><strong>🏖️ VACACIONES</strong></div>`;
+                html += `<div class="medicion-card" style="background: #e0e7ff; margin-bottom: 12px;"><strong>🏖️ VACACIONES (${vacaciones.length})</strong></div>`;
                 for (const v of vacaciones) {
                     const fechaFin = new Date(v.fecha_fin);
                     const esPasada = fechaFin < hoy;
@@ -729,7 +742,7 @@
             }
             
             if (incidencias && incidencias.length > 0) {
-                html += `<div class="medicion-card" style="background: #fee2e2; margin-top: 12px; margin-bottom: 12px;"><strong>📋 INCIDENCIAS</strong></div>`;
+                html += `<div class="medicion-card" style="background: #fee2e2; margin-top: 12px; margin-bottom: 12px;"><strong>📋 INCIDENCIAS (${incidencias.length})</strong></div>`;
                 for (const i of incidencias) {
                     const tipoTexto = {
                         'baja_medica': '🩺 Baja médica',
@@ -762,9 +775,14 @@
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     if (confirm("¿Eliminar esta solicitud de vacaciones?")) {
-                        await sb.from('vacaciones_tecnicos').delete().eq('id', btn.dataset.id);
-                        await cargarAusenciasTecnico();
-                        await cargarDisponibilidadSemanal();
+                        const { error } = await sb.from('vacaciones_tecnicos').delete().eq('id', btn.dataset.id);
+                        if (error) {
+                            alert("Error: " + error.message);
+                        } else {
+                            alert("✅ Vacación eliminada");
+                            await cargarAusenciasTecnico();
+                            await cargarDisponibilidadSemanal();
+                        }
                     }
                 });
             });
@@ -773,23 +791,29 @@
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     if (confirm("¿Eliminar esta incidencia?")) {
-                        await sb.from('incidencias_tecnicos').delete().eq('id', btn.dataset.id);
-                        await cargarAusenciasTecnico();
-                        await cargarDisponibilidadSemanal();
+                        const { error } = await sb.from('incidencias_tecnicos').delete().eq('id', btn.dataset.id);
+                        if (error) {
+                            alert("Error: " + error.message);
+                        } else {
+                            alert("✅ Incidencia eliminada");
+                            await cargarAusenciasTecnico();
+                            await cargarDisponibilidadSemanal();
+                        }
                     }
                 });
             });
             
         } catch (error) {
             console.error("Error:", error);
-            contenedor.innerHTML = `<div class="medicion-card" style="color:red;">❌ Error: ${error.message}</div>`;
+            contenedor.innerHTML = `<div class="mensaje-error">❌ Error: ${error.message}</div>`;
         }
     }
     
     async function agregarAusencia() {
         const tecnicoId = document.getElementById('selectorTecnicoVacaciones').value;
-        if (!tecnicoId) {
-            alert("Selecciona un técnico");
+        
+        if (!tecnicoId || tecnicoId === 'undefined' || tecnicoId === '') {
+            alert("❌ Selecciona un técnico válido primero");
             return;
         }
         
@@ -799,12 +823,18 @@
         const observaciones = document.getElementById('nuevaAusenciaObs').value;
         
         if (!inicio || !fin) {
-            alert("Selecciona fechas de inicio y fin");
+            alert("❌ Selecciona fechas de inicio y fin");
             return;
         }
         
         const fechaInicio = new Date(inicio);
         const fechaFin = new Date(fin);
+        
+        if (fechaInicio > fechaFin) {
+            alert("❌ La fecha de inicio no puede ser mayor que la fecha de fin");
+            return;
+        }
+        
         const diffDays = Math.ceil((fechaFin - fechaInicio) / (1000 * 60 * 60 * 24)) + 1;
         
         try {
@@ -818,7 +848,7 @@
                     observaciones: observaciones || 'Vacaciones registradas por gerente'
                 });
                 if (error) throw error;
-                alert("✅ Vacaciones registradas");
+                alert(`✅ Vacaciones registradas (${diffDays} días)`);
             } else {
                 const { error } = await sb.from('incidencias_tecnicos').insert({
                     tecnico_id: tecnicoId,
@@ -840,11 +870,11 @@
             
         } catch (error) {
             console.error("Error:", error);
-            alert("Error: " + error.message);
+            alert("❌ Error: " + error.message);
         }
     }
 
-    // ========== RESTO DE FUNCIONES DE SUPERVISIÓN ==========
+    // ========== FUNCIONES DE SUPERVISIÓN (resumidas) ==========
     async function cargarResumenCompacto() {
         const hoy = new Date().toISOString().slice(0,10);
         const startHoy = hoy + 'T00:00:00';
@@ -1013,7 +1043,10 @@
         const contenedor = document.getElementById('actividadesCerradasList');
         contenedor.innerHTML = '';
         
+        let hayDatos = false;
+        
         if (trabajos && trabajos.length > 0) {
+            hayDatos = true;
             const titulo = document.createElement('div');
             titulo.className = 'medicion-card';
             titulo.style.fontWeight = 'bold';
@@ -1036,6 +1069,7 @@
         }
         
         if (desplazamientos && desplazamientos.length > 0) {
+            hayDatos = true;
             const titulo = document.createElement('div');
             titulo.className = 'medicion-card';
             titulo.style.fontWeight = 'bold';
@@ -1055,7 +1089,7 @@
             });
         }
         
-        if ((!trabajos || trabajos.length === 0) && (!desplazamientos || desplazamientos.length === 0)) {
+        if (!hayDatos) {
             contenedor.innerHTML = '<div class="medicion-card">📋 No hay actividades cerradas hoy</div>';
         }
     }
@@ -1413,10 +1447,14 @@
     };
 
     // Eventos de gestión de personal
+    document.getElementById('btnCargarDatosPersonal').addEventListener('click', cargarDatosTecnicoHoy);
     document.getElementById('selectorTecnicoPersonal').addEventListener('change', cargarDatosTecnicoHoy);
-    document.getElementById('selectorTecnicoDisponibilidad').addEventListener('change', cargarDisponibilidadSemanal);
+    
     document.getElementById('btnCargarDisponibilidad').addEventListener('click', cargarDisponibilidadSemanal);
+    document.getElementById('selectorTecnicoDisponibilidad').addEventListener('change', cargarDisponibilidadSemanal);
     document.getElementById('btnGuardarDisponibilidad').addEventListener('click', guardarDisponibilidad);
+    
+    document.getElementById('btnCargarAusencias').addEventListener('click', cargarAusenciasTecnico);
     document.getElementById('selectorTecnicoVacaciones').addEventListener('change', cargarAusenciasTecnico);
     document.getElementById('btnAgregarAusencia').addEventListener('click', agregarAusencia);
     
@@ -1430,22 +1468,70 @@
     });
 
     // Navegación pestañas
-    document.querySelectorAll('.browser-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const parent = tab.closest('.card');
-            parent.querySelectorAll('.browser-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            parent.querySelectorAll('.browser-content').forEach(content => content.classList.add('oculto'));
-            document.getElementById(`tab${tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)}`).classList.remove('oculto');
+    function initTabs() {
+        // Pestañas de supervisión
+        const supervisionTabs = document.querySelectorAll('#supervisionTabs .browser-tab');
+        const supervisionContents = {
+            activos: document.getElementById('tabActivos'),
+            piscinas: document.getElementById('tabPiscinas'),
+            cerradas: document.getElementById('tabCerradas'),
+            quimicos: document.getElementById('tabQuimicos'),
+            mensajes: document.getElementById('tabMensajes')
+        };
+        
+        supervisionTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                supervisionTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                Object.values(supervisionContents).forEach(content => {
+                    if (content) content.classList.add('oculto');
+                });
+                const tabName = tab.dataset.tab;
+                if (supervisionContents[tabName]) {
+                    supervisionContents[tabName].classList.remove('oculto');
+                }
+            });
         });
-    });
+        
+        // Pestañas de personal
+        const personalTabs = document.querySelectorAll('#personalTabs .browser-tab');
+        const personalContents = {
+            'personal-tecnicos': document.getElementById('tabPersonalTecnicos'),
+            'personal-disponibilidad': document.getElementById('tabPersonalDisponibilidad'),
+            'personal-vacaciones': document.getElementById('tabPersonalVacaciones')
+        };
+        
+        personalTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                personalTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                Object.values(personalContents).forEach(content => {
+                    if (content) content.classList.add('oculto');
+                });
+                const tabName = tab.dataset.tab;
+                if (personalContents[tabName]) {
+                    personalContents[tabName].classList.remove('oculto');
+                }
+            });
+        });
+    }
+    
+    // Inicializar tabs
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTabs);
+    } else {
+        initTabs();
+    }
 
+    // Pestañas de históricos
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.getElementById(`tab${btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)}`).classList.add('active');
+            const tabId = `tab${btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)}`;
+            const tabElement = document.getElementById(tabId);
+            if (tabElement) tabElement.classList.add('active');
         });
     });
 
