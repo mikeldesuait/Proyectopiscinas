@@ -79,13 +79,14 @@
         .buscar-wrapper { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
         .buscar-wrapper input { flex: 1; }
         .buscar-wrapper button { width: auto; }
-        .medicion-card, .jornada-card, .tecnico-card, .evento-card {
+        .medicion-card, .jornada-card, .tecnico-card, .evento-card, .piscina-card {
             background: #f8fafc;
             border-radius: 20px;
             padding: 12px 16px;
             margin-bottom: 8px;
             border-left: 4px solid #0077b6;
         }
+        .piscina-card { border-left-color: #2c7a4d; }
         .evento-card { border-left-color: #e67e22; }
         .resultados-area { margin-top: 16px; max-height: 500px; overflow-y: auto; }
         .selector-vista { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -94,7 +95,8 @@
         .top-buttons { display: flex; gap: 12px; align-items: center; }
         .info-seleccion { font-size: 0.75rem; color: #2c7a4d; margin-top: 4px; }
         .select-label { font-size: 0.7rem; color: #475569; margin-top: 8px; margin-bottom: 4px; }
-        .piscina-detalle { font-size: 0.75rem; color: #5b6e8c; margin-top: 4px; }
+        .piscina-detalle { font-size: 0.8rem; color: #2c7a4d; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+        .grid-datos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
         @media (max-width: 700px) { .row-flex { flex-direction: column; } }
     </style>
 </head>
@@ -139,7 +141,6 @@
             <div class="card-header">🔍 Filtros de búsqueda</div>
             
             <div class="row-flex">
-                <!-- Técnico: buscador + desplegable -->
                 <div class="grupo-buscar">
                     <label>👤 Buscar técnico</label>
                     <div class="buscar-wrapper">
@@ -153,7 +154,6 @@
                     </select>
                 </div>
                 
-                <!-- Piscina: buscador + desplegable -->
                 <div class="grupo-buscar">
                     <label>🏊 Buscar piscina</label>
                     <div class="buscar-wrapper">
@@ -166,6 +166,15 @@
                         <option value="">Todas las piscinas</option>
                     </select>
                 </div>
+            </div>
+        </div>
+
+        <!-- Datos de la piscina seleccionada -->
+        <div class="card" id="piscinaDetalleCard" style="display: none;">
+            <div class="card-header">🏊 Datos de la piscina</div>
+            <div id="piscinaDetalle" class="resultados-area"></div>
+            <div class="row-flex" style="margin-top: 16px;">
+                <button id="btnVerMedicionesPiscina" class="btn-buscar">📊 Ver mediciones de esta piscina</button>
             </div>
         </div>
 
@@ -198,7 +207,7 @@
     let piscinasList = [];
     let tecnicosMap = {};
     let piscinasMap = {};
-    let piscinasDetalle = {}; // Guardar datos completos de piscinas
+    let piscinasDetalle = {};
     let vistaActual = 'unificada';
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
@@ -213,6 +222,11 @@
             if (document.getElementById('fechaDesde').value && document.getElementById('fechaHasta').value) {
                 await cargarHistorico();
             }
+            // Si hay una piscina seleccionada, actualizar sus datos
+            const piscinaId = document.getElementById('filtroPiscina').value;
+            if (piscinaId && piscinasDetalle[piscinaId]) {
+                mostrarDetallePiscina(piscinaId);
+            }
         } catch (err) { console.error(err); }
         finally {
             document.getElementById('btnSync').innerHTML = '🔄 Sincronizar';
@@ -221,13 +235,11 @@
     }
 
     async function cargarListasCompletas() {
-        // Cargar técnicos
         const { data: tecnicos } = await sb.from('perfiles').select('id, nick, nombre').eq('rol', 'tecnico').order('nick');
         tecnicosList = tecnicos || [];
         tecnicosMap = {};
         tecnicosList.forEach(t => { tecnicosMap[t.id] = t.nick || t.nombre; });
         
-        // Cargar piscinas con todos los datos
         const { data: piscinas } = await sb.from('piscinas').select('*').order('nombre');
         piscinasList = piscinas || [];
         piscinasMap = {};
@@ -237,7 +249,6 @@
             piscinasDetalle[p.id] = p;
         });
         
-        // Actualizar selectores
         const selectTec = document.getElementById('filtroTecnico');
         const valorActualTec = selectTec.value;
         selectTec.innerHTML = '<option value="">Todos los técnicos</option>';
@@ -251,6 +262,34 @@
         if (valorActualPisc && piscinasMap[valorActualPisc]) selectPisc.value = valorActualPisc;
         
         document.getElementById('totalPiscinas').innerText = piscinasList.length;
+        
+        // Si hay piscina seleccionada, mostrar sus datos
+        if (valorActualPisc && piscinasDetalle[valorActualPisc]) {
+            mostrarDetallePiscina(valorActualPisc);
+        } else {
+            document.getElementById('piscinaDetalleCard').style.display = 'none';
+        }
+    }
+
+    function mostrarDetallePiscina(piscinaId) {
+        const p = piscinasDetalle[piscinaId];
+        if (!p) return;
+        
+        const container = document.getElementById('piscinaDetalle');
+        container.innerHTML = `
+            <div class="piscina-card">
+                <strong>🏊 ${p.nombre}</strong>
+                <div class="grid-datos">
+                    ${p.localidad ? `<div><strong>📍 Localidad:</strong> ${p.localidad}</div>` : ''}
+                    ${p.direccion ? `<div><strong>🗺️ Dirección:</strong> ${p.direccion}</div>` : ''}
+                    ${p.codigo_postal ? `<div><strong>📮 Código postal:</strong> ${p.codigo_postal}</div>` : ''}
+                    ${p.telefono_contacto ? `<div><strong>📞 Teléfono:</strong> ${p.telefono_contacto}</div>` : ''}
+                    ${p.capacidad ? `<div><strong>👥 Capacidad:</strong> ${p.capacidad} personas</div>` : ''}
+                </div>
+                ${(p.localidad || p.direccion || p.codigo_postal || p.telefono_contacto || p.capacidad) ? '' : '<div class="piscina-detalle">No hay datos adicionales registrados para esta piscina</div>'}
+            </div>
+        `;
+        document.getElementById('piscinaDetalleCard').style.display = 'block';
     }
 
     function buscarTecnico() {
@@ -273,7 +312,6 @@
 
     function buscarPiscina() {
         const texto = document.getElementById('buscarPiscina').value.toLowerCase();
-        // Buscar por nombre, localidad o dirección
         const encontrado = piscinasList.find(p => 
             p.nombre.toLowerCase().includes(texto) || 
             (p.localidad && p.localidad.toLowerCase().includes(texto)) ||
@@ -286,12 +324,15 @@
             if (encontrado.localidad) detalle += ` · ${encontrado.localidad}`;
             if (encontrado.direccion) detalle += ` · ${encontrado.direccion}`;
             document.getElementById('infoPiscinaSeleccionada').innerHTML = detalle;
+            mostrarDetallePiscina(encontrado.id);
         } else if (texto) {
             document.getElementById('infoPiscinaSeleccionada').innerHTML = `❌ No se encontró "${texto}"`;
             select.value = '';
+            document.getElementById('piscinaDetalleCard').style.display = 'none';
         } else {
             select.value = '';
             document.getElementById('infoPiscinaSeleccionada').innerHTML = '';
+            document.getElementById('piscinaDetalleCard').style.display = 'none';
         }
     }
 
@@ -313,12 +354,10 @@
         
         for (const m of data) {
             let piscinaNombre = piscinasMap[m.piscina_id] || '?';
-            let piscinaDetalle = '';
-            if (piscinasDetalle[m.piscina_id]) {
+            let piscinaDetalleHtml = '';
+            if (piscinasDetalle[m.piscina_id] && (piscinasDetalle[m.piscina_id].localidad || piscinasDetalle[m.piscina_id].direccion)) {
                 const p = piscinasDetalle[m.piscina_id];
-                if (p.localidad || p.direccion) {
-                    piscinaDetalle = `<div class="piscina-detalle">📍 ${p.localidad || ''} ${p.direccion ? '- ' + p.direccion : ''}</div>`;
-                }
+                piscinaDetalleHtml = `<div class="piscina-detalle">📍 ${p.localidad || ''} ${p.direccion ? '- ' + p.direccion : ''}</div>`;
             }
             let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
             if (!tecnicosMap[m.tecnico_id] && m.tecnico_id) {
@@ -328,7 +367,7 @@
             container.innerHTML += `
                 <div class="medicion-card">
                     <strong>👤 ${tecnicoNombre}</strong> · 🏊 ${piscinaNombre}<br>
-                    ${piscinaDetalle}
+                    ${piscinaDetalleHtml}
                     🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>
                     📅 ${formatDate(m.created_at)}
                 </div>`;
@@ -377,26 +416,20 @@
                 for (const m of mediciones) {
                     let tecnicoNombre = tecnicosMap[m.tecnico_id] || '?';
                     let piscinaNombre = piscinasMap[m.piscina_id] || '?';
-                    let piscinaDetalle = '';
-                    if (piscinasDetalle[m.piscina_id]) {
+                    let piscinaDetalleHtml = '';
+                    if (piscinasDetalle[m.piscina_id] && (piscinasDetalle[m.piscina_id].localidad || piscinasDetalle[m.piscina_id].direccion)) {
                         const p = piscinasDetalle[m.piscina_id];
-                        if (p.localidad || p.direccion) {
-                            piscinaDetalle = `<div class="piscina-detalle">📍 ${p.localidad || ''} ${p.direccion ? '- ' + p.direccion : ''}</div>`;
-                        }
+                        piscinaDetalleHtml = `<div class="piscina-detalle">📍 ${p.localidad || ''} ${p.direccion ? '- ' + p.direccion : ''}</div>`;
                     }
                     if (!tecnicosMap[m.tecnico_id] && m.tecnico_id) {
                         const { data: t } = await sb.from('perfiles').select('nick').eq('id', m.tecnico_id).single();
                         if (t) tecnicoNombre = t.nick;
                     }
-                    if (!piscinasMap[m.piscina_id] && m.piscina_id) {
-                        const { data: p } = await sb.from('piscinas').select('nombre').eq('id', m.piscina_id).single();
-                        if (p) piscinaNombre = p.nombre;
-                    }
                     eventos.push({
                         fecha: new Date(m.created_at),
                         tipo: 'medicion',
                         titulo: `Medición en ${piscinaNombre} por ${tecnicoNombre}`,
-                        detalle: `${piscinaDetalle}<br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || 'Sin observaciones'}`
+                        detalle: `${piscinaDetalleHtml}<br>🧪 Cloro ${m.cloro} | ⚗️ pH ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || 'Sin observaciones'}`
                     });
                 }
             }
@@ -447,6 +480,30 @@
         html2pdf().set({ filename: `historico_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
     }
 
+    async function verMedicionesDePiscina() {
+        const piscinaId = document.getElementById('filtroPiscina').value;
+        if (!piscinaId) {
+            alert("Selecciona una piscina primero");
+            return;
+        }
+        // Cambiar la vista a "mediciones" y establecer fechas amplias para ver todas
+        vistaActual = 'mediciones';
+        document.getElementById('vistaUnificadaBtn').classList.remove('active');
+        document.getElementById('vistaJornadasBtn').classList.remove('active');
+        document.getElementById('vistaMedicionesBtn').classList.add('active');
+        
+        // Establecer fechas amplias para ver todas las mediciones
+        const fechaDesde = document.getElementById('fechaDesde');
+        const fechaHasta = document.getElementById('fechaHasta');
+        if (!fechaDesde.value) {
+            fechaDesde.value = '2024-01-01';
+        }
+        if (!fechaHasta.value) {
+            fechaHasta.value = new Date().toISOString().slice(0,10);
+        }
+        await cargarHistorico();
+    }
+
     function setVista(vista) {
         vistaActual = vista;
         document.getElementById('vistaUnificadaBtn').classList.toggle('active', vista === 'unificada');
@@ -487,6 +544,7 @@
     document.getElementById('btnLogout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
     document.getElementById('btnBuscar').onclick = cargarHistorico;
     document.getElementById('btnPDF').onclick = descargarPDF;
+    document.getElementById('btnVerMedicionesPiscina').onclick = verMedicionesDePiscina;
     document.getElementById('vistaUnificadaBtn').onclick = () => setVista('unificada');
     document.getElementById('vistaJornadasBtn').onclick = () => setVista('jornadas');
     document.getElementById('vistaMedicionesBtn').onclick = () => setVista('mediciones');
@@ -495,7 +553,15 @@
     document.getElementById('buscarTecnico').addEventListener('keypress', (e) => { if (e.key === 'Enter') buscarTecnico(); });
     document.getElementById('buscarPiscina').addEventListener('keypress', (e) => { if (e.key === 'Enter') buscarPiscina(); });
     document.getElementById('filtroTecnico').onchange = () => { document.getElementById('infoTecnicoSeleccionado').innerHTML = ''; };
-    document.getElementById('filtroPiscina').onchange = () => { document.getElementById('infoPiscinaSeleccionada').innerHTML = ''; };
+    document.getElementById('filtroPiscina').onchange = () => { 
+        document.getElementById('infoPiscinaSeleccionada').innerHTML = '';
+        const piscinaId = document.getElementById('filtroPiscina').value;
+        if (piscinaId && piscinasDetalle[piscinaId]) {
+            mostrarDetallePiscina(piscinaId);
+        } else {
+            document.getElementById('piscinaDetalleCard').style.display = 'none';
+        }
+    };
 </script>
 </body>
 </html>
