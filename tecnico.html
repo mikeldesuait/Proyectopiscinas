@@ -854,22 +854,19 @@
             await cargarPiscinas();
         }
     };
-
-    // Acordeón para histórico
-    document.getElementById('toggleHistorico').addEventListener('click', () => {
-        const content = document.getElementById('historicoContent');
-        const flecha = document.querySelector('#toggleHistorico .flecha');
-        content.classList.toggle('oculto');
-        flecha.innerHTML = content.classList.contains('oculto') ? '▼' : '▲';
+// Evento para mostrar sugerencias al escribir en el buscador
+    document.getElementById('buscarPiscina').addEventListener('input', (e) => {
+        if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
+        timeoutBusqueda = setTimeout(() => mostrarSugerencias(e.target.value), 200);
     });
 
-    // Eventos
-    document.getElementById('btnIniciarJornada').onclick = iniciarJornada;
-    document.getElementById('btnFinalizarJornada').onclick = finalizarJornada;
-    document.getElementById('btnGuardar').onclick = guardarMedicion;
-    document.getElementById('btnFinalizarActividad').onclick = finalizarActividad;
-    document.getElementById('btnJornadasPorFecha').onclick = cargarJornadasPorFecha;
-    document.getElementById('btnJornadasPDF').onclick = descargarJornadasPDF;
+    // Cerrar sugerencias al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.autocomplete-container')) {
+            document.getElementById('sugerenciasPiscinas').style.display = 'none';
+        }
+    });
+
     document.getElementById('btnLogout').onclick = async () => { 
         await sb.auth.signOut(); 
         document.getElementById('dashboardPanel').style.display = 'none';
