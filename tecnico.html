@@ -430,11 +430,13 @@
         const btnFinalizarAct = document.getElementById('btnFinalizarActividad');
         const buscarInput = document.getElementById('buscarPiscina');
         
+        // Limpiar todo
         botonesDiv.innerHTML = '';
         infoDetalle.innerHTML = '';
         formularioMed.classList.add('oculto');
         btnFinalizarAct.classList.add('oculto');
 
+        // Si no hay jornada activa
         if (!jornadaActiva) {
             estadoDiv.innerHTML = "⚠️ Primero inicia la jornada";
             mostrarDatosPiscina(null);
@@ -442,22 +444,26 @@
             return;
         }
 
+        // Mostrar datos de la piscina si existe
         if (piscinaSeleccionadaData) {
             mostrarDatosPiscina(piscinaSeleccionadaData);
         } else {
             mostrarDatosPiscina(null);
         }
 
+        // CASO 1: Hay desplazamiento activo
         if (desplazamientoActivo) {
             estadoDiv.innerHTML = `🚗 EN DESPLAZAMIENTO HACIA ${getPiscinaNombre(desplazamientoActivo.piscina_destino_id)}`;
             infoDetalle.innerHTML = `🕒 Inicio: ${formatDate(desplazamientoActivo.inicio)}`;
             buscarInput.disabled = true;
+            
             const btnLlegada = document.createElement('button');
             btnLlegada.textContent = "📍 Llegada a piscina";
             btnLlegada.className = "btn-verde";
             btnLlegada.onclick = llegadaPiscina;
             botonesDiv.appendChild(btnLlegada);
         } 
+        // CASO 2: Hay trabajo activo (actividad en curso)
         else if (trabajoActivo) {
             estadoDiv.innerHTML = `🏊 TRABAJANDO EN ${getPiscinaNombre(trabajoActivo.piscina_id)}`;
             infoDetalle.innerHTML = `🕒 Inicio actividad: ${formatDate(trabajoActivo.inicio)}`;
@@ -465,21 +471,26 @@
             formularioMed.classList.remove('oculto');
             btnFinalizarAct.classList.remove('oculto');
         } 
+        // CASO 3: Hay piscina seleccionada pero no hay desplazamiento ni actividad
         else if (piscinaSeleccionadaId && piscinaSeleccionadaData) {
             estadoDiv.innerHTML = `📍 EN PISCINA: ${piscinaSeleccionadaData.nombre}`;
             infoDetalle.innerHTML = `¿Qué quieres hacer?`;
             buscarInput.disabled = false;
+            
             const btnDesp = document.createElement('button');
             btnDesp.textContent = "🚗 Iniciar desplazamiento";
             btnDesp.className = "btn-naranja";
             btnDesp.onclick = iniciarDesplazamiento;
+            
             const btnAct = document.createElement('button');
             btnAct.textContent = "🏊 Iniciar actividad en piscina";
             btnAct.className = "btn-verde";
             btnAct.onclick = iniciarActividad;
+            
             botonesDiv.appendChild(btnDesp);
             botonesDiv.appendChild(btnAct);
         } 
+        // CASO 4: Sin piscina seleccionada
         else {
             estadoDiv.innerHTML = "⚪ SELECCIONA UNA PISCINA";
             infoDetalle.innerHTML = "Escribe el nombre en el buscador y selecciona una piscina";
@@ -612,41 +623,64 @@
     }
 
     async function llegadaPiscina() {
-    if (!desplazamientoActivo) return;
-    
-    // Finalizar desplazamiento
-    const { error } = await sb.from('desplazamientos').update({ 
-        fin: new Date().toISOString() 
-    }).eq('id', desplazamientoActivo.id);
-    
-    if (error) { 
-        mostrarMensaje(error.message, 'error'); 
-        return; 
+        if (!desplazamientoActivo) return;
+        
+        // Finalizar desplazamiento
+        const { error } = await sb.from('desplazamientos').update({ 
+            fin: new Date().toISOString() 
+        }).eq('id', desplazamientoActivo.id);
+        
+        if (error) { 
+            mostrarMensaje(error.message, 'error'); 
+            return; 
+        }
+        
+        desplazamientoActivo = null;
+        
+        // INICIAR ACTIVIDAD AUTOMÁTICAMENTE
+        const { data: trabajo, error: errTrabajo } = await sb.from('trabajos_piscina').insert({
+            jornada_id: jornadaActiva.id,
+            piscina_id: piscinaSeleccionadaId,
+            tecnico_id: currentUserId,
+            inicio: new Date().toISOString()
+        }).select();
+        
+        if (errTrabajo) { 
+            mostrarMensaje(errTrabajo.message, 'error'); 
+            return; 
+        }
+        
+        trabajoActivo = trabajo[0];
+        
+        // Actualizar la consola (mostrará el formulario de medición automáticamente)
+        actualizarConsola();
+        
+        mostrarMensaje("📍 Llegada registrada. Actividad iniciada automáticamente.", 'exito');
+        await cargarMedicionesDeJornadaActiva();
     }
-    
-    desplazamientoActivo = null;
-    
-    // 🆕 INICIAR ACTIVIDAD AUTOMÁTICAMENTE
-    const { data: trabajo, error: errTrabajo } = await sb.from('trabajos_piscina').insert({
-        jornada_id: jornadaActiva.id,
-        piscina_id: piscinaSeleccionadaId,
-        tecnico_id: currentUserId,
-        inicio: new Date().toISOString()
-    }).select();
-    
-    if (errTrabajo) { 
-        mostrarMensaje(errTrabajo.message, 'error'); 
-        return; 
+
+    // ========== ACTIVIDAD ==========
+    async function iniciarActividad() {
+        if (!jornadaActiva) { mostrarMensaje("Inicia la jornada primero", 'error'); return; }
+        if (!piscinaSeleccionadaId) { mostrarMensaje("Selecciona una piscina", 'error'); return; }
+        if (trabajoActivo) { mostrarMensaje("Ya hay una actividad activa", 'error'); return; }
+        
+        const { data, error } = await sb.from('trabajos_piscina').insert({
+            jornada_id: jornadaActiva.id,
+            piscina_id: piscinaSeleccionadaId,
+            tecnico_id: currentUserId,
+            inicio: new Date().toISOString()
+        }).select();
+        if (error) { 
+            mostrarMensaje(error.message, 'error'); 
+            return; 
+        }
+        trabajoActivo = data[0];
+        actualizarConsola();
+        mostrarMensaje("🏊 Actividad iniciada", 'exito');
+        await cargarMedicionesDeJornadaActiva();
     }
-    
-    trabajoActivo = trabajo[0];
-    
-    // Actualizar la consola (mostrará el formulario de medición automáticamente)
-    actualizarConsola();
-    
-    mostrarMensaje("📍 Llegada registrada. Actividad iniciada automáticamente.", 'exito');
-    await cargarMedicionesDeJornadaActiva();
-}
+
     async function finalizarActividad() {
         if (!trabajoActivo) return;
         
@@ -865,43 +899,69 @@
             await cargarPiscinas();
             
             // Eventos del buscador (se crean después de mostrar el dashboard)
-            document.getElementById('buscarPiscina').addEventListener('input', (e) => {
-                if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
-                timeoutBusqueda = setTimeout(() => mostrarSugerencias(e.target.value), 200);
-            });
+            const buscarInput = document.getElementById('buscarPiscina');
+            if (buscarInput) {
+                buscarInput.addEventListener('input', (e) => {
+                    if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
+                    timeoutBusqueda = setTimeout(() => mostrarSugerencias(e.target.value), 200);
+                });
+            }
 
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.autocomplete-container')) {
-                    document.getElementById('sugerenciasPiscinas').style.display = 'none';
+                    const sugerenciasDiv = document.getElementById('sugerenciasPiscinas');
+                    if (sugerenciasDiv) sugerenciasDiv.style.display = 'none';
                 }
             });
         }
     };
 
     // Acordeón para histórico
-    document.getElementById('toggleHistorico').addEventListener('click', () => {
-        const content = document.getElementById('historicoContent');
-        const flecha = document.querySelector('#toggleHistorico .flecha');
-        content.classList.toggle('oculto');
-        flecha.innerHTML = content.classList.contains('oculto') ? '▼' : '▲';
-    });
+    const toggleBtn = document.getElementById('toggleHistorico');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            const content = document.getElementById('historicoContent');
+            const flecha = toggleBtn.querySelector('.flecha');
+            if (content && flecha) {
+                content.classList.toggle('oculto');
+                flecha.innerHTML = content.classList.contains('oculto') ? '▼' : '▲';
+            }
+        });
+    }
 
     // Eventos de botones
-    document.getElementById('btnIniciarJornada').onclick = iniciarJornada;
-    document.getElementById('btnFinalizarJornada').onclick = finalizarJornada;
-    document.getElementById('btnGuardar').onclick = guardarMedicion;
-    document.getElementById('btnFinalizarActividad').onclick = finalizarActividad;
-    document.getElementById('btnJornadasPorFecha').onclick = cargarJornadasPorFecha;
-    document.getElementById('btnJornadasPDF').onclick = descargarJornadasPDF;
+    const btnIniciarJornada = document.getElementById('btnIniciarJornada');
+    if (btnIniciarJornada) btnIniciarJornada.onclick = iniciarJornada;
     
-    document.getElementById('btnLogout').onclick = async () => { 
-        await sb.auth.signOut(); 
-        document.getElementById('dashboardPanel').style.display = 'none';
-        document.getElementById('loginPanel').style.display = 'block';
-        document.getElementById('nick').value = '';
-        document.getElementById('password').value = '';
-        document.getElementById('errorMsg').innerText = '';
-    };
+    const btnFinalizarJornada = document.getElementById('btnFinalizarJornada');
+    if (btnFinalizarJornada) btnFinalizarJornada.onclick = finalizarJornada;
+    
+    const btnGuardar = document.getElementById('btnGuardar');
+    if (btnGuardar) btnGuardar.onclick = guardarMedicion;
+    
+    const btnFinalizarActividad = document.getElementById('btnFinalizarActividad');
+    if (btnFinalizarActividad) btnFinalizarActividad.onclick = finalizarActividad;
+    
+    const btnJornadasPorFecha = document.getElementById('btnJornadasPorFecha');
+    if (btnJornadasPorFecha) btnJornadasPorFecha.onclick = cargarJornadasPorFecha;
+    
+    const btnJornadasPDF = document.getElementById('btnJornadasPDF');
+    if (btnJornadasPDF) btnJornadasPDF.onclick = descargarJornadasPDF;
+    
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) {
+        btnLogout.onclick = async () => { 
+            await sb.auth.signOut(); 
+            document.getElementById('dashboardPanel').style.display = 'none';
+            document.getElementById('loginPanel').style.display = 'block';
+            const nickInput = document.getElementById('nick');
+            const passInput = document.getElementById('password');
+            const errorMsg = document.getElementById('errorMsg');
+            if (nickInput) nickInput.value = '';
+            if (passInput) passInput.value = '';
+            if (errorMsg) errorMsg.innerText = '';
+        };
+    }
 </script>
 </body>
 </html>
