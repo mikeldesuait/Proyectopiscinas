@@ -261,7 +261,7 @@
     const SUPABASE_KEY = "sb_publishable_MwuazhcxSJGc04eS2vttZA_SEcGjhVT";
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const DOMINIO = "@mipiscina.com";
-    const WA_NUMBER = "34612345678"; // Reemplazar por número real
+    const WA_NUMBER = "34612345678";
 
     let currentUserId = null;
     let jornadaActiva = null;
@@ -270,7 +270,6 @@
     let productosTemp = [];
     let piscinasList = [];
 
-    // Variables para control de información de piscina
     let infoPiscinaConfirmada = false;
     let piscinaSeleccionadaParaDesplazamiento = null;
 
@@ -444,7 +443,7 @@
         }
     });
 
-    // ========== INFORMACIÓN DE PISCINA (MODAL) ==========
+    // ========== INFORMACIÓN DE PISCINA (MODAL) - CORREGIDA ==========
     async function cargarInfoPiscina(piscinaId) {
         if (!piscinaId) {
             mostrarMensaje("Selecciona una piscina primero", 'error');
@@ -453,43 +452,47 @@
         
         const { data: piscina } = await sb.from('piscinas').select('*').eq('id', piscinaId).single();
         
-        const { data: mediciones } = await sb
+        // Consulta corregida: sin el join que causaba error 400
+        const { data: mediciones, error } = await sb
             .from('mediciones')
-            .select('*, perfiles(nick)')
+            .select('*')
             .eq('piscina_id', piscinaId)
             .order('created_at', { ascending: false })
             .limit(3);
         
-        const medicionesConProductos = [];
-        if (mediciones && mediciones.length > 0) {
-            for (const m of mediciones) {
-                const { data: productos } = await sb
-                    .from('productos_utilizados')
-                    .select('*')
-                    .eq('medicion_id', m.id);
-                medicionesConProductos.push({ ...m, productos });
-            }
+        if (error) {
+            console.error("Error cargando mediciones:", error);
+            mostrarMensaje("Error al cargar el histórico", 'error');
+            return false;
+        }
+        
+        // Obtener los nombres de los técnicos por separado
+        const medicionesConTecnicos = [];
+        for (const m of mediciones) {
+            const { data: tecnico } = await sb
+                .from('perfiles')
+                .select('nick')
+                .eq('id', m.tecnico_id)
+                .single();
+            medicionesConTecnicos.push({
+                ...m,
+                tecnico_nick: tecnico?.nick || '?'
+            });
         }
         
         const modalContenido = document.getElementById('modalContenido');
         let historicoHtml = '<h4>📜 Últimas 3 visitas</h4>';
         
-        if (medicionesConProductos.length === 0) {
+        if (medicionesConTecnicos.length === 0) {
             historicoHtml += '<p>No hay visitas previas registradas.</p>';
         } else {
-            medicionesConProductos.forEach(m => {
-                let productosHtml = '';
-                if (m.productos && m.productos.length > 0) {
-                    productosHtml = '<div style="margin-top:6px;"><strong>🧴 Productos:</strong> ' + 
-                        m.productos.map(p => `${p.cantidad} ${p.unidad} de ${p.producto_nombre}`).join(', ') + '</div>';
-                }
+            medicionesConTecnicos.forEach(m => {
                 historicoHtml += `
                     <div style="border-left:3px solid #0077b6; margin-bottom:12px; padding:8px; background:#f8fafc; border-radius:12px;">
                         <strong>📅 ${new Date(m.created_at).toLocaleString()}</strong><br>
-                        👤 Técnico: ${m.perfiles?.nick || '?'}<br>
+                        👤 Técnico: ${m.tecnico_nick}<br>
                         🧪 Cloro: ${m.cloro} ppm | ⚗️ pH: ${m.ph} | 🌡️ ${m.temperatura}°C<br>
                         📝 ${m.observaciones || 'Sin observaciones'}
-                        ${productosHtml}
                     </div>
                 `;
             });
