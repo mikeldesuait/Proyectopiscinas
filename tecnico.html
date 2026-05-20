@@ -104,14 +104,6 @@
         .row-flex { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
         .date-input { flex: 1; min-width: 140px; }
         label { font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 4px; display: block; }
-        .buscar-container { margin-bottom: 12px; }
-        .buscar-container input { width: 100%; }
-        #piscinaSelect {
-            height: auto;
-            min-height: 120px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
         @media (max-width: 700px) {
             .row-flex { flex-direction: column; }
         }
@@ -150,6 +142,46 @@
             gap: 8px;
             margin-top: 8px;
         }
+        /* Autocompletado */
+        .autocomplete-container {
+            position: relative;
+            width: 100%;
+        }
+        .buscador-piscina {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #cad2db;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            background: #fff;
+        }
+        .sugerencias-lista {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #cad2db;
+            border-radius: 20px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-top: 4px;
+        }
+        .sugerencia-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #eef2f6;
+            transition: background 0.2s;
+        }
+        .sugerencia-item:hover {
+            background: #eef2ff;
+        }
+        .sugerencia-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
@@ -174,13 +206,14 @@
             </div>
         </div>
 
-        <!-- Piscina con buscador en tiempo real -->
+        <!-- Piscina con autocompletado -->
         <div class="card">
             <div class="card-header">🏊 Selección de piscina</div>
-            <div class="buscar-container">
-                <input type="text" id="buscarPiscina" placeholder="Escribe el nombre para buscar..." autocomplete="off">
+            <div class="autocomplete-container">
+                <input type="text" id="buscarPiscina" class="buscador-piscina" placeholder="Escribe el nombre de la piscina..." autocomplete="off">
+                <input type="hidden" id="piscinaSeleccionadaId">
+                <div id="sugerenciasPiscinas" class="sugerencias-lista"></div>
             </div>
-            <select id="piscinaSelect" size="5"></select>
             <button id="btnVerInfoPiscina" class="btn-info" style="width:auto; margin-top:12px;">📋 Ver información e histórico</button>
         </div>
 
@@ -283,10 +316,12 @@
     let trabajoActivo = null;
     let productosTemp = [];
     let piscinasList = [];
+    let todasLasPiscinas = [];
 
     let infoPiscinaConfirmada = false;
     let piscinaSeleccionadaParaDesplazamiento = null;
     let timeoutBusqueda = null;
+    let piscinasCargadas = false;
 
     const productosPredefinidos = [
         "Cloro granulado", "Cloro pastillas", "pH+ (aumentador)", "pH- (disminuidor)",
@@ -310,6 +345,12 @@
         return piscina ? piscina.nombre : '?';
     }
 
+    function getPiscinaSeleccionada() {
+        const id = document.getElementById('piscinaSeleccionadaId').value;
+        if (!id) return null;
+        return todasLasPiscinas.find(p => p.id == id);
+    }
+
     async function actualizarUIEstado() {
         const btnIniciarDesp = document.getElementById('btnIniciarDesplazamiento');
         const btnLlegada = document.getElementById('btnLlegadaPiscina');
@@ -320,7 +361,6 @@
         const infoDesp = document.getElementById('infoDesplazamiento');
         const infoTrabajo = document.getElementById('infoTrabajo');
         const medicionesContainer = document.getElementById('medicionesContainer');
-        const piscinaSelect = document.getElementById('piscinaSelect');
 
         btnIniciarDesp.classList.add('oculto');
         btnLlegada.classList.add('oculto');
@@ -339,7 +379,6 @@
             infoDesp.classList.remove('oculto');
             document.getElementById('destinoPiscina').innerText = getPiscinaNombre(desplazamientoActivo.piscina_destino_id);
             document.getElementById('desplazamientoInicio').innerText = formatDate(desplazamientoActivo.inicio);
-            piscinaSelect.disabled = true;
         } else if (trabajoActivo) {
             estadoDiv.innerHTML = `🏊 Trabajando en ${getPiscinaNombre(trabajoActivo.piscina_id)}`;
             estadoDiv.className = "estado-jornada activa";
@@ -348,12 +387,10 @@
             medicionesContainer.classList.remove('oculto');
             document.getElementById('trabajoPiscina').innerText = getPiscinaNombre(trabajoActivo.piscina_id);
             document.getElementById('trabajoInicio').innerText = formatDate(trabajoActivo.inicio);
-            piscinaSelect.disabled = true;
         } else {
             estadoDiv.innerHTML = jornadaActiva ? `⚪ Sin actividad. Selecciona piscina y revisa su información antes de desplazarte` : `⚠️ Jornada no iniciada`;
             estadoDiv.className = "estado-jornada inactiva";
             btnIniciarDesp.classList.remove('oculto');
-            piscinaSelect.disabled = false;
             if (jornadaActiva) {
                 await cargarMedicionesDeJornadaActiva();
             }
@@ -366,7 +403,6 @@
             btnIniciarTrabajo.classList.add('oculto');
             btnFinalizarTrabajo.classList.add('oculto');
             medicionesContainer.classList.add('oculto');
-            piscinaSelect.disabled = true;
         }
     }
 
@@ -411,9 +447,7 @@
         }
     };
 
-    // ========== PISCINAS CON BUSCADOR EN TIEMPO REAL ==========
-    let piscinasCargadas = false;
-
+    // ========== PISCINAS CON AUTOCOMPLETADO ==========
     async function cargarPiscinas() {
         if (piscinasCargadas) return;
         const { data } = await sb.from('piscinas').select('*').order('nombre');
@@ -424,55 +458,68 @@
             }
         });
         piscinasList = Array.from(uniqueMap.values());
-        actualizarSelectPiscinas(piscinasList);
+        todasLasPiscinas = [...piscinasList];
         piscinasCargadas = true;
-    }
-
-    function actualizarSelectPiscinas(lista) {
-        const select = document.getElementById('piscinaSelect');
-        select.innerHTML = '';
-        lista.forEach(p => { 
-            const opt = document.createElement('option'); 
-            opt.value = p.id; 
-            opt.textContent = p.nombre; 
-            select.appendChild(opt); 
-        });
-        if (lista.length === 0) {
-            const opt = document.createElement('option');
-            opt.textContent = 'No hay piscinas';
-            opt.disabled = true;
-            select.appendChild(opt);
+        
+        if (todasLasPiscinas.length > 0) {
+            const primeraPiscina = [...todasLasPiscinas].sort((a,b) => a.nombre.localeCompare(b.nombre))[0];
+            document.getElementById('buscarPiscina').value = primeraPiscina.nombre;
+            document.getElementById('piscinaSeleccionadaId').value = primeraPiscina.id;
         }
     }
 
-    function filtrarPiscinas() {
-        const texto = document.getElementById('buscarPiscina').value.toLowerCase();
+    function mostrarSugerencias(texto) {
+        const sugerenciasDiv = document.getElementById('sugerenciasPiscinas');
         if (!texto.trim()) {
-            actualizarSelectPiscinas(piscinasList);
+            sugerenciasDiv.style.display = 'none';
             return;
         }
-        const filtradas = piscinasList.filter(p => p.nombre.toLowerCase().includes(texto));
-        actualizarSelectPiscinas(filtradas);
+        
+        const filtradas = todasLasPiscinas.filter(p => 
+            p.nombre.toLowerCase().includes(texto.toLowerCase())
+        ).sort((a,b) => a.nombre.localeCompare(b.nombre));
+        
         if (filtradas.length === 0) {
-            mostrarMensaje("No se encontraron piscinas con ese nombre", 'error');
+            sugerenciasDiv.style.display = 'none';
+            return;
         }
+        
+        sugerenciasDiv.innerHTML = '';
+        filtradas.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'sugerencia-item';
+            item.textContent = p.nombre;
+            item.onclick = () => {
+                document.getElementById('buscarPiscina').value = p.nombre;
+                document.getElementById('piscinaSeleccionadaId').value = p.id;
+                sugerenciasDiv.style.display = 'none';
+            };
+            sugerenciasDiv.appendChild(item);
+        });
+        sugerenciasDiv.style.display = 'block';
     }
 
     document.getElementById('buscarPiscina').addEventListener('input', (e) => {
         if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
         timeoutBusqueda = setTimeout(() => {
-            filtrarPiscinas();
-        }, 300);
+            mostrarSugerencias(e.target.value);
+        }, 200);
     });
 
-    document.getElementById('buscarPiscina').addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            document.getElementById('buscarPiscina').value = '';
-            actualizarSelectPiscinas(piscinasList);
+    document.getElementById('buscarPiscina').addEventListener('focus', () => {
+        const valorActual = document.getElementById('buscarPiscina').value;
+        if (valorActual) {
+            mostrarSugerencias(valorActual);
         }
     });
 
-    // ========== INFORMACIÓN DE PISCINA (MODAL CON TODOS LOS DATOS) ==========
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.autocomplete-container')) {
+            document.getElementById('sugerenciasPiscinas').style.display = 'none';
+        }
+    });
+
+    // ========== INFORMACIÓN DE PISCINA (MODAL) ==========
     async function cargarInfoPiscina(piscinaId) {
         if (!piscinaId) {
             mostrarMensaje("Selecciona una piscina primero", 'error');
@@ -549,7 +596,7 @@
     }
 
     document.getElementById('btnVerInfoPiscina').onclick = async () => {
-        const piscinaId = document.getElementById('piscinaSelect').value;
+        const piscinaId = document.getElementById('piscinaSeleccionadaId').value;
         if (!piscinaId) {
             mostrarMensaje("Selecciona una piscina primero", 'error');
             return;
@@ -639,9 +686,9 @@
             return; 
         }
         
-        const piscinaDestino = document.getElementById('piscinaSelect').value;
+        const piscinaDestino = document.getElementById('piscinaSeleccionadaId').value;
         if (!piscinaDestino) { 
-            mostrarMensaje("Selecciona una piscina destino en el desplegable", 'error'); 
+            mostrarMensaje("Selecciona una piscina destino", 'error'); 
             return; 
         }
         
@@ -710,7 +757,7 @@
             return;
         }
         
-        const piscinaId = document.getElementById('piscinaSelect').value;
+        const piscinaId = document.getElementById('piscinaSeleccionadaId').value;
         if (!piscinaId) { mostrarMensaje("Selecciona una piscina", 'error'); return; }
         
         const { data, error } = await sb.from('trabajos_piscina').insert({
