@@ -217,24 +217,89 @@
             margin-top: 8px;
             text-align: center;
         }
+        
+        /* Estilos para respuesta de incidencia */
         .respuesta-incidencia {
-            margin-top: 12px;
-            padding: 12px;
-            border-radius: 16px;
+            margin-top: 16px;
+            padding: 20px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            line-height: 1.5;
             display: none;
+            border-left: 6px solid;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            animation: slideIn 0.5s ease;
         }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .respuesta-grave {
-            background: #f8d7da;
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
             color: #721c24;
+            border-left-color: #dc2626;
         }
+
         .respuesta-urgente {
-            background: #fff3cd;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
             color: #856404;
+            border-left-color: #f39c12;
         }
+
         .respuesta-normal {
-            background: #d4edda;
+            background: linear-gradient(135deg, #d4edda 0%, #c8e6d9 100%);
             color: #155724;
+            border-left-color: #2c7a4d;
         }
+
+        .respuesta-info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            color: #0c5460;
+            border-left-color: #17a2b8;
+        }
+
+        .cerrar-respuesta {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.7;
+            padding: 0;
+            width: auto;
+            margin: -8px -8px 0 0;
+        }
+
+        .cerrar-respuesta:hover {
+            opacity: 1;
+            transform: none;
+            background: none;
+        }
+        
+        /* Spinner para el botón */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         @media (max-width: 550px) {
             .parametros-grid { grid-template-columns: repeat(2, 1fr); }
             .card { padding: 20px; }
@@ -322,78 +387,112 @@
     function cerrarFormularioIncidencia() {
         document.getElementById('formIncidencia').style.display = 'none';
         document.getElementById('btnAbrirFormIncidencia').style.display = 'block';
-        document.getElementById('mensajeIncidencia').value = '';
-        document.getElementById('nombreCliente').value = '';
+    }
+    
+    function cerrarRespuesta() {
+        const respuestaDiv = document.getElementById('incidenciaRespuesta');
+        respuestaDiv.style.display = 'none';
+        respuestaDiv.innerHTML = '';
     }
 
     async function enviarIncidencia() {
-    const mensaje = document.getElementById('mensajeIncidencia').value.trim();
-    const nombre = document.getElementById('nombreCliente').value.trim();
-    
-    if (!mensaje) {
-        alert("❌ Por favor, describe el problema");
-        return;
-    }
-    
-    if (!piscinaActual) {
-        alert("❌ No hay piscina seleccionada");
-        return;
-    }
-    
-    const btn = document.getElementById('btnEnviarIncidencia');
-    const textoOriginal = btn.innerHTML;
-    btn.innerHTML = '⏳ Enviando...';
-    btn.disabled = true;
-    
-    try {
-        // IMPORTANTE: NO enviar headers de autenticación
-        const response = await fetch('https://vvdyofbapqttcvczokiw.supabase.co/functions/v1/reportar-incidencia', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-                // NO incluyas 'Authorization' aquí
-            },
-            body: JSON.stringify({
-                accion: "reportar",
-                codigo_acceso: piscinaActual.codigo_acceso,
-                mensaje: mensaje,
-                nombre_cliente: nombre || "Anónimo"
-            })
-        });
+        const mensaje = document.getElementById('mensajeIncidencia').value.trim();
+        const nombre = document.getElementById('nombreCliente').value.trim();
         
-        const resultado = await response.json();
-        
-        if (resultado.success) {
-            const respuestaDiv = document.getElementById('incidenciaRespuesta');
-            respuestaDiv.style.display = 'block';
-            
-            respuestaDiv.classList.remove('respuesta-grave', 'respuesta-urgente', 'respuesta-normal');
-            
-            if (resultado.nivel_urgencia === 'GRAVE') {
-                respuestaDiv.classList.add('respuesta-grave');
-            } else if (resultado.nivel_urgencia === 'URGENTE') {
-                respuestaDiv.classList.add('respuesta-urgente');
-            } else {
-                respuestaDiv.classList.add('respuesta-normal');
-            }
-            
-            respuestaDiv.innerHTML = resultado.respuesta_cliente;
-            cerrarFormularioIncidencia();
-            
-            setTimeout(() => {
-                respuestaDiv.style.display = 'none';
-            }, 10000);
-        } else {
-            alert("❌ Error: " + (resultado.error || "No se pudo enviar"));
+        if (!mensaje) {
+            alert("❌ Por favor, describe el problema");
+            return;
         }
-    } catch (error) {
-        console.error("Error:", error);
-        alert("❌ Error de conexión. Intenta de nuevo.");
-    } finally {
-        btn.innerHTML = textoOriginal;
-        btn.disabled = false;
+        
+        if (!piscinaActual) {
+            alert("❌ No hay piscina seleccionada");
+            return;
+        }
+        
+        const btn = document.getElementById('btnEnviarIncidencia');
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner"></span> Enviando...';
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch('https://vvdyofbapqttcvczokiw.supabase.co/functions/v1/reportar-incidencia', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    accion: "reportar",
+                    codigo_acceso: piscinaActual.codigo_acceso,
+                    mensaje: mensaje,
+                    nombre_cliente: nombre || "Anónimo"
+                })
+            });
+            
+            const resultado = await response.json();
+            
+            if (resultado.success) {
+                const respuestaDiv = document.getElementById('incidenciaRespuesta');
+                
+                // Limpiar clases anteriores
+                respuestaDiv.classList.remove('respuesta-grave', 'respuesta-urgente', 'respuesta-normal', 'respuesta-info');
+                
+                // Aplicar clase según gravedad
+                let claseRespuesta = 'respuesta-normal';
+                let tituloRespuesta = '✅ INCIDENCIA REGISTRADA';
+                
+                if (resultado.nivel_urgencia === 'GRAVE') {
+                    claseRespuesta = 'respuesta-grave';
+                    tituloRespuesta = '🚨 INCIDENCIA GRAVE - PISCINA NO APTA';
+                } else if (resultado.nivel_urgencia === 'URGENTE') {
+                    claseRespuesta = 'respuesta-urgente';
+                    tituloRespuesta = '⚠️ INCIDENCIA URGENTE';
+                } else if (resultado.nivel_urgencia === 'NORMAL') {
+                    claseRespuesta = 'respuesta-normal';
+                    tituloRespuesta = '✅ INCIDENCIA REGISTRADA';
+                } else {
+                    claseRespuesta = 'respuesta-info';
+                    tituloRespuesta = '📝 MENSAJE RECIBIDO';
+                }
+                
+                respuestaDiv.classList.add(claseRespuesta);
+                
+                // Formatear el mensaje correctamente
+                let mensajeFormateado = resultado.respuesta_cliente;
+                // Reemplazar saltos de línea por <br>
+                mensajeFormateado = mensajeFormateado.replace(/\n/g, '<br>');
+                // Reemplazar markdown básico
+                mensajeFormateado = mensajeFormateado.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                // Reemplazar viñetas
+                mensajeFormateado = mensajeFormateado.replace(/•/g, '•');
+                
+                respuestaDiv.innerHTML = `
+                    <button class="cerrar-respuesta" onclick="cerrarRespuesta()">✖</button>
+                    <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 12px;">${tituloRespuesta}</div>
+                    <div>${mensajeFormateado}</div>
+                `;
+                
+                respuestaDiv.style.display = 'block';
+                cerrarFormularioIncidencia();
+                
+                // Limpiar el textarea del mensaje
+                document.getElementById('mensajeIncidencia').value = '';
+                document.getElementById('nombreCliente').value = '';
+                
+                // Scroll suave hacia la respuesta
+                respuestaDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+            } else {
+                alert("❌ Error: " + (resultado.error || "No se pudo enviar"));
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("❌ Error de conexión. Intenta de nuevo.");
+        } finally {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+        }
     }
-}
+
     async function cargarDatosPiscina(codigo) {
         const panelDiv = document.getElementById('panelPiscina');
         panelDiv.innerHTML = '<div class="loading">🔍 Verificando código de acceso...</div>';
@@ -641,6 +740,7 @@
     window.abrirFormularioIncidencia = abrirFormularioIncidencia;
     window.cerrarFormularioIncidencia = cerrarFormularioIncidencia;
     window.enviarIncidencia = enviarIncidencia;
+    window.cerrarRespuesta = cerrarRespuesta;
     
     // ========== CARGA AUTOMÁTICA SI HAY CÓDIGO EN LA URL ==========
     const codigoUrl = getParameterByName('codigo');
