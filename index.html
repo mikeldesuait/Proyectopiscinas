@@ -17,113 +17,113 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 16px;
         }
         .container {
             max-width: 550px;
             width: 100%;
+            margin: 0 auto;
         }
         .card-principal {
             background: white;
-            border-radius: 48px;
-            padding: 48px 32px;
+            border-radius: 40px;
+            padding: 32px 24px;
             text-align: center;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            margin-bottom: 20px;
         }
         .logo {
-            width: 90px;
-            height: 90px;
+            width: 70px;
+            height: 70px;
             background: linear-gradient(135deg, #0077b6, #00b4d8);
-            border-radius: 30px;
-            margin: 0 auto 24px auto;
+            border-radius: 24px;
+            margin: 0 auto 20px auto;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 48px;
+            font-size: 36px;
             box-shadow: 0 10px 25px -5px rgba(0,119,182,0.3);
         }
         h1 {
-            font-size: 2rem;
+            font-size: 1.6rem;
             font-weight: 800;
             color: #1e3a5f;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .subtitulo {
             color: #5b6e8c;
-            margin-bottom: 32px;
-            font-size: 0.95rem;
+            margin-bottom: 28px;
+            font-size: 0.85rem;
         }
         
-        /* Estilos para el acceso de clientes (principal) */
+        /* ACCESO CLIENTE - VERSIÓN RESPONSIVE */
         .acceso-cliente {
             background: linear-gradient(135deg, #0077b6, #00a8e8);
-            border-radius: 40px;
-            padding: 8px;
-            margin-bottom: 32px;
-            box-shadow: 0 8px 20px rgba(0,119,182,0.3);
+            border-radius: 32px;
+            padding: 16px;
+            margin-bottom: 28px;
         }
         .input-cliente {
             display: flex;
+            flex-direction: column;
             gap: 12px;
-            background: white;
-            border-radius: 36px;
-            padding: 6px;
         }
         .input-cliente input {
-            flex: 1;
+            width: 100%;
             border: none;
-            padding: 14px 20px;
+            padding: 14px 16px;
             font-size: 1rem;
-            border-radius: 36px;
+            border-radius: 50px;
             outline: none;
             font-family: monospace;
-            font-size: 1.1rem;
+            font-size: 1rem;
             letter-spacing: 1px;
             text-align: center;
-            background: #f8fafc;
+            background: white;
+            border: 1px solid rgba(0,0,0,0.1);
         }
         .input-cliente input:focus {
-            background: white;
-            box-shadow: 0 0 0 2px #0077b6;
+            border-color: #0077b6;
+            box-shadow: 0 0 0 2px rgba(0,119,182,0.2);
         }
         .input-cliente button {
-            background: #0077b6;
+            width: 100%;
+            background: white;
             border: none;
-            padding: 12px 28px;
-            border-radius: 36px;
-            color: white;
-            font-weight: 600;
+            padding: 14px 20px;
+            border-radius: 50px;
+            color: #0077b6;
+            font-weight: 700;
             font-size: 1rem;
             cursor: pointer;
             transition: all 0.2s;
         }
         .input-cliente button:hover {
-            background: #005f8c;
+            background: #f0f9ff;
             transform: scale(1.02);
         }
         .ayuda-cliente {
             font-size: 0.7rem;
-            color: rgba(255,255,255,0.8);
+            color: rgba(255,255,255,0.85);
             text-align: center;
             margin-top: 12px;
         }
         .ayuda-cliente span {
             background: rgba(255,255,255,0.2);
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 20px;
             font-family: monospace;
             font-weight: bold;
+            font-size: 0.7rem;
         }
         
-        /* Accesos secundarios */
+        /* ACCESOS SECUNDARIOS */
         .accesos-secundarios {
             border-top: 1px solid #e2e8f0;
-            padding-top: 24px;
-            margin-top: 8px;
+            padding-top: 20px;
+            margin-top: 4px;
         }
         .accesos-secundarios p {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #8a99b0;
             margin-bottom: 12px;
             text-transform: uppercase;
@@ -132,11 +132,11 @@
         .btn-secundario {
             display: block;
             width: 100%;
-            padding: 12px 20px;
-            border-radius: 40px;
+            padding: 12px 16px;
+            border-radius: 50px;
             text-decoration: none;
             font-weight: 500;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             text-align: center;
             transition: all 0.2s;
             margin-bottom: 10px;
@@ -148,7 +148,6 @@
         }
         .btn-tecnico:hover {
             background: #e2e8f0;
-            transform: translateY(-1px);
         }
         .btn-gerente {
             background: #f8fafc;
@@ -157,17 +156,16 @@
         }
         .btn-gerente:hover {
             background: #f1f5f9;
-            transform: translateY(-1px);
         }
         
         .footer {
             margin-top: 20px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: #8a99b0;
             text-align: center;
         }
         
-        /* Loading y error */
+        /* MODAL DE CARGA */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -184,9 +182,10 @@
         .loading-card {
             background: white;
             border-radius: 32px;
-            padding: 32px;
+            padding: 28px;
             text-align: center;
-            min-width: 250px;
+            min-width: 220px;
+            margin: 0 20px;
         }
         .spinner {
             width: 40px;
@@ -203,13 +202,50 @@
         .error-mensaje {
             background: #fee2e2;
             color: #c2410c;
-            padding: 12px;
+            padding: 10px;
             border-radius: 20px;
-            font-size: 0.8rem;
-            margin-top: 16px;
+            font-size: 0.75rem;
+            margin-top: 12px;
         }
         .oculto {
             display: none;
+        }
+        
+        /* PANTALLAS MUY PEQUEÑAS (menos de 400px) */
+        @media (max-width: 400px) {
+            .card-principal {
+                padding: 24px 20px;
+            }
+            .logo {
+                width: 55px;
+                height: 55px;
+                font-size: 28px;
+            }
+            h1 {
+                font-size: 1.4rem;
+            }
+            .input-cliente input {
+                padding: 12px 14px;
+                font-size: 0.9rem;
+            }
+            .input-cliente button {
+                padding: 12px 16px;
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* PANTALLAS GRANDES (escritorio) */
+        @media (min-width: 768px) {
+            .input-cliente {
+                flex-direction: row;
+            }
+            .input-cliente input {
+                flex: 2;
+            }
+            .input-cliente button {
+                flex: 1;
+                width: auto;
+            }
         }
     </style>
 </head>
@@ -221,7 +257,7 @@
             </div>
             <h1>Aqua Garden</h1>
             <div class="subtitulo">
-                Consulta el estado de tu piscina al instante
+                Consulta el estado de tu piscina
             </div>
             
             <!-- ACCESO PRINCIPAL: CLIENTES -->
@@ -238,10 +274,10 @@
             <!-- ACCESOS SECUNDARIOS: TÉCNICO Y GERENTE -->
             <div class="accesos-secundarios">
                 <p>🔐 Área de trabajo</p>
-                <a href="tecnico.html" class="btn-secundario btn-tecnico">
+                <a href="./tecnico.html" class="btn-secundario btn-tecnico">
                     🔧 Acceso Técnico
                 </a>
-                <a href="gerente.html" class="btn-secundario btn-gerente">
+                <a href="./gerente.html" class="btn-secundario btn-gerente">
                     👔 Acceso Gerente
                 </a>
             </div>
@@ -261,12 +297,17 @@
         </div>
     </div>
     
-    <!-- Redirección silenciosa a cliente.html con el código -->
-    <form id="redirectForm" action="cliente.html" method="GET" style="display: none;">
-        <input type="hidden" name="codigo" id="redirectCodigo">
+    <!-- Redirección a cliente.html con el código como parámetro -->
+    <form id="redirectForm" action="./cliente.html" method="GET" style="display: none;">
+        <input type="text" name="codigo" id="redirectCodigo">
     </form>
 
     <script>
+        // Inicializar Supabase
+        const SUPABASE_URL = "https://vvdyofbapqttcvczokiw.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_MwuazhcxSJGc04eS2vttZA_SEcGjhVT";
+        let supabaseClient = null;
+        
         const btnAcceder = document.getElementById('btnAccederCliente');
         const inputCodigo = document.getElementById('codigoAcceso');
         const modal = document.getElementById('loadingModal');
@@ -289,7 +330,7 @@
             errorMsgDiv.classList.remove('oculto');
             setTimeout(() => {
                 ocultarLoading();
-            }, 2000);
+            }, 2500);
         }
         
         async function verificarYRedirigir() {
@@ -300,11 +341,15 @@
                 return;
             }
             
-            mostrarLoading('Verificando código de acceso...');
+            if (!supabaseClient) {
+                mostrarError('Cargando sistema, intenta de nuevo...');
+                return;
+            }
+            
+            mostrarLoading('Verificando código...');
             
             try {
-                // Verificar si el código existe en Supabase
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('piscinas')
                     .select('id, nombre, codigo_acceso')
                     .eq('codigo_acceso', codigo)
@@ -313,46 +358,36 @@
                 if (error) throw error;
                 
                 if (!data) {
-                    mostrarError('❌ Código incorrecto. Verifica e intenta de nuevo.');
+                    mostrarError('❌ Código incorrecto');
                     return;
                 }
                 
-                // Código válido, redirigir a cliente.html con el código
-                const form = document.getElementById('redirectForm');
+                // Código válido, redirigir
                 document.getElementById('redirectCodigo').value = codigo;
-                form.submit();
+                document.getElementById('redirectForm').submit();
                 
             } catch (error) {
                 console.error('Error:', error);
-                mostrarError('❌ Error de conexión. Intenta de nuevo más tarde.');
+                mostrarError('❌ Error de conexión');
             }
         }
         
-        // Inicializar Supabase
-        const SUPABASE_URL = "https://vvdyofbapqttcvczokiw.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_MwuazhcxSJGc04eS2vttZA_SEcGjhVT";
-        window.supabase = window.supabase || {};
-        if (typeof supabase !== 'undefined') {
-            // Supabase ya está cargado
-        } else {
-            // Cargar Supabase dinámicamente si no está disponible
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-            script.onload = () => {
-                window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            };
-            document.head.appendChild(script);
-        }
+        // Cargar Supabase
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+        script.onload = () => {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        };
+        document.head.appendChild(script);
         
-        // Esperar a que Supabase esté listo
         function esperarSupabase() {
             return new Promise((resolve) => {
-                if (window.supabase && window.supabase.from) {
+                if (supabaseClient) {
                     resolve();
                 } else {
-                    const checkInterval = setInterval(() => {
-                        if (window.supabase && window.supabase.from) {
-                            clearInterval(checkInterval);
+                    const interval = setInterval(() => {
+                        if (supabaseClient) {
+                            clearInterval(interval);
                             resolve();
                         }
                     }, 100);
@@ -371,14 +406,6 @@
                 verificarYRedirigir();
             }
         });
-        
-        // Precargar Supabase
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-        script.onload = () => {
-            window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        };
-        document.head.appendChild(script);
     </script>
 </body>
 </html>
