@@ -58,6 +58,7 @@
             font-weight: 600;
             font-family: monospace;
             font-size: 1.2rem;
+            text-transform: uppercase;
         }
         button {
             width: 100%;
@@ -205,6 +206,12 @@
         .historico-toggle .flecha.rotada {
             transform: rotate(90deg);
         }
+        .recordatorio-mayusculas {
+            font-size: 0.65rem;
+            color: #5b6e8c;
+            margin-top: 8px;
+            text-align: center;
+        }
         @media (max-width: 550px) {
             .parametros-grid { grid-template-columns: repeat(2, 1fr); }
             .card { padding: 20px; }
@@ -221,8 +228,11 @@
         
         <div class="card">
             <div class="card-header" style="cursor:default;">🔑 Accede con tu código</div>
-            <input type="text" id="codigoAcceso" placeholder="Ej: PISC1234" maxlength="20" autocomplete="off">
+            <input type="text" id="codigoAcceso" placeholder="Ej: PISC1234" maxlength="20" autocomplete="off" style="text-transform: uppercase;">
             <button id="btnAcceder">Ver estado de mi piscina</button>
+            <div class="recordatorio-mayusculas">
+                🔤 El código debe escribirse en MAYÚSCULAS (ej: PISC1234)
+            </div>
             <div id="errorMsg" class="error-msg" style="display: none;"></div>
         </div>
         <div class="info">
@@ -240,6 +250,12 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let piscinaActual = null;
+
+    // ========== CAPTURAR CÓDIGO DE LA URL Y ACCEDER AUTOMÁTICAMENTE ==========
+    function getParameterByName(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    }
 
     function formatFecha(iso) {
         if (!iso) return '—';
@@ -339,7 +355,10 @@
         const estadoPh = typeof ph === 'number' ? getEstadoParametro(ph, 'ph') : { clase: 'estado-ok', texto: '—' };
         const estadoTemp = typeof temperatura === 'number' ? getEstadoParametro(temperatura, 'temp') : { clase: 'estado-ok', texto: '—' };
         
-        const mensajeIA = ultimoInforme?.mensaje || 'Próximamente se generará un informe detallado del estado de su piscina.';
+        // Mensaje por defecto mejorado
+        const mensajeIA = ultimoInforme?.mensaje || '¡Buenas noticias! Su piscina está en excelentes condiciones. Puede bañarse sin ninguna preocupación. Seguimos trabajando para mantenerla siempre perfecta.';
+        
+        const tieneInforme = ultimoInforme !== null;
         
         // Histórico
         let historicoHtml = '';
@@ -399,9 +418,9 @@
             </div>
             
             <div class="mensaje-ia">
-                <div style="font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                    🤖 Informe del técnico
-                    <span style="font-size:0.6rem; background:#2c7a4d; color:white; padding:2px 8px; border-radius:20px;">Generado con IA</span>
+                <div style="font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    🤖 ${tieneInforme ? 'Informe del técnico' : 'Estado de la piscina'}
+                    <span style="font-size:0.6rem; background:${tieneInforme ? '#2c7a4d' : '#475569'}; color:white; padding:2px 8px; border-radius:20px;">${tieneInforme ? 'Generado con IA' : 'Última revisión'}</span>
                 </div>
                 <div style="white-space: pre-wrap;">${mensajeIA}</div>
             </div>
@@ -424,14 +443,16 @@
     function toggleHistorico() {
         const contenido = document.getElementById('historicoContenido');
         const flecha = document.querySelector('.historico-toggle .flecha');
-        if (contenido.style.display === 'none') {
-            contenido.style.display = 'block';
-            flecha.classList.add('rotada');
-            flecha.style.transform = 'rotate(90deg)';
-        } else {
-            contenido.style.display = 'none';
-            flecha.classList.remove('rotada');
-            flecha.style.transform = 'rotate(0deg)';
+        if (contenido && flecha) {
+            if (contenido.style.display === 'none') {
+                contenido.style.display = 'block';
+                flecha.classList.add('rotada');
+                flecha.style.transform = 'rotate(90deg)';
+            } else {
+                contenido.style.display = 'none';
+                flecha.classList.remove('rotada');
+                flecha.style.transform = 'rotate(0deg)';
+            }
         }
     }
     
@@ -471,6 +492,9 @@
         if (exito) {
             document.getElementById('loginView').style.display = 'none';
             document.getElementById('panelPiscina').style.display = 'block';
+            // Actualizar URL sin recargar la página
+            const newUrl = `${window.location.pathname}?codigo=${codigo}`;
+            window.history.pushState({}, '', newUrl);
         }
         
         btn.innerHTML = 'Ver estado de mi piscina';
@@ -481,6 +505,17 @@
     window.toggleHistorico = toggleHistorico;
     window.recargarDatos = recargarDatos;
     window.volverALogin = volverALogin;
+    
+    // ========== CARGA AUTOMÁTICA SI HAY CÓDIGO EN LA URL ==========
+    const codigoUrl = getParameterByName('codigo');
+    if (codigoUrl) {
+        // Llenar el input y acceder automáticamente
+        document.getElementById('codigoAcceso').value = codigoUrl;
+        // Esperar un momento para que todo cargue
+        setTimeout(() => {
+            document.getElementById('btnAcceder').click();
+        }, 300);
+    }
     
     document.getElementById('btnAcceder').addEventListener('click', accederPiscina);
     document.getElementById('codigoAcceso').addEventListener('keypress', (e) => {
