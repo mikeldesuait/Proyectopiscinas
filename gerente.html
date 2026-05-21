@@ -246,6 +246,14 @@
             margin-bottom: 16px;
         }
         
+        .codigo-info {
+            background: #f0f9ff;
+            border-radius: 16px;
+            padding: 12px;
+            font-size: 0.75rem;
+            color: #1e4663;
+        }
+        
         #dashboardPanel { display: none; }
     </style>
 </head>
@@ -365,6 +373,33 @@
                     </div>
                 </div>
                 <div id="listaAusencias" class="resultados-area"></div>
+            </div>
+        </div>
+
+        <!-- GESTIÓN DE CÓDIGOS DE ACCESO PARA CLIENTES -->
+        <div class="card">
+            <div class="card-header" style="cursor:default;">🔑 Códigos de acceso por piscina</div>
+            
+            <div class="row-flex">
+                <div class="grupo">
+                    <select id="selectorPiscinaCodigo">
+                        <option value="">Selecciona una piscina...</option>
+                    </select>
+                </div>
+                <div class="grupo">
+                    <input type="text" id="nuevoCodigo" placeholder="Nuevo código (dejar vacío = autogenerar)">
+                </div>
+                <button id="btnRegenerarCodigo" class="btn-warning">🔄 Regenerar código</button>
+            </div>
+            
+            <div id="listaCodigosPiscinas" class="resultados-area" style="margin-top:16px;">
+                <div class="medicion-card">📋 Cargando códigos de acceso...</div>
+            </div>
+            
+            <div class="codigo-info" style="margin-top:12px;">
+                💡 <strong>¿Cómo funciona?</strong><br>
+                Cada piscina tiene un código único. Comparte este código con los propietarios de la comunidad.<br>
+                Ellos entrarán en <strong>cliente.html</strong> e introducirán el código para ver SOLO su piscina.
             </div>
         </div>
 
@@ -836,12 +871,135 @@
         else { const totalHorasT = Math.floor(totalTrabajo/3600); const totalMinT = Math.floor((totalTrabajo%3600)/60); const totalHorasD = Math.floor(totalDesplazamiento/3600); const totalMinD = Math.floor((totalDesplazamiento%3600)/60); contenedor.innerHTML += `<div class="medicion-card" style="background:#e0f2e9;"><strong>📊 RESUMEN</strong><br>🏊 Trabajo: ${totalHorasT}h ${totalMinT}m<br>🚗 Desplazamientos: ${totalHorasD}h ${totalMinD}m</div>`; }
     }
 
+    // ========== GESTIÓN DE CÓDIGOS DE ACCESO (CON ELIMINACIÓN DE DUPLICADOS) ==========
+    async function cargarListaCodigosPiscinas() {
+        const { data: piscinasRaw, error } = await sb.from('piscinas').select('id, nombre, direccion, codigo_acceso').order('nombre');
+        
+        if (error) {
+            document.getElementById('listaCodigosPiscinas').innerHTML = `<div class="medicion-card">❌ Error: ${error.message}</div>`;
+            return;
+        }
+        
+        // ELIMINAR DUPLICADOS POR NOMBRE (misma lógica que en el panel técnico)
+        const piscinas = [];
+        const nombresVistos = new Set();
+        for (const p of piscinasRaw) {
+            if (!nombresVistos.has(p.nombre)) {
+                nombresVistos.add(p.nombre);
+                piscinas.push(p);
+            }
+        }
+        
+        const select = document.getElementById('selectorPiscinaCodigo');
+        const lista = document.getElementById('listaCodigosPiscinas');
+        
+        if (select && piscinas) {
+            select.innerHTML = '<option value="">Selecciona una piscina...</option>';
+            piscinas.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+            });
+        }
+        
+        if (lista && piscinas) {
+            if (piscinas.length === 0) {
+                lista.innerHTML = '<div class="medicion-card">📋 No hay piscinas registradas</div>';
+                return;
+            }
+            
+            lista.innerHTML = '<div class="medicion-card" style="font-weight:bold; background:#e0f2e9;">📋 CÓDIGOS DE ACCESO POR PISCINA</div>';
+            
+            const enlaceCliente = `${window.location.origin}${window.location.pathname.replace('gerente.html', 'cliente.html')}`;
+            
+            for (const p of piscinas) {
+                lista.innerHTML += `
+                    <div class="medicion-card" style="border-left-color: #e67e22;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <strong>🏊 ${p.nombre}</strong>
+                            <span style="background: #1e4663; color: white; padding: 4px 12px; border-radius: 20px; font-family: monospace; font-weight: bold; font-size: 1rem;">${p.codigo_acceso || 'Sin código'}</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #5b6e8c; margin-top: 4px;">${p.direccion || ''}</div>
+                        <div style="font-size: 0.7rem; margin-top: 8px; background: #f8fafc; padding: 8px; border-radius: 12px;">
+                            🔗 <strong>Enlace para clientes:</strong><br>
+                            <code style="font-size: 0.65rem; word-break: break-all;">${enlaceCliente}</code><br>
+                            📝 <strong>Código:</strong> <span style="font-family: monospace;">${p.codigo_acceso || 'Sin código'}</span>
+                            <button class="copiar-enlace" data-piscina="${p.nombre.replace(/'/g, "\\'")}" data-codigo="${p.codigo_acceso}" data-enlace="${enlaceCliente}" style="margin-top:6px; background:#475569; width:auto; padding:4px 12px; font-size:0.7rem;">📋 Copiar enlace + código</button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.querySelectorAll('.copiar-enlace').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const piscinaNombre = btn.dataset.piscina;
+                    const codigo = btn.dataset.codigo;
+                    const enlace = btn.dataset.enlace;
+                    const textoCompleto = `🔑 ACCESO PISCINA ${piscinaNombre}\n\n🔗 Enlace: ${enlace}\n🔐 Código: ${codigo}\n\nIntroduce el código en la página para ver el estado de la piscina.`;
+                    try {
+                        await navigator.clipboard.writeText(textoCompleto);
+                        btn.innerHTML = '✅ Copiado!';
+                        setTimeout(() => { btn.innerHTML = '📋 Copiar enlace + código'; }, 2000);
+                    } catch (err) {
+                        alert('No se pudo copiar. Copia manualmente.');
+                    }
+                });
+            });
+        }
+    }
+    
+    async function regenerarCodigoPiscina() {
+        const piscinaId = document.getElementById('selectorPiscinaCodigo').value;
+        const nuevoCodigoManual = document.getElementById('nuevoCodigo').value.trim().toUpperCase();
+        
+        if (!piscinaId) {
+            alert("❌ Selecciona una piscina");
+            return;
+        }
+        
+        let nuevoCodigo;
+        if (nuevoCodigoManual) {
+            if (!/^[A-Z0-9]+$/.test(nuevoCodigoManual)) {
+                alert("❌ El código solo puede contener letras mayúsculas y números, sin espacios");
+                return;
+            }
+            nuevoCodigo = nuevoCodigoManual;
+        } else {
+            const randomNum = Math.floor(Math.random() * 9000) + 1000;
+            nuevoCodigo = `PISC${randomNum}`;
+        }
+        
+        const { data: existe } = await sb
+            .from('piscinas')
+            .select('id')
+            .eq('codigo_acceso', nuevoCodigo)
+            .neq('id', parseInt(piscinaId))
+            .maybeSingle();
+        
+        if (existe) {
+            alert("❌ Ese código ya está en uso por otra piscina. Elige otro o deja en blanco para autogenerar.");
+            return;
+        }
+        
+        const { error } = await sb
+            .from('piscinas')
+            .update({ codigo_acceso: nuevoCodigo })
+            .eq('id', parseInt(piscinaId));
+        
+        if (error) {
+            alert("❌ Error: " + error.message);
+        } else {
+            alert(`✅ Código actualizado: ${nuevoCodigo}`);
+            document.getElementById('nuevoCodigo').value = '';
+            await cargarListaCodigosPiscinas();
+        }
+    }
+
     async function recargarTodosLosDatos() {
         const btn = document.getElementById('btnRecargarTodo');
         btn.innerHTML = '⏳ Cargando...'; btn.disabled = true;
         try {
             await cargarCaches();
             await actualizarConsolaCompleta();
+            await cargarListaCodigosPiscinas();
             if (document.getElementById('selectorTecnicoPersonal').value) await cargarDatosTecnicoHoy();
             if (document.getElementById('selectorTecnicoDisponibilidad').value) await cargarDisponibilidadSemanal();
             if (document.getElementById('selectorTecnicoVacaciones').value) await cargarAusenciasTecnico();
@@ -871,6 +1029,7 @@
             await cargarInfoGerente();
             await cargarCaches();
             await actualizarConsolaCompleta();
+            await cargarListaCodigosPiscinas();
             if (intervaloActualizacion) clearInterval(intervaloActualizacion);
             intervaloActualizacion = setInterval(actualizarConsolaCompleta, 60000);
         }
@@ -899,6 +1058,8 @@
     document.getElementById('btnBuscarJornadas').onclick = ejecutarBusquedaJornadas;
     document.getElementById('btnBuscarMediciones').onclick = ejecutarBusquedaMediciones;
     document.getElementById('btnBuscarTiempos').onclick = ejecutarBusquedaTiempos;
+    
+    document.getElementById('btnRegenerarCodigo').onclick = regenerarCodigoPiscina;
     
     document.getElementById('btnLogout').onclick = async () => { if (intervaloActualizacion) clearInterval(intervaloActualizacion); await sb.auth.signOut(); location.reload(); };
 
