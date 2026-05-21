@@ -946,7 +946,7 @@
         }
     }
     
-    async function regenerarCodigoPiscina() {
+  async function regenerarCodigoPiscina() {
     const piscinaId = document.getElementById('selectorPiscinaCodigo').value;
     const nuevoCodigoManual = document.getElementById('nuevoCodigo').value.trim().toUpperCase();
     
@@ -955,16 +955,17 @@
         return;
     }
     
+    const idNumerico = parseInt(piscinaId);
+    
+    // Generar código
     let nuevoCodigo;
     if (nuevoCodigoManual) {
-        // Validar formato manual (solo letras mayúsculas y números, 6-12 caracteres)
         if (!/^[A-Z0-9]{6,12}$/.test(nuevoCodigoManual)) {
-            alert("❌ El código manual debe tener entre 6 y 12 caracteres, solo letras mayúsculas y números");
+            alert("❌ El código debe tener entre 6 y 12 caracteres, solo letras mayúsculas y números");
             return;
         }
         nuevoCodigo = nuevoCodigoManual;
     } else {
-        // Generar código seguro: 8 caracteres aleatorios (letras + números)
         const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let resultado = '';
         for (let i = 0; i < 6; i++) {
@@ -973,33 +974,43 @@
         nuevoCodigo = resultado;
     }
     
-    // Verificar que el código no exista ya
+    // Verificar que el código no exista
     const { data: existe } = await sb
         .from('piscinas')
         .select('id')
         .eq('codigo_acceso', nuevoCodigo)
-        .neq('id', parseInt(piscinaId))
+        .neq('id', idNumerico)
         .maybeSingle();
     
     if (existe) {
-        alert("❌ Ese código ya está en uso. Genera otro automático o elige uno diferente.");
+        alert("❌ Ese código ya está en uso");
         return;
     }
     
+    // Mostrar loading
+    const btn = document.getElementById('btnRegenerarCodigo');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '⏳ Actualizando...';
+    btn.disabled = true;
+    
+    // Actualizar
     const { error } = await sb
         .from('piscinas')
         .update({ codigo_acceso: nuevoCodigo })
-        .eq('id', parseInt(piscinaId));
+        .eq('id', idNumerico);
+    
+    btn.innerHTML = textoOriginal;
+    btn.disabled = false;
     
     if (error) {
         alert("❌ Error: " + error.message);
     } else {
         alert(`✅ Código actualizado: ${nuevoCodigo}`);
         document.getElementById('nuevoCodigo').value = '';
+        // Solo recargar la lista, NO la página completa
         await cargarListaCodigosPiscinas();
     }
 }
-
     async function recargarTodosLosDatos() {
         const btn = document.getElementById('btnRecargarTodo');
         btn.innerHTML = '⏳ Cargando...'; btn.disabled = true;
