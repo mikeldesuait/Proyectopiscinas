@@ -947,51 +947,58 @@
     }
     
     async function regenerarCodigoPiscina() {
-        const piscinaId = document.getElementById('selectorPiscinaCodigo').value;
-        const nuevoCodigoManual = document.getElementById('nuevoCodigo').value.trim().toUpperCase();
-        
-        if (!piscinaId) {
-            alert("❌ Selecciona una piscina");
-            return;
-        }
-        
-        let nuevoCodigo;
-        if (nuevoCodigoManual) {
-            if (!/^[A-Z0-9]+$/.test(nuevoCodigoManual)) {
-                alert("❌ El código solo puede contener letras mayúsculas y números, sin espacios");
-                return;
-            }
-            nuevoCodigo = nuevoCodigoManual;
-        } else {
-            const randomNum = Math.floor(Math.random() * 9000) + 1000;
-            nuevoCodigo = `PISC${randomNum}`;
-        }
-        
-        const { data: existe } = await sb
-            .from('piscinas')
-            .select('id')
-            .eq('codigo_acceso', nuevoCodigo)
-            .neq('id', parseInt(piscinaId))
-            .maybeSingle();
-        
-        if (existe) {
-            alert("❌ Ese código ya está en uso por otra piscina. Elige otro o deja en blanco para autogenerar.");
-            return;
-        }
-        
-        const { error } = await sb
-            .from('piscinas')
-            .update({ codigo_acceso: nuevoCodigo })
-            .eq('id', parseInt(piscinaId));
-        
-        if (error) {
-            alert("❌ Error: " + error.message);
-        } else {
-            alert(`✅ Código actualizado: ${nuevoCodigo}`);
-            document.getElementById('nuevoCodigo').value = '';
-            await cargarListaCodigosPiscinas();
-        }
+    const piscinaId = document.getElementById('selectorPiscinaCodigo').value;
+    const nuevoCodigoManual = document.getElementById('nuevoCodigo').value.trim().toUpperCase();
+    
+    if (!piscinaId) {
+        alert("❌ Selecciona una piscina");
+        return;
     }
+    
+    let nuevoCodigo;
+    if (nuevoCodigoManual) {
+        // Validar formato manual (solo letras mayúsculas y números, 6-12 caracteres)
+        if (!/^[A-Z0-9]{6,12}$/.test(nuevoCodigoManual)) {
+            alert("❌ El código manual debe tener entre 6 y 12 caracteres, solo letras mayúsculas y números");
+            return;
+        }
+        nuevoCodigo = nuevoCodigoManual;
+    } else {
+        // Generar código seguro: 8 caracteres aleatorios (letras + números)
+        const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let resultado = '';
+        for (let i = 0; i < 6; i++) {
+            resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+        }
+        nuevoCodigo = resultado;
+    }
+    
+    // Verificar que el código no exista ya
+    const { data: existe } = await sb
+        .from('piscinas')
+        .select('id')
+        .eq('codigo_acceso', nuevoCodigo)
+        .neq('id', parseInt(piscinaId))
+        .maybeSingle();
+    
+    if (existe) {
+        alert("❌ Ese código ya está en uso. Genera otro automático o elige uno diferente.");
+        return;
+    }
+    
+    const { error } = await sb
+        .from('piscinas')
+        .update({ codigo_acceso: nuevoCodigo })
+        .eq('id', parseInt(piscinaId));
+    
+    if (error) {
+        alert("❌ Error: " + error.message);
+    } else {
+        alert(`✅ Código actualizado: ${nuevoCodigo}`);
+        document.getElementById('nuevoCodigo').value = '';
+        await cargarListaCodigosPiscinas();
+    }
+}
 
     async function recargarTodosLosDatos() {
         const btn = document.getElementById('btnRecargarTodo');
