@@ -65,7 +65,6 @@
         .btn-info { background: #0284c7; }
         .oculto { display: none; }
         
-        /* Header del gerente */
         .gerente-header {
             background: linear-gradient(135deg, #0077b6 0%, #00a8e8 100%);
             color: white;
@@ -280,6 +279,29 @@
         #dashboardPanel {
             display: none;
         }
+        
+        .btn-recargar {
+            background: #2c7a4d;
+            width: auto;
+            padding: 8px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-recargar:hover {
+            background: #1f5a38;
+            transform: translateY(-1px);
+        }
+        .btn-recargar:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -306,6 +328,11 @@
                     <div style="font-size: 2rem;">🏊</div>
                     <div style="font-size: 0.7rem; opacity: 0.8;">Aqua Garden</div>
                 </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                <button id="btnRecargarTodo" class="btn-recargar">
+                    🔄 Recargar todos los datos
+                </button>
             </div>
         </div>
 
@@ -1279,6 +1306,55 @@
         await cargarMensajesUrgentes();
     }
 
+    // ========== RECARGAR TODOS LOS DATOS ==========
+    async function recargarTodosLosDatos() {
+        const btn = document.getElementById('btnRecargarTodo');
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '⏳ Cargando...';
+        btn.disabled = true;
+        
+        try {
+            // Recargar piscinas
+            const { data: piscinas } = await sb.from('piscinas').select('id, nombre');
+            if (piscinas) { cachePiscinas = {}; piscinas.forEach(p => cachePiscinas[p.id] = p.nombre); }
+            
+            // Recargar perfiles
+            const { data: perfiles } = await sb.from('perfiles').select('id, nick, nombre, rol');
+            if (perfiles) { cachePerfiles = {}; perfiles.forEach(p => cachePerfiles[p.id] = { nick: p.nick, nombre: p.nombre, rol: p.rol }); }
+            
+            // Recargar selectores y filtros
+            await cargarSelectoresTecnicos();
+            await cargarFiltrosTecnicos();
+            
+            // Recargar consola de supervisión
+            await actualizarConsolaCompleta();
+            
+            // Recargar gestión de personal si hay técnicos seleccionados
+            const selectorPersonal = document.getElementById('selectorTecnicoPersonal');
+            if (selectorPersonal && selectorPersonal.value) {
+                await cargarDatosTecnicoHoy();
+            }
+            
+            const selectorDisponibilidad = document.getElementById('selectorTecnicoDisponibilidad');
+            if (selectorDisponibilidad && selectorDisponibilidad.value) {
+                await cargarDisponibilidadSemanal();
+            }
+            
+            const selectorVacaciones = document.getElementById('selectorTecnicoVacaciones');
+            if (selectorVacaciones && selectorVacaciones.value) {
+                await cargarAusenciasTecnico();
+            }
+            
+            btn.innerHTML = '✅ Actualizado';
+            setTimeout(() => { btn.innerHTML = textoOriginal; btn.disabled = false; }, 2000);
+            
+        } catch (error) {
+            console.error("Error:", error);
+            btn.innerHTML = '❌ Error';
+            setTimeout(() => { btn.innerHTML = textoOriginal; btn.disabled = false; }, 2000);
+        }
+    }
+
     // ========== FILTROS Y BÚSQUEDAS ==========
     async function cargarFiltrosTecnicos() {
         const { data } = await sb.from('perfiles').select('id, nick').eq('rol', 'tecnico');
@@ -1550,6 +1626,7 @@
     document.getElementById('btnAgregarAusencia').addEventListener('click', agregarAusencia);
     
     document.getElementById('btnRefreshConsola').onclick = actualizarConsolaCompleta;
+    document.getElementById('btnRecargarTodo').onclick = recargarTodosLosDatos;
     
     document.getElementById('toggleHistorico').addEventListener('click', () => {
         const content = document.getElementById('historicoContent');
