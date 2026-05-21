@@ -974,16 +974,21 @@
         nuevoCodigo = resultado;
     }
     
-    // Verificar que el código no exista
-    const { data: existe } = await sb
+    // Verificar que el código no exista en otra piscina
+    const { data: existe, error: errorExiste } = await sb
         .from('piscinas')
-        .select('id')
+        .select('id, nombre')
         .eq('codigo_acceso', nuevoCodigo)
-        .neq('id', idNumerico)
-        .maybeSingle();
+        .neq('id', idNumerico);
     
-    if (existe) {
-        alert("❌ Ese código ya está en uso");
+    if (errorExiste) {
+        console.error("Error al verificar código:", errorExiste);
+        alert("❌ Error al verificar disponibilidad del código");
+        return;
+    }
+    
+    if (existe && existe.length > 0) {
+        alert(`❌ El código "${nuevoCodigo}" ya está en uso en la piscina: ${existe[0].nombre}`);
         return;
     }
     
@@ -993,22 +998,32 @@
     btn.innerHTML = '⏳ Actualizando...';
     btn.disabled = true;
     
-    // Actualizar
-    const { error } = await sb
-        .from('piscinas')
-        .update({ codigo_acceso: nuevoCodigo })
-        .eq('id', idNumerico);
-    
-    btn.innerHTML = textoOriginal;
-    btn.disabled = false;
-    
-    if (error) {
-        alert("❌ Error: " + error.message);
-    } else {
-        alert(`✅ Código actualizado: ${nuevoCodigo}`);
+    try {
+        // ACTUALIZAR SOLO LA COLUMNA QUE EXISTE
+        const { data, error } = await sb
+            .from('piscinas')
+            .update({ codigo_acceso: nuevoCodigo })  // ← SOLO actualizar codigo_acceso
+            .eq('id', idNumerico)
+            .select();
+        
+        if (error) {
+            console.error("Error detallado:", error);
+            throw new Error(error.message);
+        }
+        
+        console.log("✅ Actualización exitosa:", data);
+        alert(`✅ Código actualizado exitosamente a: ${nuevoCodigo}`);
+        
+        // Limpiar campo y recargar lista
         document.getElementById('nuevoCodigo').value = '';
-        // Solo recargar la lista, NO la página completa
         await cargarListaCodigosPiscinas();
+        
+    } catch (error) {
+        console.error("❌ Error:", error);
+        alert(`❌ Error al actualizar: ${error.message}`);
+    } finally {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
     }
 }
     async function recargarTodosLosDatos() {
