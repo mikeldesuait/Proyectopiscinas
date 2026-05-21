@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Aqua Garden · Panel de control</title>
+    <title>Aqua Garden · Tu piscina al instante</title>
     <style>
         * {
             margin: 0;
@@ -20,101 +20,365 @@
             padding: 20px;
         }
         .container {
-            max-width: 500px;
+            max-width: 550px;
             width: 100%;
         }
-        .card {
+        .card-principal {
             background: white;
             border-radius: 48px;
             padding: 48px 32px;
             text-align: center;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
         }
         .logo {
-            width: 80px;
-            height: 80px;
+            width: 90px;
+            height: 90px;
             background: linear-gradient(135deg, #0077b6, #00b4d8);
-            border-radius: 24px;
+            border-radius: 30px;
             margin: 0 auto 24px auto;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
+            font-size: 48px;
             box-shadow: 0 10px 25px -5px rgba(0,119,182,0.3);
         }
         h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
+            font-size: 2rem;
+            font-weight: 800;
             color: #1e3a5f;
             margin-bottom: 8px;
         }
         .subtitulo {
             color: #5b6e8c;
-            margin-bottom: 40px;
-            font-size: 0.9rem;
+            margin-bottom: 32px;
+            font-size: 0.95rem;
         }
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 16px 24px;
-            border-radius: 60px;
-            text-decoration: none;
+        
+        /* Estilos para el acceso de clientes (principal) */
+        .acceso-cliente {
+            background: linear-gradient(135deg, #0077b6, #00a8e8);
+            border-radius: 40px;
+            padding: 8px;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 20px rgba(0,119,182,0.3);
+        }
+        .input-cliente {
+            display: flex;
+            gap: 12px;
+            background: white;
+            border-radius: 36px;
+            padding: 6px;
+        }
+        .input-cliente input {
+            flex: 1;
+            border: none;
+            padding: 14px 20px;
+            font-size: 1rem;
+            border-radius: 36px;
+            outline: none;
+            font-family: monospace;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            text-align: center;
+            background: #f8fafc;
+        }
+        .input-cliente input:focus {
+            background: white;
+            box-shadow: 0 0 0 2px #0077b6;
+        }
+        .input-cliente button {
+            background: #0077b6;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 36px;
+            color: white;
             font-weight: 600;
             font-size: 1rem;
-            text-align: center;
-            transition: all 0.2s ease;
-            margin-bottom: 16px;
             cursor: pointer;
-            border: none;
+            transition: all 0.2s;
         }
-        .btn-tecnico {
-            background: #0066cc;
-            color: white;
-            box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+        .input-cliente button:hover {
+            background: #005f8c;
+            transform: scale(1.02);
         }
-        .btn-tecnico:hover {
-            background: #0052a3;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,102,204,0.4);
+        .ayuda-cliente {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.8);
+            text-align: center;
+            margin-top: 12px;
         }
-        .btn-gerente {
-            background: white;
-            color: #1e3a5f;
-            border: 2px solid #0066cc;
+        .ayuda-cliente span {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-family: monospace;
+            font-weight: bold;
         }
-        .btn-gerente:hover {
-            background: #f0f9ff;
-            transform: translateY(-2px);
+        
+        /* Accesos secundarios */
+        .accesos-secundarios {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 24px;
+            margin-top: 8px;
         }
-        .footer {
-            margin-top: 32px;
+        .accesos-secundarios p {
             font-size: 0.75rem;
             color: #8a99b0;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-secundario {
+            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-align: center;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+        }
+        .btn-tecnico {
+            background: #f1f5f9;
+            color: #1e3a5f;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-tecnico:hover {
+            background: #e2e8f0;
+            transform: translateY(-1px);
+        }
+        .btn-gerente {
+            background: #f8fafc;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-gerente:hover {
+            background: #f1f5f9;
+            transform: translateY(-1px);
+        }
+        
+        .footer {
+            margin-top: 20px;
+            font-size: 0.7rem;
+            color: #8a99b0;
+            text-align: center;
+        }
+        
+        /* Loading y error */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        .loading-card {
+            background: white;
+            border-radius: 32px;
+            padding: 32px;
+            text-align: center;
+            min-width: 250px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #0077b6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error-mensaje {
+            background: #fee2e2;
+            color: #c2410c;
+            padding: 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 16px;
+        }
+        .oculto {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="card">
+        <div class="card-principal">
             <div class="logo">
                 💧
             </div>
             <h1>Aqua Garden</h1>
-            <div class="subtitulo">Gestión de mantenimiento de piscinas</div>
+            <div class="subtitulo">
+                Consulta el estado de tu piscina al instante
+            </div>
             
-            <a href="tecnico.html" class="btn btn-tecnico">
-                🔧 Acceso Técnico
-            </a>
+            <!-- ACCESO PRINCIPAL: CLIENTES -->
+            <div class="acceso-cliente">
+                <div class="input-cliente">
+                    <input type="text" id="codigoAcceso" placeholder="Ej: PISC1234" autocomplete="off" maxlength="20">
+                    <button id="btnAccederCliente">Acceder</button>
+                </div>
+                <div class="ayuda-cliente">
+                    Introduce el código de tu comunidad
+                </div>
+            </div>
             
-            <a href="gerente.html" class="btn btn-gerente">
-                👔 Acceso Gerente
-            </a>
+            <!-- ACCESOS SECUNDARIOS: TÉCNICO Y GERENTE -->
+            <div class="accesos-secundarios">
+                <p>🔐 Área de trabajo</p>
+                <a href="tecnico.html" class="btn-secundario btn-tecnico">
+                    🔧 Acceso Técnico
+                </a>
+                <a href="gerente.html" class="btn-secundario btn-gerente">
+                    👔 Acceso Gerente
+                </a>
+            </div>
             
             <div class="footer">
                 Sistema de control de calidad y mantenimiento
             </div>
         </div>
     </div>
+    
+    <!-- Modal de carga / error -->
+    <div id="loadingModal" class="loading-overlay oculto">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <div id="loadingMessage">Verificando acceso...</div>
+            <div id="errorMessage" class="error-mensaje oculto"></div>
+        </div>
+    </div>
+    
+    <!-- Redirección silenciosa a cliente.html con el código -->
+    <form id="redirectForm" action="cliente.html" method="GET" style="display: none;">
+        <input type="hidden" name="codigo" id="redirectCodigo">
+    </form>
+
+    <script>
+        const btnAcceder = document.getElementById('btnAccederCliente');
+        const inputCodigo = document.getElementById('codigoAcceso');
+        const modal = document.getElementById('loadingModal');
+        const loadingMsg = document.getElementById('loadingMessage');
+        const errorMsgDiv = document.getElementById('errorMessage');
+        
+        function mostrarLoading(mensaje) {
+            loadingMsg.innerText = mensaje;
+            errorMsgDiv.classList.add('oculto');
+            modal.classList.remove('oculto');
+        }
+        
+        function ocultarLoading() {
+            modal.classList.add('oculto');
+        }
+        
+        function mostrarError(mensaje) {
+            loadingMsg.innerText = 'Error de acceso';
+            errorMsgDiv.innerText = mensaje;
+            errorMsgDiv.classList.remove('oculto');
+            setTimeout(() => {
+                ocultarLoading();
+            }, 2000);
+        }
+        
+        async function verificarYRedirigir() {
+            const codigo = inputCodigo.value.trim().toUpperCase();
+            
+            if (!codigo) {
+                alert('Por favor, introduce el código de acceso');
+                return;
+            }
+            
+            mostrarLoading('Verificando código de acceso...');
+            
+            try {
+                // Verificar si el código existe en Supabase
+                const { data, error } = await supabase
+                    .from('piscinas')
+                    .select('id, nombre, codigo_acceso')
+                    .eq('codigo_acceso', codigo)
+                    .maybeSingle();
+                
+                if (error) throw error;
+                
+                if (!data) {
+                    mostrarError('❌ Código incorrecto. Verifica e intenta de nuevo.');
+                    return;
+                }
+                
+                // Código válido, redirigir a cliente.html con el código
+                const form = document.getElementById('redirectForm');
+                document.getElementById('redirectCodigo').value = codigo;
+                form.submit();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('❌ Error de conexión. Intenta de nuevo más tarde.');
+            }
+        }
+        
+        // Inicializar Supabase
+        const SUPABASE_URL = "https://vvdyofbapqttcvczokiw.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_MwuazhcxSJGc04eS2vttZA_SEcGjhVT";
+        window.supabase = window.supabase || {};
+        if (typeof supabase !== 'undefined') {
+            // Supabase ya está cargado
+        } else {
+            // Cargar Supabase dinámicamente si no está disponible
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            script.onload = () => {
+                window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Esperar a que Supabase esté listo
+        function esperarSupabase() {
+            return new Promise((resolve) => {
+                if (window.supabase && window.supabase.from) {
+                    resolve();
+                } else {
+                    const checkInterval = setInterval(() => {
+                        if (window.supabase && window.supabase.from) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                }
+            });
+        }
+        
+        btnAcceder.addEventListener('click', async () => {
+            await esperarSupabase();
+            verificarYRedirigir();
+        });
+        
+        inputCodigo.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                await esperarSupabase();
+                verificarYRedirigir();
+            }
+        });
+        
+        // Precargar Supabase
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+        script.onload = () => {
+            window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        };
+        document.head.appendChild(script);
+    </script>
 </body>
 </html>
