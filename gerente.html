@@ -253,6 +253,75 @@
             font-size: 0.75rem;
             color: #1e4663;
         }
+
+        /* Estilos para incidencias */
+        .incidencia-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 12px;
+            border-left: 4px solid;
+            transition: all 0.2s;
+        }
+        .incidencia-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .incidencia-grave { border-left-color: #dc2626; background: #fef2f2; }
+        .incidencia-urgente { border-left-color: #f39c12; background: #fffbeb; }
+        .incidencia-normal { border-left-color: #2c7a4d; background: #f0fdf4; }
+        .incidencia-info { border-left-color: #0284c7; background: #f0f9ff; }
+        .incidencia-titulo {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .incidencia-fecha {
+            font-size: 0.7rem;
+            color: #5b6e8c;
+        }
+        .incidencia-mensaje {
+            background: white;
+            border-radius: 12px;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 0.85rem;
+        }
+        .incidencia-motivos {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 8px 0;
+        }
+        .badge-urgencia {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-grave { background: #dc2626; color: white; }
+        .badge-urgente { background: #f39c12; color: white; }
+        .badge-normal { background: #2c7a4d; color: white; }
+        .badge-info { background: #0284c7; color: white; }
+        .leida-true {
+            opacity: 0.7;
+        }
+        .leida-false {
+            opacity: 1;
+        }
+        .btn-marcar-leida {
+            background: #475569;
+            width: auto;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            margin: 0;
+        }
+        .btn-marcar-leida:hover {
+            background: #2c7a4d;
+        }
         
         #dashboardPanel { display: none; }
     </style>
@@ -311,6 +380,7 @@
                 <button class="browser-tab" data-tab="quimicos">🧪 Químicos gastados</button>
                 <button class="browser-tab" data-tab="mensajes">⚠️ Alertas</button>
                 <button class="browser-tab" data-tab="clientes">📨 Mensajes a clientes</button>
+                <button class="browser-tab" data-tab="incidencias">📋 Incidencias cliente</button>
             </div>
             
             <div id="tabActivos" class="browser-content"><div id="tecnicosActivosList" class="resultados-area"></div></div>
@@ -327,6 +397,25 @@
                     <button id="btnExportarMensajes" class="btn-pdf">📄 Exportar PDF</button>
                 </div>
                 <div id="mensajesClienteList" class="resultados-area"></div>
+            </div>
+            <div id="tabIncidencias" class="browser-content oculto">
+                <div class="filtros-mensajes" style="margin-bottom: 16px;">
+                    <select id="filtroIncidenciasUrgencia">
+                        <option value="">Todas las urgencias</option>
+                        <option value="GRAVE">🚨 GRAVE</option>
+                        <option value="URGENTE">⚠️ URGENTE</option>
+                        <option value="NORMAL">✅ NORMAL</option>
+                        <option value="INFO">📝 INFO</option>
+                    </select>
+                    <select id="filtroIncidenciasPiscina">
+                        <option value="">Todas las piscinas</option>
+                    </select>
+                    <input type="date" id="filtroIncidenciasDesde" placeholder="Desde">
+                    <input type="date" id="filtroIncidenciasHasta" placeholder="Hasta">
+                    <button id="btnFiltrarIncidencias" class="btn-buscar">🔍 Filtrar</button>
+                    <button id="btnActualizarIncidencias" class="btn-refresh">🔄 Actualizar</button>
+                </div>
+                <div id="incidenciasList" class="resultados-area"></div>
             </div>
         </div>
 
@@ -487,6 +576,7 @@
         perfiles?.forEach(p => cachePerfiles[p.id] = { nick: p.nick, nombre: p.nombre, rol: p.rol });
         await cargarSelectoresTecnicos();
         await cargarFiltroPiscinasMensajes();
+        await cargarSelectoresIncidencias();
     }
 
     async function cargarSelectoresTecnicos() {
@@ -507,6 +597,149 @@
         if (select && piscinas) {
             select.innerHTML = '<option value="">Todas las piscinas</option>';
             piscinas.forEach(p => select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`);
+        }
+    }
+
+    async function cargarSelectoresIncidencias() {
+        const { data: piscinas } = await sb.from('piscinas').select('id, nombre');
+        const select = document.getElementById('filtroIncidenciasPiscina');
+        if (select && piscinas) {
+            select.innerHTML = '<option value="">Todas las piscinas</option>';
+            piscinas.forEach(p => select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`);
+        }
+    }
+
+    // ========== TAB: INCIDENCIAS DE CLIENTES ==========
+    async function cargarIncidenciasClientes() {
+        const urgencia = document.getElementById('filtroIncidenciasUrgencia').value;
+        const piscinaId = document.getElementById('filtroIncidenciasPiscina').value;
+        let desde = document.getElementById('filtroIncidenciasDesde').value;
+        let hasta = document.getElementById('filtroIncidenciasHasta').value;
+        
+        if (!desde || !hasta) {
+            const hoy = new Date();
+            const hace30 = new Date(); hace30.setDate(hoy.getDate() - 30);
+            desde = formatDateYMD(hace30);
+            hasta = formatDateYMD(hoy);
+            document.getElementById('filtroIncidenciasDesde').value = desde;
+            document.getElementById('filtroIncidenciasHasta').value = hasta;
+        }
+        
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        
+        let query = sb.from('incidencias_clientes')
+            .select('*')
+            .gte('created_at', start)
+            .lte('created_at', end)
+            .order('created_at', { ascending: false });
+        
+        if (urgencia && urgencia !== '') {
+            query = query.eq('nivel_urgencia', urgencia);
+        }
+        
+        if (piscinaId && piscinaId !== '') {
+            query = query.eq('piscina_id', parseInt(piscinaId));
+        }
+        
+        const { data: incidencias, error } = await query;
+        const contenedor = document.getElementById('incidenciasList');
+        
+        if (error) {
+            contenedor.innerHTML = `<div class="medicion-card">❌ Error: ${error.message}</div>`;
+            return;
+        }
+        
+        if (!incidencias || incidencias.length === 0) {
+            contenedor.innerHTML = '<div class="medicion-card">📋 No hay incidencias de clientes en este período</div>';
+            return;
+        }
+        
+        contenedor.innerHTML = '';
+        
+        // Actualizar resumen de incidencias no leídas
+        const noLeidas = incidencias.filter(i => !i.leida).length;
+        if (noLeidas > 0) {
+            contenedor.innerHTML += `<div class="medicion-card" style="background:#e0f2e9;font-weight:bold;">📊 ${noLeidas} incidencias sin leer</div>`;
+        }
+        
+        for (const inc of incidencias) {
+            let claseUrgencia = 'incidencia-normal';
+            let badgeClase = 'badge-normal';
+            let textoUrgencia = 'NORMAL';
+            
+            if (inc.nivel_urgencia === 'GRAVE') {
+                claseUrgencia = 'incidencia-grave';
+                badgeClase = 'badge-grave';
+                textoUrgencia = '🚨 GRAVE';
+            } else if (inc.nivel_urgencia === 'URGENTE') {
+                claseUrgencia = 'incidencia-urgente';
+                badgeClase = 'badge-urgente';
+                textoUrgencia = '⚠️ URGENTE';
+            } else if (inc.nivel_urgencia === 'NORMAL') {
+                claseUrgencia = 'incidencia-normal';
+                badgeClase = 'badge-normal';
+                textoUrgencia = '✅ NORMAL';
+            } else {
+                claseUrgencia = 'incidencia-info';
+                badgeClase = 'badge-info';
+                textoUrgencia = '📝 INFO';
+            }
+            
+            const div = document.createElement('div');
+            div.className = `incidencia-card ${claseUrgencia} ${inc.leida ? 'leida-true' : 'leida-false'}`;
+            div.id = `incidencia-${inc.id}`;
+            
+            let motivosHtml = '';
+            if (inc.motivos && inc.motivos.length > 0) {
+                motivosHtml = `<div class="incidencia-motivos">${inc.motivos.map(m => `<span class="badge" style="background:#e2e8f0;">${m}</span>`).join('')}</div>`;
+            }
+            
+            div.innerHTML = `
+                <div class="incidencia-titulo">
+                    <div>
+                        <strong>🏊 ${inc.piscina_nombre || 'Piscina'}</strong>
+                        <span class="badge-urgencia ${badgeClase}" style="margin-left: 8px;">${textoUrgencia}</span>
+                    </div>
+                    <div class="incidencia-fecha">📅 ${formatDate(inc.created_at)}</div>
+                </div>
+                <div class="incidencia-mensaje">
+                    <strong>👤 Cliente:</strong> ${inc.cliente_nombre || 'Anónimo'}<br>
+                    <strong>📝 Mensaje:</strong> "${inc.mensaje}"
+                </div>
+                ${motivosHtml}
+                ${inc.sugerencia ? `<div style="font-size:0.8rem; color:#2c7a4d; margin-top:6px;">🔧 <strong>Sugerencia IA:</strong> ${inc.sugerencia}</div>` : ''}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <span style="font-size:0.7rem; color:#5b6e8c;">🆔 ID: ${inc.id}</span>
+                    ${!inc.leida ? `<button class="btn-marcar-leida" onclick="marcarIncidenciaLeida(${inc.id})">✓ Marcar como leída</button>` : '<span style="font-size:0.7rem;">✅ Leída</span>'}
+                </div>
+            `;
+            contenedor.appendChild(div);
+        }
+    }
+    
+    async function marcarIncidenciaLeida(id) {
+        const { error } = await sb
+            .from('incidencias_clientes')
+            .update({ leida: true })
+            .eq('id', id);
+        
+        if (error) {
+            console.error("Error:", error);
+            alert("❌ Error al marcar como leída");
+        } else {
+            // Actualizar solo esa tarjeta visualmente
+            const card = document.getElementById(`incidencia-${id}`);
+            if (card) {
+                card.classList.add('leida-true');
+                card.classList.remove('leida-false');
+                const btn = card.querySelector('.btn-marcar-leida');
+                if (btn) {
+                    btn.outerHTML = '<span style="font-size:0.7rem;">✅ Leída</span>';
+                }
+            }
+            // Recargar la lista para actualizar el contador
+            await cargarIncidenciasClientes();
         }
     }
 
@@ -871,7 +1104,7 @@
         else { const totalHorasT = Math.floor(totalTrabajo/3600); const totalMinT = Math.floor((totalTrabajo%3600)/60); const totalHorasD = Math.floor(totalDesplazamiento/3600); const totalMinD = Math.floor((totalDesplazamiento%3600)/60); contenedor.innerHTML += `<div class="medicion-card" style="background:#e0f2e9;"><strong>📊 RESUMEN</strong><br>🏊 Trabajo: ${totalHorasT}h ${totalMinT}m<br>🚗 Desplazamientos: ${totalHorasD}h ${totalMinD}m</div>`; }
     }
 
-    // ========== GESTIÓN DE CÓDIGOS DE ACCESO (CON ELIMINACIÓN DE DUPLICADOS) ==========
+    // ========== GESTIÓN DE CÓDIGOS DE ACCESO ==========
     async function cargarListaCodigosPiscinas() {
         const { data: piscinasRaw, error } = await sb.from('piscinas').select('id, nombre, direccion, codigo_acceso').order('nombre');
         
@@ -880,7 +1113,6 @@
             return;
         }
         
-        // ELIMINAR DUPLICADOS POR NOMBRE (misma lógica que en el panel técnico)
         const piscinas = [];
         const nombresVistos = new Set();
         for (const p of piscinasRaw) {
@@ -946,86 +1178,82 @@
         }
     }
     
-  async function regenerarCodigoPiscina() {
-    const piscinaId = document.getElementById('selectorPiscinaCodigo').value;
-    const nuevoCodigoManual = document.getElementById('nuevoCodigo').value.trim().toUpperCase();
-    
-    if (!piscinaId) {
-        alert("❌ Selecciona una piscina");
-        return;
-    }
-    
-    const idNumerico = parseInt(piscinaId);
-    
-    // Generar código
-    let nuevoCodigo;
-    if (nuevoCodigoManual) {
-        if (!/^[A-Z0-9]{6,12}$/.test(nuevoCodigoManual)) {
-            alert("❌ El código debe tener entre 6 y 12 caracteres, solo letras mayúsculas y números");
+    async function regenerarCodigoPiscina() {
+        const piscinaId = document.getElementById('selectorPiscinaCodigo').value;
+        const nuevoCodigoManual = document.getElementById('nuevoCodigo').value.trim().toUpperCase();
+        
+        if (!piscinaId) {
+            alert("❌ Selecciona una piscina");
             return;
         }
-        nuevoCodigo = nuevoCodigoManual;
-    } else {
-        const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        let resultado = '';
-        for (let i = 0; i < 6; i++) {
-            resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+        
+        const idNumerico = parseInt(piscinaId);
+        
+        let nuevoCodigo;
+        if (nuevoCodigoManual) {
+            if (!/^[A-Z0-9]{6,12}$/.test(nuevoCodigoManual)) {
+                alert("❌ El código debe tener entre 6 y 12 caracteres, solo letras mayúsculas y números");
+                return;
+            }
+            nuevoCodigo = nuevoCodigoManual;
+        } else {
+            const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let resultado = '';
+            for (let i = 0; i < 6; i++) {
+                resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+            }
+            nuevoCodigo = resultado;
         }
-        nuevoCodigo = resultado;
-    }
-    
-    // Verificar que el código no exista en otra piscina
-    const { data: existe, error: errorExiste } = await sb
-        .from('piscinas')
-        .select('id, nombre')
-        .eq('codigo_acceso', nuevoCodigo)
-        .neq('id', idNumerico);
-    
-    if (errorExiste) {
-        console.error("Error al verificar código:", errorExiste);
-        alert("❌ Error al verificar disponibilidad del código");
-        return;
-    }
-    
-    if (existe && existe.length > 0) {
-        alert(`❌ El código "${nuevoCodigo}" ya está en uso en la piscina: ${existe[0].nombre}`);
-        return;
-    }
-    
-    // Mostrar loading
-    const btn = document.getElementById('btnRegenerarCodigo');
-    const textoOriginal = btn.innerHTML;
-    btn.innerHTML = '⏳ Actualizando...';
-    btn.disabled = true;
-    
-    try {
-        // ACTUALIZAR SOLO LA COLUMNA QUE EXISTE
-        const { data, error } = await sb
+        
+        const { data: existe, error: errorExiste } = await sb
             .from('piscinas')
-            .update({ codigo_acceso: nuevoCodigo })  // ← SOLO actualizar codigo_acceso
-            .eq('id', idNumerico)
-            .select();
+            .select('id, nombre')
+            .eq('codigo_acceso', nuevoCodigo)
+            .neq('id', idNumerico);
         
-        if (error) {
-            console.error("Error detallado:", error);
-            throw new Error(error.message);
+        if (errorExiste) {
+            console.error("Error al verificar código:", errorExiste);
+            alert("❌ Error al verificar disponibilidad del código");
+            return;
         }
         
-        console.log("✅ Actualización exitosa:", data);
-        alert(`✅ Código actualizado exitosamente a: ${nuevoCodigo}`);
+        if (existe && existe.length > 0) {
+            alert(`❌ El código "${nuevoCodigo}" ya está en uso en la piscina: ${existe[0].nombre}`);
+            return;
+        }
         
-        // Limpiar campo y recargar lista
-        document.getElementById('nuevoCodigo').value = '';
-        await cargarListaCodigosPiscinas();
+        const btn = document.getElementById('btnRegenerarCodigo');
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '⏳ Actualizando...';
+        btn.disabled = true;
         
-    } catch (error) {
-        console.error("❌ Error:", error);
-        alert(`❌ Error al actualizar: ${error.message}`);
-    } finally {
-        btn.innerHTML = textoOriginal;
-        btn.disabled = false;
+        try {
+            const { data, error } = await sb
+                .from('piscinas')
+                .update({ codigo_acceso: nuevoCodigo })
+                .eq('id', idNumerico)
+                .select();
+            
+            if (error) {
+                console.error("Error detallado:", error);
+                throw new Error(error.message);
+            }
+            
+            console.log("✅ Actualización exitosa:", data);
+            alert(`✅ Código actualizado exitosamente a: ${nuevoCodigo}`);
+            
+            document.getElementById('nuevoCodigo').value = '';
+            await cargarListaCodigosPiscinas();
+            
+        } catch (error) {
+            console.error("❌ Error:", error);
+            alert(`❌ Error al actualizar: ${error.message}`);
+        } finally {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+        }
     }
-}
+    
     async function recargarTodosLosDatos() {
         const btn = document.getElementById('btnRecargarTodo');
         btn.innerHTML = '⏳ Cargando...'; btn.disabled = true;
@@ -1094,12 +1322,24 @@
     
     document.getElementById('btnRegenerarCodigo').onclick = regenerarCodigoPiscina;
     
+    // Eventos de incidencias
+    document.getElementById('btnFiltrarIncidencias')?.addEventListener('click', cargarIncidenciasClientes);
+    document.getElementById('btnActualizarIncidencias')?.addEventListener('click', cargarIncidenciasClientes);
+    
     document.getElementById('btnLogout').onclick = async () => { if (intervaloActualizacion) clearInterval(intervaloActualizacion); await sb.auth.signOut(); location.reload(); };
 
     // Inicializar navegación
     function initTabs() {
         const supervisionTabs = document.querySelectorAll('#supervisionTabs .browser-tab');
-        const supervisionContents = { activos: 'tabActivos', piscinas: 'tabPiscinas', cerradas: 'tabCerradas', quimicos: 'tabQuimicos', mensajes: 'tabMensajes', clientes: 'tabClientes' };
+        const supervisionContents = { 
+            activos: 'tabActivos', 
+            piscinas: 'tabPiscinas', 
+            cerradas: 'tabCerradas', 
+            quimicos: 'tabQuimicos', 
+            mensajes: 'tabMensajes', 
+            clientes: 'tabClientes',
+            incidencias: 'tabIncidencias'
+        };
         supervisionTabs.forEach(tab => { tab.addEventListener('click', () => {
             supervisionTabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
@@ -1107,6 +1347,7 @@
             const contentId = supervisionContents[tab.dataset.tab];
             if (contentId) document.getElementById(contentId).classList.remove('oculto');
             if (tab.dataset.tab === 'clientes') cargarMensajesClientes();
+            if (tab.dataset.tab === 'incidencias') cargarIncidenciasClientes();
         }); });
         
         const personalTabs = document.querySelectorAll('#personalTabs .browser-tab');
