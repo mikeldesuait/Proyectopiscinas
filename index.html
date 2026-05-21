@@ -55,7 +55,6 @@
             font-size: 0.85rem;
         }
         
-        /* ACCESO CLIENTE - VERSIÓN RESPONSIVE */
         .acceso-cliente {
             background: linear-gradient(135deg, #0077b6, #00a8e8);
             border-radius: 32px;
@@ -116,7 +115,6 @@
             font-size: 0.7rem;
         }
         
-        /* ACCESOS SECUNDARIOS */
         .accesos-secundarios {
             border-top: 1px solid #e2e8f0;
             padding-top: 20px;
@@ -165,7 +163,6 @@
             text-align: center;
         }
         
-        /* MODAL DE CARGA */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -211,7 +208,6 @@
             display: none;
         }
         
-        /* PANTALLAS MUY PEQUEÑAS (menos de 400px) */
         @media (max-width: 400px) {
             .card-principal {
                 padding: 24px 20px;
@@ -224,17 +220,8 @@
             h1 {
                 font-size: 1.4rem;
             }
-            .input-cliente input {
-                padding: 12px 14px;
-                font-size: 0.9rem;
-            }
-            .input-cliente button {
-                padding: 12px 16px;
-                font-size: 0.9rem;
-            }
         }
         
-        /* PANTALLAS GRANDES (escritorio) */
         @media (min-width: 768px) {
             .input-cliente {
                 flex-direction: row;
@@ -260,7 +247,6 @@
                 Consulta el estado de tu piscina
             </div>
             
-            <!-- ACCESO PRINCIPAL: CLIENTES -->
             <div class="acceso-cliente">
                 <div class="input-cliente">
                     <input type="text" id="codigoAcceso" placeholder="Ej: PISC1234" autocomplete="off" maxlength="20">
@@ -271,7 +257,6 @@
                 </div>
             </div>
             
-            <!-- ACCESOS SECUNDARIOS: TÉCNICO Y GERENTE -->
             <div class="accesos-secundarios">
                 <p>🔐 Área de trabajo</p>
                 <a href="./tecnico.html" class="btn-secundario btn-tecnico">
@@ -288,7 +273,6 @@
         </div>
     </div>
     
-    <!-- Modal de carga / error -->
     <div id="loadingModal" class="loading-overlay oculto">
         <div class="loading-card">
             <div class="spinner"></div>
@@ -297,13 +281,12 @@
         </div>
     </div>
     
-    <!-- Redirección a cliente.html con el código como parámetro -->
-    <form id="redirectForm" action="./cliente.html" method="GET" style="display: none;">
+    <!-- ✅ CORREGIDO: apunta a clientes.html (plural) -->
+    <form id="redirectForm" action="./clientes.html" method="GET" style="display: none;">
         <input type="text" name="codigo" id="redirectCodigo">
     </form>
 
     <script>
-        // Inicializar Supabase
         const SUPABASE_URL = "https://vvdyofbapqttcvczokiw.supabase.co";
         const SUPABASE_KEY = "sb_publishable_MwuazhcxSJGc04eS2vttZA_SEcGjhVT";
         let supabaseClient = null;
@@ -362,7 +345,6 @@
                     return;
                 }
                 
-                // Código válido, redirigir
                 document.getElementById('redirectCodigo').value = codigo;
                 document.getElementById('redirectForm').submit();
                 
@@ -372,7 +354,6 @@
             }
         }
         
-        // Cargar Supabase
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
         script.onload = () => {
