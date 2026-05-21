@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Aqua Garden · Estado de tu piscina</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #eef2ff 0%, #d9e4f5 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-top: 20px;
+        }
+        .logo h1 {
+            font-size: 2rem;
+            color: #0077b6;
+        }
+        .logo p {
+            color: #5b6e8c;
+        }
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 28px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,119,182,0.1);
+        }
+        .card-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 18px;
+            border-left: 4px solid #0077b6;
+            padding-left: 16px;
+            color: #1e4663;
+        }
+        input {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 50px;
+            border: 1px solid #cad2db;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            background: #fff;
+            text-align: center;
+            letter-spacing: 2px;
+            font-weight: 600;
+            font-family: monospace;
+            font-size: 1.2rem;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            border-radius: 50px;
+            border: none;
+            background: #0077b6;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #005f8c;
+            transform: translateY(-2px);
+        }
+        .btn-volver {
+            background: #475569;
+            margin-top: 16px;
+        }
+        .btn-volver:hover {
+            background: #334155;
+        }
+        .btn-recargar {
+            background: #2c7a4d;
+            width: auto;
+            padding: 10px 24px;
+            margin-top: 16px;
+        }
+        .error-msg {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 16px;
+            margin-top: 16px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        .info {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.75rem;
+            color: #5b6e8c;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #0077b6;
+        }
+        .piscina-header {
+            background: linear-gradient(135deg, #0077b6 0%, #00a8e8 100%);
+            color: white;
+            border-radius: 28px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .piscina-nombre {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .parametros-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .parametro-card {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 16px;
+            text-align: center;
+        }
+        .parametro-valor {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #0077b6;
+        }
+        .parametro-label {
+            font-size: 0.75rem;
+            color: #5b6e8c;
+            margin-top: 8px;
+        }
+        .parametro-estado {
+            font-size: 0.7rem;
+            margin-top: 8px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .estado-ok { background: #d4edda; color: #155724; }
+        .estado-warning { background: #fff3cd; color: #856404; }
+        .estado-danger { background: #f8d7da; color: #721c24; }
+        .ultima-visita {
+            background: #f0f9ff;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .mensaje-ia {
+            background: #e8f4f8;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 24px;
+            white-space: pre-wrap;
+            border-left: 4px solid #2c7a4d;
+        }
+        .historico-item {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-left: 3px solid #0077b6;
+        }
+        .codigo-recordatorio {
+            background: #f1f5f9;
+            border-radius: 16px;
+            padding: 12px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #5b6e8c;
+        }
+        .codigo-recordatorio strong {
+            color: #0077b6;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+        .historico-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            cursor: pointer;
+            font-weight: 600;
+            color: #1e4663;
+        }
+        .historico-toggle .flecha {
+            font-size: 1.2rem;
+            transition: transform 0.2s;
+        }
+        .historico-toggle .flecha.rotada {
+            transform: rotate(90deg);
+        }
+        @media (max-width: 550px) {
+            .parametros-grid { grid-template-columns: repeat(2, 1fr); }
+            .card { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div id="loginView">
+        <div class="logo">
+            <h1>🏊 Aqua Garden</h1>
+            <p>Estado de tu piscina</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-header" style="cursor:default;">🔑 Accede con tu código</div>
+            <input type="text" id="codigoAcceso" placeholder="Ej: PISC1234" maxlength="20" autocomplete="off">
+            <button id="btnAcceder">Ver estado de mi piscina</button>
+            <div id="errorMsg" class="error-msg" style="display: none;"></div>
+        </div>
+        <div class="info">
+            Introduce el código de acceso que te ha proporcionado tu comunidad de vecinos.<br>
+            Si no lo tienes, contacta con el administrador de la piscina.
+        </div>
+    </div>
+    
+    <div id="panelPiscina" style="display: none;"></div>
+</div>
+
+<script>
+    const SUPABASE_URL = "https://vvdyofbapqttcvczokiw.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_MwuazhcxSJGc04eS2vttZA_SEcGjhVT";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let piscinaActual = null;
+
+    function formatFecha(iso) {
+        if (!iso) return '—';
+        const fecha = new Date(iso);
+        return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatFechaCorta(iso) {
+        if (!iso) return '—';
+        const fecha = new Date(iso);
+        return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function getEstadoParametro(valor, tipo) {
+        if (tipo === 'cloro') {
+            if (valor >= 1 && valor <= 3) return { clase: 'estado-ok', texto: '✅ Óptimo' };
+            if (valor < 1) return { clase: 'estado-danger', texto: '⚠️ Bajo' };
+            return { clase: 'estado-warning', texto: '⚠️ Alto' };
+        }
+        if (tipo === 'ph') {
+            if (valor >= 7.2 && valor <= 7.6) return { clase: 'estado-ok', texto: '✅ Óptimo' };
+            if (valor < 7.2) return { clase: 'estado-danger', texto: '⚠️ Ácido' };
+            return { clase: 'estado-warning', texto: '⚠️ Alcalino' };
+        }
+        if (tipo === 'temp') {
+            if (valor >= 24 && valor <= 30) return { clase: 'estado-ok', texto: '✅ Ideal' };
+            if (valor < 24) return { clase: 'estado-warning', texto: '🌡️ Fría' };
+            return { clase: 'estado-warning', texto: '🌡️ Caliente' };
+        }
+        return { clase: 'estado-ok', texto: '—' };
+    }
+
+    async function cargarDatosPiscina(codigo) {
+        const panelDiv = document.getElementById('panelPiscina');
+        panelDiv.innerHTML = '<div class="loading">🔍 Verificando código de acceso...</div>';
+        
+        const { data: piscina, error } = await sb
+            .from('piscinas')
+            .select('*')
+            .eq('codigo_acceso', codigo.toUpperCase())
+            .single();
+        
+        if (error || !piscina) {
+            panelDiv.innerHTML = '';
+            document.getElementById('loginView').style.display = 'block';
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = '❌ Código de acceso incorrecto. Verifica e intenta de nuevo.';
+            return false;
+        }
+        
+        piscinaActual = piscina;
+        
+        // Obtener última medición
+        const { data: ultimaMedicion } = await sb
+            .from('mediciones')
+            .select('*, tecnico_id')
+            .eq('piscina_id', piscina.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        
+        // Obtener último informe de cliente
+        const { data: ultimoInforme } = await sb
+            .from('informes_cliente')
+            .select('*')
+            .eq('piscina_id', piscina.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        
+        // Obtener histórico de informes (últimos 5)
+        const { data: historicoInformes } = await sb
+            .from('informes_cliente')
+            .select('*')
+            .eq('piscina_id', piscina.id)
+            .order('created_at', { ascending: false })
+            .limit(5);
+        
+        // Obtener nombre del técnico
+        let tecnicoNombre = 'Técnico de Aqua Garden';
+        if (ultimaMedicion?.tecnico_id) {
+            const { data: tecnico } = await sb
+                .from('perfiles')
+                .select('nick, nombre')
+                .eq('id', ultimaMedicion.tecnico_id)
+                .single();
+            if (tecnico) tecnicoNombre = tecnico.nombre || tecnico.nick || tecnicoNombre;
+        }
+        
+        const cloro = ultimaMedicion?.cloro || '—';
+        const ph = ultimaMedicion?.ph || '—';
+        const temperatura = ultimaMedicion?.temperatura || '—';
+        const fechaMedicion = ultimaMedicion?.created_at || null;
+        
+        const estadoCloro = typeof cloro === 'number' ? getEstadoParametro(cloro, 'cloro') : { clase: 'estado-ok', texto: '—' };
+        const estadoPh = typeof ph === 'number' ? getEstadoParametro(ph, 'ph') : { clase: 'estado-ok', texto: '—' };
+        const estadoTemp = typeof temperatura === 'number' ? getEstadoParametro(temperatura, 'temp') : { clase: 'estado-ok', texto: '—' };
+        
+        const mensajeIA = ultimoInforme?.mensaje || 'Próximamente se generará un informe detallado del estado de su piscina.';
+        
+        // Histórico
+        let historicoHtml = '';
+        if (historicoInformes && historicoInformes.length > 1) {
+            const historicoItems = historicoInformes.slice(1).map(info => `
+                <div class="historico-item">
+                    <div style="font-size: 0.7rem; color: #5b6e8c;">📅 ${formatFechaCorta(info.created_at)}</div>
+                    <div style="font-size: 0.85rem; margin-top: 4px;">${info.mensaje.substring(0, 150)}${info.mensaje.length > 150 ? '...' : ''}</div>
+                </div>
+            `).join('');
+            
+            historicoHtml = `
+                <div class="card">
+                    <div class="historico-toggle" onclick="toggleHistorico()">
+                        <span>📜 Histórico de informes anteriores</span>
+                        <span class="flecha">▶</span>
+                    </div>
+                    <div id="historicoContenido" style="display: none; margin-top: 12px;">
+                        ${historicoItems}
+                    </div>
+                </div>
+            `;
+        }
+        
+        const html = `
+            <div class="piscina-header">
+                <div class="piscina-nombre">🏊 ${piscina.nombre}</div>
+                <div style="font-size: 0.85rem; opacity: 0.9;">${piscina.direccion || ''} ${piscina.localidad || ''}</div>
+                <button class="btn-volver" onclick="volverALogin()">← Cambiar de piscina</button>
+            </div>
+            
+            <div class="card">
+                <div class="card-header" style="cursor:default;">📊 Parámetros del agua</div>
+                <div class="parametros-grid">
+                    <div class="parametro-card">
+                        <div class="parametro-valor">${typeof cloro === 'number' ? cloro.toFixed(1) : cloro}</div>
+                        <div class="parametro-label">🧪 Cloro (ppm)</div>
+                        <div class="parametro-estado ${estadoCloro.clase}">${estadoCloro.texto}</div>
+                    </div>
+                    <div class="parametro-card">
+                        <div class="parametro-valor">${typeof ph === 'number' ? ph.toFixed(1) : ph}</div>
+                        <div class="parametro-label">⚗️ pH</div>
+                        <div class="parametro-estado ${estadoPh.clase}">${estadoPh.texto}</div>
+                    </div>
+                    <div class="parametro-card">
+                        <div class="parametro-valor">${typeof temperatura === 'number' ? temperatura + '°' : temperatura}</div>
+                        <div class="parametro-label">🌡️ Temperatura</div>
+                        <div class="parametro-estado ${estadoTemp.clase}">${estadoTemp.texto}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ultima-visita">
+                <div style="font-weight: 600; margin-bottom: 8px;">📅 Última visita técnica</div>
+                <div style="font-size: 1rem; font-weight: 500;">${fechaMedicion ? formatFecha(fechaMedicion) : 'No hay registros aún'}</div>
+                <div style="font-size: 0.8rem; color: #5b6e8c; margin-top: 4px;">👨‍🔧 Técnico: ${tecnicoNombre}</div>
+            </div>
+            
+            <div class="mensaje-ia">
+                <div style="font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    🤖 Informe del técnico
+                    <span style="font-size:0.6rem; background:#2c7a4d; color:white; padding:2px 8px; border-radius:20px;">Generado con IA</span>
+                </div>
+                <div style="white-space: pre-wrap;">${mensajeIA}</div>
+            </div>
+            
+            ${historicoHtml}
+            
+            <div style="text-align: center; margin-top: 16px;">
+                <button class="btn-recargar" onclick="recargarDatos()">🔄 Actualizar datos</button>
+            </div>
+            
+            <div class="codigo-recordatorio">
+                💡 <strong>Recordatorio:</strong> El código de acceso de esta piscina es <strong>${piscina.codigo_acceso}</strong>
+            </div>
+        `;
+        
+        panelDiv.innerHTML = html;
+        return true;
+    }
+    
+    function toggleHistorico() {
+        const contenido = document.getElementById('historicoContenido');
+        const flecha = document.querySelector('.historico-toggle .flecha');
+        if (contenido.style.display === 'none') {
+            contenido.style.display = 'block';
+            flecha.classList.add('rotada');
+            flecha.style.transform = 'rotate(90deg)';
+        } else {
+            contenido.style.display = 'none';
+            flecha.classList.remove('rotada');
+            flecha.style.transform = 'rotate(0deg)';
+        }
+    }
+    
+    function recargarDatos() {
+        if (piscinaActual) {
+            cargarDatosPiscina(piscinaActual.codigo_acceso);
+        }
+    }
+    
+    function volverALogin() {
+        piscinaActual = null;
+        document.getElementById('panelPiscina').style.display = 'none';
+        document.getElementById('panelPiscina').innerHTML = '';
+        document.getElementById('loginView').style.display = 'block';
+        document.getElementById('codigoAcceso').value = '';
+        document.getElementById('errorMsg').style.display = 'none';
+    }
+    
+    async function accederPiscina() {
+        const codigo = document.getElementById('codigoAcceso').value.trim();
+        const errorDiv = document.getElementById('errorMsg');
+        
+        if (!codigo) {
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = '❌ Introduce el código de acceso';
+            return;
+        }
+        
+        errorDiv.style.display = 'none';
+        
+        const btn = document.getElementById('btnAcceder');
+        btn.innerHTML = '⏳ Verificando...';
+        btn.disabled = true;
+        
+        const exito = await cargarDatosPiscina(codigo);
+        
+        if (exito) {
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('panelPiscina').style.display = 'block';
+        }
+        
+        btn.innerHTML = 'Ver estado de mi piscina';
+        btn.disabled = false;
+    }
+    
+    // Exponer funciones globalmente
+    window.toggleHistorico = toggleHistorico;
+    window.recargarDatos = recargarDatos;
+    window.volverALogin = volverALogin;
+    
+    document.getElementById('btnAcceder').addEventListener('click', accederPiscina);
+    document.getElementById('codigoAcceso').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') accederPiscina();
+    });
+</script>
+</body>
+</html>
