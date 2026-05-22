@@ -616,11 +616,10 @@
         let desde = document.getElementById('filtroIncidenciasDesde').value;
         let hasta = document.getElementById('filtroIncidenciasHasta').value;
         
+        // Si no hay fechas, mostrar desde 2020 hasta hoy
         if (!desde || !hasta) {
-            const hoy = new Date();
-            const hace30 = new Date(); hace30.setDate(hoy.getDate() - 30);
-            desde = formatDateYMD(hace30);
-            hasta = formatDateYMD(hoy);
+            desde = '2020-01-01';
+            hasta = getFechaActual();
             document.getElementById('filtroIncidenciasDesde').value = desde;
             document.getElementById('filtroIncidenciasHasta').value = hasta;
         }
@@ -728,17 +727,7 @@
             console.error("Error:", error);
             alert("❌ Error al marcar como leída");
         } else {
-            // Actualizar solo esa tarjeta visualmente
-            const card = document.getElementById(`incidencia-${id}`);
-            if (card) {
-                card.classList.add('leida-true');
-                card.classList.remove('leida-false');
-                const btn = card.querySelector('.btn-marcar-leida');
-                if (btn) {
-                    btn.outerHTML = '<span style="font-size:0.7rem;">✅ Leída</span>';
-                }
-            }
-            // Recargar la lista para actualizar el contador
+            // Recargar la lista
             await cargarIncidenciasClientes();
         }
     }
