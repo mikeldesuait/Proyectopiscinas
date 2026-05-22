@@ -202,6 +202,71 @@
         .sugerencia-item:last-child { border-bottom: none; }
 
         #dashboardPanel { display: none; }
+
+        /* Mejora visibilidad de notas y observaciones */
+        .observacion-texto {
+            background: #fef3c7;
+            padding: 10px 12px;
+            border-radius: 12px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #92400e;
+            border-left: 3px solid #f59e0b;
+            line-height: 1.4;
+        }
+
+        .observacion-label {
+            font-weight: 700;
+            color: #b45309;
+            margin-right: 6px;
+        }
+
+        .nota-interna {
+            background: #e0f2fe;
+            padding: 8px 12px;
+            border-radius: 12px;
+            margin-top: 6px;
+            font-size: 0.8rem;
+            color: #0369a1;
+            border-left: 3px solid #0284c7;
+        }
+
+        .historico-rapido-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 12px;
+            border-left: 4px solid #e67e22;
+            transition: all 0.2s;
+        }
+
+        .historico-rapido-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .valor-ok { color: #2c7a4d; font-weight: 600; }
+        .valor-alto { color: #dc2626; font-weight: 600; }
+        .valor-bajo { color: #e67e22; font-weight: 600; }
+
+        .badge-tecnico {
+            background: #e2e8f0;
+            color: #475569;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .badge-urgente-historial {
+            background: #dc2626;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -257,6 +322,12 @@
                 <div id="infoDetalle" class="info-linea"></div>
                 <div id="datosPiscina" class="datos-piscina-box oculto"></div>
                 <div class="botones-consola" id="botonesConsola"></div>
+            </div>
+
+            <!-- Histórico rápido de la piscina (últimas actividades) -->
+            <div id="historicoRapido" class="consola" style="display: none; margin-top: 16px;">
+                <div class="consola-titulo">📋 Últimas actividades en esta piscina</div>
+                <div id="listaActividadesRecientes" class="resultados-area" style="max-height: 250px;"></div>
             </div>
 
             <!-- Formulario de medición -->
@@ -402,6 +473,95 @@
         if (piscina.telefono_contacto) html += `📞 ${piscina.telefono_contacto}<br>`;
         if (piscina.capacidad) html += `👥 Capacidad: ${piscina.capacidad} personas`;
         container.innerHTML = html;
+    }
+
+    // ========== HISTÓRICO RÁPIDO DE LA PISCINA ==========
+    async function cargarHistoricoRapidoPiscina(piscinaId) {
+        const historicoDiv = document.getElementById('historicoRapido');
+        const listaDiv = document.getElementById('listaActividadesRecientes');
+        
+        if (!piscinaId) {
+            if (historicoDiv) historicoDiv.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const { data: mediciones, error } = await sb
+                .from('mediciones')
+                .select('*, tecnico_id')
+                .eq('piscina_id', piscinaId)
+                .order('created_at', { ascending: false })
+                .limit(3);
+            
+            if (error) throw error;
+            
+            if (!mediciones || mediciones.length === 0) {
+                listaDiv.innerHTML = '<div class="medicion-card" style="background:#f1f5f9;">📋 No hay actividades previas en esta piscina</div>';
+                historicoDiv.style.display = 'block';
+                return;
+            }
+            
+            listaDiv.innerHTML = '';
+            
+            for (const m of mediciones) {
+                let tecnicoNombre = 'Técnico';
+                if (m.tecnico_id) {
+                    const { data: tecnico } = await sb
+                        .from('perfiles')
+                        .select('nick, nombre')
+                        .eq('id', m.tecnico_id)
+                        .single();
+                    if (tecnico) tecnicoNombre = tecnico.nombre || tecnico.nick || 'Técnico';
+                }
+                
+                const fecha = new Date(m.created_at);
+                const fechaFormateada = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                
+                let cloroClase = '', phClase = '', tempClase = '';
+                let cloroTexto = '', phTexto = '', tempTexto = '';
+                
+                if (m.cloro < 1) { cloroClase = 'valor-bajo'; cloroTexto = '⚠️ Bajo'; }
+                else if (m.cloro > 3) { cloroClase = 'valor-alto'; cloroTexto = '⚠️ Alto'; }
+                else { cloroClase = 'valor-ok'; cloroTexto = '✅ Óptimo'; }
+                
+                if (m.ph < 7.2) { phClase = 'valor-bajo'; phTexto = '⚠️ Ácido'; }
+                else if (m.ph > 7.6) { phClase = 'valor-alto'; phTexto = '⚠️ Alcalino'; }
+                else { phClase = 'valor-ok'; phTexto = '✅ Óptimo'; }
+                
+                if (m.temperatura < 24) { tempClase = 'valor-bajo'; tempTexto = '🌡️ Fría'; }
+                else if (m.temperatura > 30) { tempClase = 'valor-alto'; tempTexto = '🌡️ Caliente'; }
+                else { tempClase = 'valor-ok'; tempTexto = '✅ Ideal'; }
+                
+                const div = document.createElement('div');
+                div.className = 'historico-rapido-card';
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; margin-bottom:8px;">
+                        <strong style="color:#1e4663;">📅 ${fechaFormateada}</strong>
+                        <span class="badge-tecnico">👤 ${tecnicoNombre}</span>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom:8px;">
+                        <span>🧪 <strong>Cloro:</strong> <span class="${cloroClase}">${m.cloro} ppm ${cloroTexto}</span></span>
+                        <span>⚗️ <strong>pH:</strong> <span class="${phClase}">${m.ph} ${phTexto}</span></span>
+                        <span>🌡️ <strong>Temperatura:</strong> <span class="${tempClase}">${m.temperatura}°C ${tempTexto}</span></span>
+                    </div>
+                    ${m.observaciones ? `
+                        <div class="observacion-texto">
+                            <span class="observacion-label">📝 Nota del técnico:</span>
+                            ${m.observaciones}
+                        </div>
+                    ` : ''}
+                    ${m.urgente ? '<div style="margin-top:8px;"><span class="badge-urgente-historial">🚨 URGENTE - Requirió atención inmediata</span></div>' : ''}
+                `;
+                listaDiv.appendChild(div);
+            }
+            
+            historicoDiv.style.display = 'block';
+            
+        } catch (error) {
+            console.error("Error cargando histórico rápido:", error);
+            listaDiv.innerHTML = '<div class="medicion-card" style="background:#f1f5f9;">❌ Error al cargar actividades previas</div>';
+            historicoDiv.style.display = 'block';
+        }
     }
 
     // ========== IA para generar mensaje al cliente ==========
@@ -570,23 +730,27 @@
                 piscinaSeleccionadaData = piscina;
                 document.getElementById('buscarPiscina').value = piscina.nombre;
                 document.getElementById('piscinaSeleccionadaId').value = ultimaPiscina;
+                await cargarHistoricoRapidoPiscina(piscinaSeleccionadaId);
             }
         }
         actualizarConsola();
     }
 
-    function actualizarConsola() {
+    async function actualizarConsola() {
         const botonesDiv = document.getElementById('botonesConsola');
         const estadoDiv = document.getElementById('estadoActual');
         const infoDetalle = document.getElementById('infoDetalle');
         const formularioMed = document.getElementById('formularioMedicion');
         const btnFinalizarAct = document.getElementById('btnFinalizarActividad');
         const buscarInput = document.getElementById('buscarPiscina');
+        const historicoRapido = document.getElementById('historicoRapido');
         
         botonesDiv.innerHTML = '';
         infoDetalle.innerHTML = '';
         formularioMed.classList.add('oculto');
         btnFinalizarAct.classList.add('oculto');
+        
+        if (historicoRapido) historicoRapido.style.display = 'none';
 
         if (!jornadaActiva) {
             estadoDiv.innerHTML = "⚠️ Primero inicia la jornada";
@@ -623,6 +787,7 @@
             estadoDiv.innerHTML = `📍 EN PISCINA: ${piscinaSeleccionadaData.nombre}`;
             infoDetalle.innerHTML = `¿Qué quieres hacer?`;
             buscarInput.disabled = false;
+            await cargarHistoricoRapidoPiscina(piscinaSeleccionadaId);
             const btnDesp = document.createElement('button');
             btnDesp.textContent = "🚗 Iniciar desplazamiento";
             btnDesp.className = "btn-naranja";
@@ -689,6 +854,7 @@
                 localStorage.setItem('ultimaPiscina', p.id);
                 sugerenciasDiv.style.display = 'none';
                 actualizarConsola();
+                await cargarHistoricoRapidoPiscina(p.id);
             };
             sugerenciasDiv.appendChild(item);
         });
