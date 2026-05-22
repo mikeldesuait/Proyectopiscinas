@@ -757,20 +757,26 @@ async function cargarIncidenciasClientes() {
     let desde = document.getElementById('filtroIncidenciasDesde')?.value || '';
     let hasta = document.getElementById('filtroIncidenciasHasta')?.value || '';
     
+    // Si no hay fechas seleccionadas, mostrar últimos 30 días
     if (!desde || !hasta) {
         const hoy = new Date();
         const hace30Dias = new Date();
         hace30Dias.setDate(hoy.getDate() - 30);
         desde = formatDateYMD(hace30Dias);
         hasta = formatDateYMD(hoy);
-        if (document.getElementById('filtroIncidenciasDesde')) document.getElementById('filtroIncidenciasDesde').value = desde;
-        if (document.getElementById('filtroIncidenciasHasta')) document.getElementById('filtroIncidenciasHasta').value = hasta;
+        document.getElementById('filtroIncidenciasDesde').value = desde;
+        document.getElementById('filtroIncidenciasHasta').value = hasta;
     }
     
     const start = new Date(`${desde}T00:00:00`).toISOString();
     const end = new Date(`${hasta}T23:59:59`).toISOString();
     
-    let query = sb.from('incidencias_clientes').select('*').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false });
+    let query = sb.from('incidencias_clientes')
+        .select('*')
+        .gte('created_at', start)
+        .lte('created_at', end)
+        .order('created_at', { ascending: false });
+    
     if (urgencia && urgencia !== '') query = query.eq('nivel_urgencia', urgencia);
     if (estado && estado !== '') query = query.eq('estado', estado);
     if (piscinaId && piscinaId !== '') query = query.eq('piscina_id', parseInt(piscinaId));
@@ -785,12 +791,11 @@ async function cargarIncidenciasClientes() {
     }
     
     if (!incidencias || incidencias.length === 0) {
-        if (contenedor) contenedor.innerHTML = '<div class="medicion-card">✅ No hay incidencias de clientes en este período</div>';
+        if (contenedor) contenedor.innerHTML = '<div class="medicion-card">✅ No hay incidencias de clientes en los últimos 30 días</div>';
         document.getElementById('resumenAveriasPendientes').innerText = '0';
         return;
     }
     
-    // Contar pendientes
     const pendientes = incidencias.filter(i => i.estado !== 'CERRADA' && i.estado !== 'CANCELADA').length;
     document.getElementById('resumenAveriasPendientes').innerText = pendientes;
     
