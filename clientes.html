@@ -590,25 +590,65 @@
     }
 
     async function cargarDatosPiscina(codigo) {
-        const panelDiv = document.getElementById('panelPiscina');
-        panelDiv.innerHTML = '<div class="loading">🔍 Verificando código de acceso...</div>';
+    const panelDiv = document.getElementById('panelPiscina');
+    panelDiv.innerHTML = '<div class="loading">🔍 Verificando código de acceso...</div>';
+    
+    const { data: piscina, error } = await sb
+        .from('piscinas')
+        .select('*')
+        .eq('codigo_acceso', codigo.toUpperCase())
+        .single();
+    
+    if (error || !piscina) {
+        panelDiv.innerHTML = '';
+        document.getElementById('loginView').style.display = 'block';
+        const errorDiv = document.getElementById('errorMsg');
+        errorDiv.style.display = 'block';
+        errorDiv.innerHTML = '❌ Código de acceso incorrecto. Verifica e intenta de nuevo.';
+        return false;
+    }
+    
+    piscinaActual = piscina;
+    
+    // Verificar incidencias activas
+    const incidenciaActiva = await verificarIncidenciasActivas(piscina.id);
+    
+    let alertaHtml = '';
+    if (incidenciaActiva) {
+        const esGrave = incidenciaActiva.nivel_urgencia === 'GRAVE';
+        const alertaClass = esGrave ? 'alerta-incidencia' : 'alerta-incidencia alerta-incidencia-urgente';
+        const icono = esGrave ? '🚨' : '⚠️';
+        const titulo = esGrave ? '¡ALERTA GRAVE!' : 'ATENCIÓN - INCIDENCIA URGENTE';
         
-        const { data: piscina, error } = await sb
-            .from('piscinas')
-            .select('*')
-            .eq('codigo_acceso', codigo.toUpperCase())
-            .single();
-        
-        if (error || !piscina) {
-            panelDiv.innerHTML = '';
-            document.getElementById('loginView').style.display = 'block';
-            const errorDiv = document.getElementById('errorMsg');
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML = '❌ Código de acceso incorrecto. Verifica e intenta de nuevo.';
-            return false;
+        // Usar la sugerencia de la IA (mensaje profesional)
+        let mensajeAlerta = '';
+        if (esGrave) {
+            mensajeAlerta = incidenciaActiva.sugerencia || '⛔ NO BAÑARSE. Se ha detectado un problema grave. Espere instrucciones del técnico.';
+        } else {
+            mensajeAlerta = incidenciaActiva.sugerencia || '⚠️ Se recomienda precaución. El equipo está trabajando para solucionarlo.';
         }
         
-        piscinaActual = piscina;
+        // Motivos detectados por IA (limpios y profesionales)
+        let motivosTexto = '';
+        if (incidenciaActiva.motivos && incidenciaActiva.motivos.length > 0) {
+            motivosTexto = `<div class="alerta-descripcion" style="margin-top: 8px;">🔍 Motivo: ${incidenciaActiva.motivos.join(', ')}</div>`;
+        }
+        
+        alertaHtml = `
+            <div class="${alertaClass}">
+                <div class="alerta-icono">${icono}</div>
+                <div class="alerta-contenido">
+                    <div class="alerta-titulo">${titulo}</div>
+                    <div class="alerta-descripcion">${mensajeAlerta}</div>
+                    ${motivosTexto}
+                    <div class="alerta-fecha">📅 Reportado: ${formatearFechaIncidencia(incidenciaActiva.created_at)}</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // ... resto del código (mediciones, informes, etc.) ...
+}
         
         // Verificar incidencias activas
         const incidenciaActiva = await verificarIncidenciasActivas(piscina.id);
