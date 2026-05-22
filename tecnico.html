@@ -1087,85 +1087,180 @@
     };
 
     async function guardarMedicion() {
-        if (!trabajoActivo) { mostrarMensaje("⚠️ No hay actividad activa", 'error'); return; }
-        
-        const cloro = parseFloat(document.getElementById('cloro').value);
-        const ph = parseFloat(document.getElementById('ph').value);
-        const temperatura = parseInt(document.getElementById('temp').value);
-        const urgente = document.getElementById('urgenteCheckbox').checked;
-        const notasTecnico = document.getElementById('notasTecnico').value.trim() || "Sin notas";
-        const mensajeCliente = document.getElementById('informePreview').innerText;
-        
-        if (isNaN(cloro) || isNaN(ph) || isNaN(temperatura)) {
-            mostrarMensaje("⚠️ Rellena cloro, pH y temperatura", 'error');
-            return;
-        }
-        
-        if (!mensajeCliente || mensajeCliente === "") {
-            mostrarMensaje("⚠️ Genera primero el mensaje para el cliente con IA", 'error');
-            return;
-        }
-        
-        // 1. Guardar en tabla mediciones (notas internas)
-        const { data: medicion, error: errMed } = await sb.from('mediciones').insert({
-            tecnico_id: currentUserId,
-            piscina_id: trabajoActivo.piscina_id,
-            jornada_id: jornadaActiva.id,
-            cloro, ph, temperatura, 
-            observaciones: notasTecnico,
-            urgente: urgente
-        }).select();
-        
-        if (errMed) { 
-            mostrarMensaje(errMed.message, 'error'); 
-            return; 
-        }
-        
-        const medicionId = medicion[0].id;
-        
-        // 2. Guardar productos utilizados
-        for (const prod of productosTemp) {
-            if (prod.cantidad > 0) {
-                await sb.from('productos_utilizados').insert({
-                    medicion_id: medicionId,
-                    producto_nombre: prod.nombre,
-                    cantidad: prod.cantidad,
-                    unidad: prod.unidad
-                });
-            }
-        }
-        
-        // 3. Guardar en tabla informes_cliente (mensaje para cliente)
-        if (ultimoInformeIA) {
-            await sb.from('informes_cliente').insert({
+    if (!trabajoActivo) { mostrarMensaje("⚠️ No hay actividad activa", 'error'); return; }
+    
+    const cloro = parseFloat(document.getElementById('cloro').value);
+    const ph = parseFloat(document.getElementById('ph').value);
+    const temperatura = parseInt(document.getElementById('temp').value);
+    const urgente = document.getElementById('urgenteCheckbox').checked;
+    const notasTecnico = document.getElementById('notasTecnico').value.trim() || "Sin notas";
+    const mensajeCliente = document.getElementById('informePreview').innerText;
+    
+    if (isNaN(cloro) || isNaN(ph) || isNaN(temperatura)) {
+        mostrarMensaje("⚠️ Rellena cloro, pH y temperatura", 'error');
+        return;
+    }
+    
+    if (!mensajeCliente || mensajeCliente === "") {
+        mostrarMensaje("⚠️ Genera primero el mensaje para el cliente con IA", 'error');
+        return;
+    }
+    
+    // 1. Guardar en tabla mediciones (notas internas)
+    const { data: medicion, error: errMed } = await sb.from('mediciones').insert({
+        tecnico_id: currentUserId,
+        piscina_id: trabajoActivo.piscina_id,
+        jornada_id: jornadaActiva.id,
+        cloro, ph, temperatura, 
+        observaciones: notasTecnico,
+        urgente: urgente
+    }).select();
+    
+    if (errMed) { 
+        mostrarMensaje(errMed.message, 'error'); 
+        return; 
+    }
+    
+    const medicionId = medicion[0].id;
+    
+    // 2. Guardar productos utilizados
+    for (const prod of productosTemp) {
+        if (prod.cantidad > 0) {
+            await sb.from('productos_utilizados').insert({
                 medicion_id: medicionId,
-                piscina_id: trabajoActivo.piscina_id,
-                tecnico_id: currentUserId,
-                jornada_id: jornadaActiva.id,
-                mensaje: mensajeCliente,
-                tiempo_espera: ultimoInformeIA.tiempoEspera || 0,
-                hora_recomendada: ultimoInformeIA.horaRecomendada || null,
-                fecha: new Date().toISOString().split('T')[0]
+                producto_nombre: prod.nombre,
+                cantidad: prod.cantidad,
+                unidad: prod.unidad
             });
         }
-        
-        mostrarMensaje(urgente ? "✅ Medición URGENTE guardada. Mensaje para cliente guardado." : "✅ Medición guardada. Mensaje para cliente guardado.", 'exito');
-        
-        // Limpiar formulario
-        document.getElementById('cloro').value = '';
-        document.getElementById('ph').value = '';
-        document.getElementById('temp').value = '';
-        document.getElementById('notasTecnico').value = '';
-        document.getElementById('urgenteCheckbox').checked = false;
-        document.getElementById('informePreview').classList.add('oculto');
-        document.getElementById('informePreview').innerHTML = '';
-        productosTemp = [];
-        renderizarProductos();
-        ultimoInformeIA = null;
-        
-        await cargarMedicionesDeJornadaActiva();
     }
+    
+    // 3. Guardar en tabla informes_cliente (mensaje para cliente)
+    if (ultimoInformeIA) {
+        await sb.from('informes_cliente').insert({
+            medicion_id: medicionId,
+            piscina_id: trabajoActivo.piscina_id,
+            tecnico_id: currentUserId,
+            jornada_id: jornadaActiva.id,
+            mensaje: mensajeCliente,
+            tiempo_espera: ultimoInformeIA.tiempoEspera || 0,
+            hora_recomendada: ultimoInformeIA.horaRecomendada || null,
+            fecha: new Date().toISOString().split('T')[0]
+        });
+    }
+    
+    // 4. SI ES URGENTE: Crear/Actualizar incidencia para que salga alerta en cliente
+    if (urgente) {
+        try {
+            // Verificar si ya existe una incidencia activa (no cerrada)
+            const { data: incidenciaExistente, error: errInc } = await sb
+                .from('incidencias_clientes')
+                .select('*')
+                .eq('piscina_id', trabajoActivo.piscina_id)
+                .eq('estado', 'PENDIENTE')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            
+            // Mensaje de la incidencia basado en la medición
+            const mensajeIncidencia = `⚠️ El técnico ha determinado que la piscina requiere atención URGENTE.\n\n📊 Datos de la medición:\n- Cloro: ${cloro} ppm\n- pH: ${ph}\n- Temperatura: ${temperatura}°C\n\n📝 Notas del técnico: ${notasTecnico}`;
+            
+            // Motivos basados en parámetros
+            const motivos = [];
+            if (cloro > 3) motivos.push(`Cloro alto (${cloro} ppm)`);
+            if (cloro < 1) motivos.push(`Cloro bajo (${cloro} ppm)`);
+            if (ph > 7.8) motivos.push(`pH alcalino (${ph})`);
+            if (ph < 7.0) motivos.push(`pH ácido (${ph})`);
+            if (temperatura > 30) motivos.push(`Temperatura alta (${temperatura}°C)`);
+            if (notasTecnico.toLowerCase().includes("cerrar")) motivos.push("El técnico recomienda cerrar la piscina");
+            if (notasTecnico.toLowerCase().includes("verde")) motivos.push("Agua verde - posible presencia de algas");
+            
+            if (incidenciaExistente) {
+                // Actualizar incidencia existente
+                await sb
+                    .from('incidencias_clientes')
+                    .update({
+                        mensaje: mensajeIncidencia,
+                        motivos: motivos,
+                        sugerencia: "Se requiere atención inmediata. NO BAÑARSE hasta nuevo aviso.",
+                        created_at: new Date().toISOString(),
+                        leida: false
+                    })
+                    .eq('id', incidenciaExistente.id);
+                
+                mostrarMensaje("✅ Incidencia URGENTE actualizada. Alerta visible para clientes.", 'exito');
+            } else {
+                // Crear nueva incidencia
+                await sb.from('incidencias_clientes').insert({
+                    piscina_id: trabajoActivo.piscina_id,
+                    piscina_nombre: piscinaSeleccionadaData?.nombre || 'Piscina',
+                    cliente_nombre: "Técnico - Detección automática",
+                    mensaje: mensajeIncidencia,
+                    nivel_urgencia: "GRAVE",
+                    motivos: motivos,
+                    sugerencia: "Se requiere atención inmediata. NO BAÑARSE hasta nuevo aviso.",
+                    estado: "PENDIENTE",
+                    created_at: new Date().toISOString(),
+                    leida: false
+                });
+                
+                mostrarMensaje("✅ Alerta URGENTE creada. Los clientes verán la advertencia en rojo.", 'exito');
+            }
+            
+            // Enviar notificación a Telegram
+            await enviarAlertaTelegram(trabajoActivo.piscina_id, piscinaSeleccionadaData?.nombre, cloro, ph, temperatura, notasTecnico);
+            
+        } catch (error) {
+            console.error("Error gestionando incidencia urgente:", error);
+        }
+    }
+    
+    mostrarMensaje(urgente ? "✅ Medición URGENTE guardada. Alerta activada para clientes." : "✅ Medición guardada. Mensaje para cliente guardado.", 'exito');
+    
+    // Limpiar formulario
+    document.getElementById('cloro').value = '';
+    document.getElementById('ph').value = '';
+    document.getElementById('temp').value = '';
+    document.getElementById('notasTecnico').value = '';
+    document.getElementById('urgenteCheckbox').checked = false;
+    document.getElementById('informePreview').classList.add('oculto');
+    document.getElementById('informePreview').innerHTML = '';
+    productosTemp = [];
+    renderizarProductos();
+    ultimoInformeIA = null;
+    
+    await cargarMedicionesDeJornadaActiva();
+    
+    // Recargar histórico rápido
+    if (piscinaSeleccionadaId) {
+        await cargarHistoricoRapidoPiscina(piscinaSeleccionadaId);
+    }
+}
 
+// Función auxiliar para enviar alerta a Telegram
+async function enviarAlertaTelegram(piscinaId, piscinaNombre, cloro, ph, temperatura, notas) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    
+    try {
+        await fetch(`${SUPABASE_URL}/functions/v1/reportar-incidencia`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                accion: "reportar",
+                codigo_acceso: "INTERNO",
+                mensaje: `⚠️ ALERTA TÉCNICO - PISCINA ${piscinaNombre}\n\n📊 Mediciones:\n- Cloro: ${cloro} ppm\n- pH: ${ph}\n- Temperatura: ${temperatura}°C\n\n📝 Notas: ${notas}\n\n🔧 El técnico ha determinado que la piscina debe permanecer CERRADA.`,
+                nombre_cliente: "Sistema"
+            })
+        });
+        console.log("Alerta Telegram enviada");
+    } catch (error) {
+        console.error("Error enviando alerta Telegram:", error);
+    }
+}
     // ========== HISTÓRICOS ==========
     async function cargarJornadasPorFecha() {
         const fecha = document.getElementById('fechaJornada').value;
