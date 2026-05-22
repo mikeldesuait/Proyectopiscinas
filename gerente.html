@@ -732,11 +732,31 @@
     let piscinasList = [];
     let tecnicosList = [];
 
-    // ========== FUNCIONES AUXILIARES ==========
-    function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
-    function formatDateShort(iso) { return iso ? new Date(iso).toLocaleDateString() : '—'; }
-    function formatDateYMD(date) { return date.toISOString().slice(0, 10); }
-    function getFechaActual() { return formatDateYMD(new Date()); }
+    // ========== FUNCIONES AUXILIARES CORREGIDAS ==========
+function formatDate(iso) { 
+    if (!iso) return '—';
+    const fecha = new Date(iso);
+    return fecha.toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
+}
+
+function formatDateShort(iso) { 
+    if (!iso) return '—';
+    const fecha = new Date(iso);
+    return fecha.toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid' });
+}
+
+function formatDateYMD(date) {
+    // Ajustar a zona horaria de España
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getFechaActual() {
+    const ahora = new Date();
+    return formatDateYMD(ahora);
+}
     
     function mostrarMensajeGerente(texto, tipo = 'exito') {
         const toast = document.createElement('div');
@@ -757,19 +777,26 @@ async function cargarIncidenciasClientes() {
     let desde = document.getElementById('filtroIncidenciasDesde')?.value || '';
     let hasta = document.getElementById('filtroIncidenciasHasta')?.value || '';
     
-    // Si no hay fechas seleccionadas, mostrar últimos 30 días
+    // Si no hay fechas seleccionadas, mostrar últimos 30 días (en zona España)
     if (!desde || !hasta) {
         const hoy = new Date();
         const hace30Dias = new Date();
         hace30Dias.setDate(hoy.getDate() - 30);
+        
+        // Usar formato local para las fechas
         desde = formatDateYMD(hace30Dias);
         hasta = formatDateYMD(hoy);
+        
         document.getElementById('filtroIncidenciasDesde').value = desde;
         document.getElementById('filtroIncidenciasHasta').value = hasta;
     }
     
-    const start = new Date(`${desde}T00:00:00`).toISOString();
-    const end = new Date(`${hasta}T23:59:59`).toISOString();
+    // Para la consulta, usar el rango completo del día en UTC
+    const startDate = new Date(`${desde}T00:00:00+02:00`); // +02:00 para España
+    const endDate = new Date(`${hasta}T23:59:59+02:00`);
+    
+    const start = startDate.toISOString();
+    const end = endDate.toISOString();
     
     let query = sb.from('incidencias_clientes')
         .select('*')
@@ -821,6 +848,9 @@ async function cargarIncidenciasClientes() {
             textoUrgencia = '⚠️ URGENTE';
         }
         
+        // Mostrar fecha en hora local de España
+        const fechaMostrar = new Date(inc.created_at).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
+        
         const div = document.createElement('div');
         div.className = `incidencia-card ${claseUrgencia}`;
         
@@ -835,7 +865,7 @@ async function cargarIncidenciasClientes() {
             botonesHtml = `
                 <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e2e8f0;">
                     <div style="font-size:0.75rem; color:#2c7a4d;">
-                        ✅ Cerrada por ${inc.cerrada_por || 'Gerente'} el ${formatDate(inc.fecha_cierre)}
+                        ✅ Cerrada por ${inc.cerrada_por || 'Gerente'} el ${new Date(inc.fecha_cierre).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}
                     </div>
                     ${inc.mensaje_cierre_ia ? `<div style="font-size:0.7rem; color:#5b6e8c; margin-top:4px;">📝 ${inc.mensaje_cierre_ia}</div>` : ''}
                 </div>
@@ -849,7 +879,7 @@ async function cargarIncidenciasClientes() {
                     <span class="badge-urgencia ${badgeClase}" style="margin-left:8px;">${textoUrgencia}</span>
                     ${!inc.leida && !esCerrada ? '<span style="background:#dc2626; color:white; padding:2px 8px; border-radius:20px; margin-left:8px; font-size:0.6rem;">🆕 NUEVA</span>' : ''}
                 </div>
-                <div class="incidencia-fecha">📅 ${formatDate(inc.created_at)}</div>
+                <div class="incidencia-fecha">📅 ${fechaMostrar}</div>
             </div>
             <div class="incidencia-mensaje">
                 <strong>👤 Cliente:</strong> ${inc.cliente_nombre || 'Anónimo'}<br>
