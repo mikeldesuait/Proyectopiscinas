@@ -576,8 +576,9 @@
                     </div>
                     <div class="row-flex">
                         <div class="grupo">
-                            <label>🔗 Telegram ID presidente</label>
+                            <label>🔗 Telegram ID Presidente</label>
                             <input type="text" id="clienteTelegramId" placeholder="Ej: 123456789">
+                            <small style="font-size:0.65rem; color:#5b6e8c;">ID del presidente (recibirá alertas)</small>
                         </div>
                         <div class="grupo">
                             <label>💰 Estado de pago</label>
@@ -590,19 +591,26 @@
                     </div>
                     <div class="row-flex">
                         <div class="grupo">
-                            <label>📝 Horario de verano</label>
-                            <input type="text" id="clienteHorarioVerano" placeholder="Ej: 10:00 - 21:00">
+                            <label>👑 Telegram ID Administrador</label>
+                            <input type="text" id="clienteTelegramAdminId" placeholder="Ej: 123456789">
+                            <small style="font-size:0.65rem; color:#5b6e8c;">ID del administrador (recibirá alertas urgentes)</small>
                         </div>
                         <div class="grupo">
-                            <label>📝 Horario de invierno</label>
-                            <input type="text" id="clienteHorarioInvierno" placeholder="Ej: 10:00 - 18:00">
+                            <label>📝 Horario de verano</label>
+                            <input type="text" id="clienteHorarioVerano" placeholder="Ej: 10:00 - 21:00">
                         </div>
                     </div>
                     <div class="row-flex">
                         <div class="grupo">
+                            <label>📝 Horario de invierno</label>
+                            <input type="text" id="clienteHorarioInvierno" placeholder="Ej: 10:00 - 18:00">
+                        </div>
+                        <div class="grupo">
                             <label>⚠️ Normas especiales</label>
                             <input type="text" id="clienteNormas" placeholder="Normas importantes">
                         </div>
+                    </div>
+                    <div class="row-flex">
                         <div class="grupo">
                             <label>📅 Fecha última factura</label>
                             <input type="date" id="clienteUltimaFactura">
@@ -855,6 +863,7 @@
         document.getElementById('clientePresidente').value = piscina.presidente_nombre || '';
         document.getElementById('clienteWhatsapp').value = piscina.presidente_telefono || '';
         document.getElementById('clienteTelegramId').value = piscina.telegram_chat_id || '';
+        document.getElementById('clienteTelegramAdminId').value = piscina.telegram_admin_id || '';
         document.getElementById('clienteEstadoPago').value = piscina.estado_pago || 'AL_DIA';
         document.getElementById('clienteHorarioVerano').value = piscina.horario_verano || '';
         document.getElementById('clienteHorarioInvierno').value = piscina.horario_invierno || '';
@@ -902,6 +911,7 @@
             presidente_nombre: document.getElementById('clientePresidente').value,
             presidente_telefono: document.getElementById('clienteWhatsapp').value,
             telegram_chat_id: document.getElementById('clienteTelegramId').value,
+            telegram_admin_id: document.getElementById('clienteTelegramAdminId').value,
             estado_pago: document.getElementById('clienteEstadoPago').value,
             horario_verano: document.getElementById('clienteHorarioVerano').value,
             horario_invierno: document.getElementById('clienteHorarioInvierno').value,
@@ -1465,7 +1475,7 @@
         }
     }
 
-    // ========== FUNCIONES DE SUPERVISIÓN (resumidas) ==========
+    // ========== FUNCIONES DE SUPERVISIÓN ==========
     async function cargarResumenCompacto() {
         const hoy = getFechaActual();
         const startHoy = hoy + 'T00:00:00';
