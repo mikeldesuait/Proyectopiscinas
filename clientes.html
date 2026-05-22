@@ -584,220 +584,256 @@
     }
 
     async function cargarDatosPiscina(codigo) {
-        const panelDiv = document.getElementById('panelPiscina');
-        panelDiv.innerHTML = '<div class="loading">🔍 Verificando código de acceso...</div>';
-        
-        const { data: piscina, error } = await sb
-            .from('piscinas')
-            .select('*')
-            .eq('codigo_acceso', codigo.toUpperCase())
-            .single();
-        
-        if (error || !piscina) {
-            panelDiv.innerHTML = '';
-            document.getElementById('loginView').style.display = 'block';
-            const errorDiv = document.getElementById('errorMsg');
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML = '❌ Código de acceso incorrecto. Verifica e intenta de nuevo.';
-            return false;
-        }
-        
-        piscinaActual = piscina;
-        
-        // Verificar incidencias activas (ahora excluye cerradas)
-        const incidenciaActiva = await verificarIncidenciasActivas(piscina.id);
-        
-        let alertaHtml = '';
-        if (incidenciaActiva) {
-            const esGrave = incidenciaActiva.nivel_urgencia === 'GRAVE';
-            const alertaClass = esGrave ? 'alerta-incidencia' : 'alerta-incidencia alerta-incidencia-urgente';
-            const icono = esGrave ? '🚨' : '⚠️';
-            const titulo = esGrave ? '¡ALERTA GRAVE!' : 'ATENCIÓN - INCIDENCIA URGENTE';
-            
-            // Usar la sugerencia de la IA (mensaje profesional)
-            let mensajeAlerta = '';
-            if (esGrave) {
-                mensajeAlerta = incidenciaActiva.sugerencia || '⛔ NO BAÑARSE. Se ha detectado un problema grave. Espere instrucciones del técnico.';
-            } else {
-                mensajeAlerta = incidenciaActiva.sugerencia || '⚠️ Se recomienda precaución. El equipo está trabajando para solucionarlo.';
-            }
-            
-            // Motivos detectados por IA
-            let motivosTexto = '';
-            if (incidenciaActiva.motivos && incidenciaActiva.motivos.length > 0) {
-                motivosTexto = `<div class="alerta-descripcion" style="margin-top: 8px;">🔍 Motivo: ${incidenciaActiva.motivos.join(', ')}</div>`;
-            }
-            
-            alertaHtml = `
-                <div class="${alertaClass}">
-                    <div class="alerta-icono">${icono}</div>
-                    <div class="alerta-contenido">
-                        <div class="alerta-titulo">${titulo}</div>
-                        <div class="alerta-descripcion">${mensajeAlerta}</div>
-                        ${motivosTexto}
-                        <div class="alerta-fecha">📅 Reportado: ${formatearFechaIncidencia(incidenciaActiva.created_at)}</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Obtener última medición
-        const { data: ultimaMedicion } = await sb
-            .from('mediciones')
-            .select('*, tecnico_id')
-            .eq('piscina_id', piscina.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-        
-        // Obtener último informe de cliente
-        const { data: ultimoInforme } = await sb
-            .from('informes_cliente')
-            .select('*')
-            .eq('piscina_id', piscina.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-        
-        // Obtener histórico de informes (últimos 5)
-        const { data: historicoInformes } = await sb
-            .from('informes_cliente')
-            .select('*')
-            .eq('piscina_id', piscina.id)
-            .order('created_at', { ascending: false })
-            .limit(5);
-        
-        // Obtener nombre del técnico
-        let tecnicoNombre = 'Técnico de Aqua Garden';
-        if (ultimaMedicion?.tecnico_id) {
-            const { data: tecnico } = await sb
-                .from('perfiles')
-                .select('nick, nombre')
-                .eq('id', ultimaMedicion.tecnico_id)
-                .single();
-            if (tecnico) tecnicoNombre = tecnico.nombre || tecnico.nick || tecnicoNombre;
-        }
-        
-        const cloro = ultimaMedicion?.cloro || '—';
-        const ph = ultimaMedicion?.ph || '—';
-        const temperatura = ultimaMedicion?.temperatura || '—';
-        const fechaMedicion = ultimaMedicion?.created_at || null;
-        
-        const estadoCloro = typeof cloro === 'number' ? getEstadoParametro(cloro, 'cloro') : { clase: 'estado-ok', texto: '—' };
-        const estadoPh = typeof ph === 'number' ? getEstadoParametro(ph, 'ph') : { clase: 'estado-ok', texto: '—' };
-        const estadoTemp = typeof temperatura === 'number' ? getEstadoParametro(temperatura, 'temp') : { clase: 'estado-ok', texto: '—' };
-        
-        const mensajeIA = ultimoInforme?.mensaje || '¡Buenas noticias! Su piscina está en excelentes condiciones. Puede bañarse sin ninguna preocupación. Seguimos trabajando para mantenerla siempre perfecta.';
-        
-        const tieneInforme = ultimoInforme !== null;
-        
-        let historicoHtml = '';
-        if (historicoInformes && historicoInformes.length > 1) {
-            const historicoItems = historicoInformes.slice(1).map(info => `
-                <div class="historico-item">
-                    <div style="font-size: 0.7rem; color: #5b6e8c;">📅 ${formatFechaCorta(info.created_at)}</div>
-                    <div style="font-size: 0.85rem; margin-top: 4px;">${info.mensaje.substring(0, 150)}${info.mensaje.length > 150 ? '...' : ''}</div>
-                </div>
-            `).join('');
-            
-            historicoHtml = `
-                <div class="card">
-                    <div class="historico-toggle" onclick="toggleHistorico()">
-                        <span>📜 Histórico de informes anteriores</span>
-                        <span class="flecha">▶</span>
-                    </div>
-                    <div id="historicoContenido" style="display: none; margin-top: 12px;">
-                        ${historicoItems}
-                    </div>
-                </div>
-            `;
-        }
-        
-        const html = `
-            <div class="piscina-header">
-                <div class="piscina-nombre">🏊 ${piscina.nombre}</div>
-                <div style="font-size: 0.85rem; opacity: 0.9;">${piscina.direccion || ''} ${piscina.localidad || ''}</div>
-                <button class="btn-volver" onclick="volverALogin()">← Cambiar de piscina</button>
-            </div>
-            
-            ${alertaHtml}
-            
-            <div class="card">
-                <div class="card-header" style="cursor:default;">📊 Parámetros del agua</div>
-                <div class="parametros-grid">
-                    <div class="parametro-card">
-                        <div class="parametro-valor">${typeof cloro === 'number' ? cloro.toFixed(1) : cloro}</div>
-                        <div class="parametro-label">🧪 Cloro (ppm)</div>
-                        <div class="parametro-estado ${estadoCloro.clase}">${estadoCloro.texto}</div>
-                    </div>
-                    <div class="parametro-card">
-                        <div class="parametro-valor">${typeof ph === 'number' ? ph.toFixed(1) : ph}</div>
-                        <div class="parametro-label">⚗️ pH</div>
-                        <div class="parametro-estado ${estadoPh.clase}">${estadoPh.texto}</div>
-                    </div>
-                    <div class="parametro-card">
-                        <div class="parametro-valor">${typeof temperatura === 'number' ? temperatura + '°' : temperatura}</div>
-                        <div class="parametro-label">🌡️ Temperatura</div>
-                        <div class="parametro-estado ${estadoTemp.clase}">${estadoTemp.texto}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="ultima-visita">
-                <div style="font-weight: 600; margin-bottom: 8px;">📅 Última visita técnica</div>
-                <div style="font-size: 1rem; font-weight: 500;">${fechaMedicion ? formatFecha(fechaMedicion) : 'No hay registros aún'}</div>
-                <div style="font-size: 0.8rem; color: #5b6e8c; margin-top: 4px;">👨‍🔧 Técnico: ${tecnicoNombre}</div>
-            </div>
-            
-            <div class="mensaje-ia">
-                <div style="font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                     ${tieneInforme ? 'Informe del técnico' : 'Estado de la piscina'}
-                    <span style="font-size:0.6rem; background:${tieneInforme ? '#2c7a4d' : '#475569'}; color:white; padding:2px 8px; border-radius:20px;">${tieneInforme ? 'Generado con IA' : 'Última revisión'}</span>
-                </div>
-                <div style="white-space: pre-wrap;">${mensajeIA}</div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header" style="cursor:default;">📢 ¿Problemas en la piscina?</div>
-                
-                <div id="formIncidencia" style="display: none;">
-                    <input type="text" id="nombreCliente" placeholder="Tu nombre (opcional)">
-                    <textarea id="mensajeIncidencia" rows="4" placeholder="Describe el problema...&#10;Ej: El agua está verde, la bomba hace ruido, no funciona la luz, etc."></textarea>
-                    <button id="btnEnviarIncidencia" class="btn-reportar">📨 Enviar reporte</button>
-                    <button id="btnCancelarIncidencia" class="btn-volver" style="margin-top: 8px;">Cancelar</button>
-                </div>
-                
-                <button id="btnAbrirFormIncidencia" class="btn-reportar">📢 Reportar incidencia</button>
-                
-                <div id="incidenciaRespuesta" class="respuesta-incidencia"></div>
-            </div>
-            
-            ${historicoHtml}
-            
-            <div style="text-align: center; margin-top: 16px;">
-                <button class="btn-recargar" onclick="recargarDatos()">🔄 Actualizar datos</button>
-            </div>
-            
-            <div class="codigo-recordatorio">
-                💡 <strong>Recordatorio:</strong> El código de acceso de esta piscina es <strong>${piscina.codigo_acceso}</strong>
-            </div>
-        `;
-        
-        panelDiv.innerHTML = html;
-        
-        setTimeout(() => {
-            const btnAbrir = document.getElementById('btnAbrirFormIncidencia');
-            const btnCancelar = document.getElementById('btnCancelarIncidencia');
-            const btnEnviar = document.getElementById('btnEnviarIncidencia');
-            
-            if (btnAbrir) btnAbrir.onclick = abrirFormularioIncidencia;
-            if (btnCancelar) btnCancelar.onclick = cerrarFormularioIncidencia;
-            if (btnEnviar) btnEnviar.onclick = enviarIncidencia;
-        }, 100);
-        
-        return true;
+    const panelDiv = document.getElementById('panelPiscina');
+    panelDiv.innerHTML = '<div class="loading">🔍 Verificando código de acceso...</div>';
+    
+    const { data: piscina, error } = await sb
+        .from('piscinas')
+        .select('*')
+        .eq('codigo_acceso', codigo.toUpperCase())
+        .single();
+    
+    if (error || !piscina) {
+        panelDiv.innerHTML = '';
+        document.getElementById('loginView').style.display = 'block';
+        const errorDiv = document.getElementById('errorMsg');
+        errorDiv.style.display = 'block';
+        errorDiv.innerHTML = '❌ Código de acceso incorrecto. Verifica e intenta de nuevo.';
+        return false;
     }
     
+    piscinaActual = piscina;
+    
+    // Verificar incidencias activas (no cerradas)
+    const incidenciaActiva = await verificarIncidenciasActivas(piscina.id);
+    
+    // Buscar también incidencias cerradas recientes (últimos 7 días) para mostrar mensaje de resolución
+    let incidenciaResuelta = null;
+    try {
+        const hace7Dias = new Date();
+        hace7Dias.setDate(hace7Dias.getDate() - 7);
+        
+        const { data: incidenciasCerradas } = await sb
+            .from('incidencias_clientes')
+            .select('*')
+            .eq('piscina_id', piscina.id)
+            .eq('estado', 'CERRADA')
+            .gte('created_at', hace7Dias.toISOString())
+            .order('created_at', { ascending: false })
+            .limit(1);
+        
+        if (incidenciasCerradas && incidenciasCerradas.length > 0) {
+            incidenciaResuelta = incidenciasCerradas[0];
+        }
+    } catch (error) {
+        console.error("Error al buscar incidencias resueltas:", error);
+    }
+    
+    let alertaHtml = '';
+    if (incidenciaActiva) {
+        const esGrave = incidenciaActiva.nivel_urgencia === 'GRAVE';
+        const alertaClass = esGrave ? 'alerta-incidencia' : 'alerta-incidencia alerta-incidencia-urgente';
+        const icono = esGrave ? '🚨' : '⚠️';
+        const titulo = esGrave ? '¡ALERTA GRAVE!' : 'ATENCIÓN - INCIDENCIA URGENTE';
+        
+        let mensajeAlerta = '';
+        if (esGrave) {
+            mensajeAlerta = incidenciaActiva.sugerencia || '⛔ NO BAÑARSE. Se ha detectado un problema grave. Espere instrucciones del técnico.';
+        } else {
+            mensajeAlerta = incidenciaActiva.sugerencia || '⚠️ Se recomienda precaución. El equipo está trabajando para solucionarlo.';
+        }
+        
+        let motivosTexto = '';
+        if (incidenciaActiva.motivos && incidenciaActiva.motivos.length > 0) {
+            motivosTexto = `<div class="alerta-descripcion" style="margin-top: 8px;">🔍 Motivo: ${incidenciaActiva.motivos.join(', ')}</div>`;
+        }
+        
+        alertaHtml = `
+            <div class="${alertaClass}">
+                <div class="alerta-icono">${icono}</div>
+                <div class="alerta-contenido">
+                    <div class="alerta-titulo">${titulo}</div>
+                    <div class="alerta-descripcion">${mensajeAlerta}</div>
+                    ${motivosTexto}
+                    <div class="alerta-fecha">📅 Reportado: ${formatearFechaIncidencia(incidenciaActiva.created_at)}</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Mensaje de incidencia resuelta (si existe)
+    let mensajeResueltaHtml = '';
+    if (incidenciaResuelta && incidenciaResuelta.mensaje_cierre_ia) {
+        mensajeResueltaHtml = `
+            <div class="mensaje-ia" style="border-left-color: #2c7a4d; background: #d4edda; margin-bottom: 20px;">
+                <div style="font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <span>✅ INCIDENCIA RESUELTA</span>
+                    <span style="font-size:0.6rem; background:#2c7a4d; color:white; padding:2px 8px; border-radius:20px;">Solucionado</span>
+                </div>
+                <div style="white-space: pre-wrap; margin-bottom: 8px;">${incidenciaResuelta.mensaje_cierre_ia}</div>
+                <div style="font-size:0.7rem; color: #5b6e8c; margin-top: 8px;">📅 Resuelto el ${formatFecha(incidenciaResuelta.fecha_cierre)} por ${incidenciaResuelta.cerrada_por || 'el equipo técnico'}</div>
+            </div>
+        `;
+    }
+    
+    // Obtener última medición
+    const { data: ultimaMedicion } = await sb
+        .from('mediciones')
+        .select('*, tecnico_id')
+        .eq('piscina_id', piscina.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    
+    // Obtener último informe de cliente
+    const { data: ultimoInforme } = await sb
+        .from('informes_cliente')
+        .select('*')
+        .eq('piscina_id', piscina.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    
+    // Obtener histórico de informes (últimos 5)
+    const { data: historicoInformes } = await sb
+        .from('informes_cliente')
+        .select('*')
+        .eq('piscina_id', piscina.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+    
+    // Obtener nombre del técnico
+    let tecnicoNombre = 'Técnico de Aqua Garden';
+    if (ultimaMedicion?.tecnico_id) {
+        const { data: tecnico } = await sb
+            .from('perfiles')
+            .select('nick, nombre')
+            .eq('id', ultimaMedicion.tecnico_id)
+            .single();
+        if (tecnico) tecnicoNombre = tecnico.nombre || tecnico.nick || tecnicoNombre;
+    }
+    
+    const cloro = ultimaMedicion?.cloro || '—';
+    const ph = ultimaMedicion?.ph || '—';
+    const temperatura = ultimaMedicion?.temperatura || '—';
+    const fechaMedicion = ultimaMedicion?.created_at || null;
+    
+    const estadoCloro = typeof cloro === 'number' ? getEstadoParametro(cloro, 'cloro') : { clase: 'estado-ok', texto: '—' };
+    const estadoPh = typeof ph === 'number' ? getEstadoParametro(ph, 'ph') : { clase: 'estado-ok', texto: '—' };
+    const estadoTemp = typeof temperatura === 'number' ? getEstadoParametro(temperatura, 'temp') : { clase: 'estado-ok', texto: '—' };
+    
+    const mensajeIA = ultimoInforme?.mensaje || '¡Buenas noticias! Su piscina está en excelentes condiciones. Puede bañarse sin ninguna preocupación. Seguimos trabajando para mantenerla siempre perfecta.';
+    
+    const tieneInforme = ultimoInforme !== null;
+    
+    let historicoHtml = '';
+    if (historicoInformes && historicoInformes.length > 1) {
+        const historicoItems = historicoInformes.slice(1).map(info => `
+            <div class="historico-item">
+                <div style="font-size: 0.7rem; color: #5b6e8c;">📅 ${formatFechaCorta(info.created_at)}</div>
+                <div style="font-size: 0.85rem; margin-top: 4px;">${info.mensaje.substring(0, 150)}${info.mensaje.length > 150 ? '...' : ''}</div>
+            </div>
+        `).join('');
+        
+        historicoHtml = `
+            <div class="card">
+                <div class="historico-toggle" onclick="toggleHistorico()">
+                    <span>📜 Histórico de informes anteriores</span>
+                    <span class="flecha">▶</span>
+                </div>
+                <div id="historicoContenido" style="display: none; margin-top: 12px;">
+                    ${historicoItems}
+                </div>
+            </div>
+        `;
+    }
+    
+    const html = `
+        <div class="piscina-header">
+            <div class="piscina-nombre">🏊 ${piscina.nombre}</div>
+            <div style="font-size: 0.85rem; opacity: 0.9;">${piscina.direccion || ''} ${piscina.localidad || ''}</div>
+            <button class="btn-volver" onclick="volverALogin()">← Cambiar de piscina</button>
+        </div>
+        
+        ${alertaHtml}
+        
+        ${mensajeResueltaHtml}
+        
+        <div class="card">
+            <div class="card-header" style="cursor:default;">📊 Parámetros del agua</div>
+            <div class="parametros-grid">
+                <div class="parametro-card">
+                    <div class="parametro-valor">${typeof cloro === 'number' ? cloro.toFixed(1) : cloro}</div>
+                    <div class="parametro-label">🧪 Cloro (ppm)</div>
+                    <div class="parametro-estado ${estadoCloro.clase}">${estadoCloro.texto}</div>
+                </div>
+                <div class="parametro-card">
+                    <div class="parametro-valor">${typeof ph === 'number' ? ph.toFixed(1) : ph}</div>
+                    <div class="parametro-label">⚗️ pH</div>
+                    <div class="parametro-estado ${estadoPh.clase}">${estadoPh.texto}</div>
+                </div>
+                <div class="parametro-card">
+                    <div class="parametro-valor">${typeof temperatura === 'number' ? temperatura + '°' : temperatura}</div>
+                    <div class="parametro-label">🌡️ Temperatura</div>
+                    <div class="parametro-estado ${estadoTemp.clase}">${estadoTemp.texto}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="ultima-visita">
+            <div style="font-weight: 600; margin-bottom: 8px;">📅 Última visita técnica</div>
+            <div style="font-size: 1rem; font-weight: 500;">${fechaMedicion ? formatFecha(fechaMedicion) : 'No hay registros aún'}</div>
+            <div style="font-size: 0.8rem; color: #5b6e8c; margin-top: 4px;">👨‍🔧 Técnico: ${tecnicoNombre}</div>
+        </div>
+        
+        <div class="mensaje-ia">
+            <div style="font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                 ${tieneInforme ? 'Informe del técnico' : 'Estado de la piscina'}
+                <span style="font-size:0.6rem; background:${tieneInforme ? '#2c7a4d' : '#475569'}; color:white; padding:2px 8px; border-radius:20px;">${tieneInforme ? 'Generado con IA' : 'Última revisión'}</span>
+            </div>
+            <div style="white-space: pre-wrap;">${mensajeIA}</div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header" style="cursor:default;">📢 ¿Problemas en la piscina?</div>
+            
+            <div id="formIncidencia" style="display: none;">
+                <input type="text" id="nombreCliente" placeholder="Tu nombre (opcional)">
+                <textarea id="mensajeIncidencia" rows="4" placeholder="Describe el problema...&#10;Ej: El agua está verde, la bomba hace ruido, no funciona la luz, etc."></textarea>
+                <button id="btnEnviarIncidencia" class="btn-reportar">📨 Enviar reporte</button>
+                <button id="btnCancelarIncidencia" class="btn-volver" style="margin-top: 8px;">Cancelar</button>
+            </div>
+            
+            <button id="btnAbrirFormIncidencia" class="btn-reportar">📢 Reportar incidencia</button>
+            
+            <div id="incidenciaRespuesta" class="respuesta-incidencia"></div>
+        </div>
+        
+        ${historicoHtml}
+        
+        <div style="text-align: center; margin-top: 16px;">
+            <button class="btn-recargar" onclick="recargarDatos()">🔄 Actualizar datos</button>
+        </div>
+        
+        <div class="codigo-recordatorio">
+            💡 <strong>Recordatorio:</strong> El código de acceso de esta piscina es <strong>${piscina.codigo_acceso}</strong>
+        </div>
+    `;
+    
+    panelDiv.innerHTML = html;
+    
+    setTimeout(() => {
+        const btnAbrir = document.getElementById('btnAbrirFormIncidencia');
+        const btnCancelar = document.getElementById('btnCancelarIncidencia');
+        const btnEnviar = document.getElementById('btnEnviarIncidencia');
+        
+        if (btnAbrir) btnAbrir.onclick = abrirFormularioIncidencia;
+        if (btnCancelar) btnCancelar.onclick = cerrarFormularioIncidencia;
+        if (btnEnviar) btnEnviar.onclick = enviarIncidencia;
+    }, 100);
+    
+    return true;
+}
     function toggleHistorico() {
         const contenido = document.getElementById('historicoContenido');
         const flecha = document.querySelector('.historico-toggle .flecha');
