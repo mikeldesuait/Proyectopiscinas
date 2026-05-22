@@ -1404,32 +1404,56 @@
     }
 
     async function confirmarCierre() {
-        const comentario = document.getElementById('comentarioCierre').value.trim();
-        
-        if (!comentario) {
-            alert("❌ Por favor, describe cómo se solucionó la incidencia");
-            return;
-        }
-        
-        const { error } = await sb
-            .from('incidencias_clientes')
-            .update({
-                estado: 'CERRADA',
-                leida: true,
-                fecha_cierre: new Date().toISOString(),
-                cerrada_por: currentUserNombre,
-                comentario_cierre: comentario
+    const comentario = document.getElementById('comentarioCierre').value.trim();
+    
+    if (!comentario) {
+        alert("❌ Por favor, describe cómo se solucionó la incidencia");
+        return;
+    }
+    
+    const btn = document.querySelector('#modalCierre button:first-child');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '⏳ Procesando con IA...';
+    btn.disabled = true;
+    
+    try {
+        // Llamar a la Edge Function para mejorar el mensaje y enviar notificaciones
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/mejorar-cierre`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                incidencia_id: incidenciaACerrar,
+                comentario_tecnico: comentario,
+                cerrada_por: currentUserNombre
             })
-            .eq('id', incidenciaACerrar);
+        });
         
-        if (error) {
-            alert("❌ Error al cerrar: " + error.message);
-        } else {
-            alert("✅ Incidencia cerrada correctamente");
+        const resultado = await response.json();
+        
+        if (resultado.success) {
+            // Mostrar el mensaje mejorado por IA
+            alert("✅ Incidencia cerrada correctamente\n\n" + resultado.mensaje_cierre_ia.substring(0, 200) + "...");
+            
             cerrarModal();
             await cargarIncidenciasClientes();
+            
+            // Recargar también los datos del cliente si es necesario
+            if (typeof cargarIncidenciasClientes === 'function') {
+                await cargarIncidenciasClientes();
+            }
+        } else {
+            alert("❌ Error al cerrar: " + (resultado.error || "Desconocido"));
         }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("❌ Error de conexión: " + error.message);
+    } finally {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
     }
+}
 
     // ========== TAB: MENSAJES A CLIENTES ==========
     async function cargarMensajesClientes() {
