@@ -310,6 +310,9 @@
         .badge-normal { background: #2c7a4d; color: white; }
         .badge-info { background: #0284c7; color: white; }
         .badge-cerrada { background: #64748b; color: white; }
+        .badge-pago-al-dia { background: #2c7a4d; color: white; }
+        .badge-pago-pendiente { background: #f39c12; color: white; }
+        .badge-pago-moroso { background: #dc2626; color: white; }
         .leida-true { opacity: 0.7; }
         .leida-false { opacity: 1; }
         .btn-marcar-leida {
@@ -351,6 +354,18 @@
         .modal textarea {
             border-radius: 16px;
         }
+        
+        /* Estado de pago alerta */
+        .pago-alerta {
+            padding: 10px;
+            border-radius: 16px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .pago-al-dia { background: #d4edda; color: #155724; }
+        .pago-pendiente { background: #fff3cd; color: #856404; }
+        .pago-moroso { background: #f8d7da; color: #721c24; }
         
         #dashboardPanel { display: none; }
     </style>
@@ -499,30 +514,153 @@
             </div>
         </div>
 
-        <!-- GESTIÓN DE CÓDIGOS DE ACCESO PARA CLIENTES -->
+        <!-- GESTIÓN DE CLIENTES (3 pestañas) -->
         <div class="card">
-            <div class="card-header" style="cursor:default;">🔑 Códigos de acceso por piscina</div>
+            <div class="card-header" style="cursor:default;">👥 Gestión de clientes</div>
+            <div class="browser-tabs" id="clientesTabs">
+                <button class="browser-tab active" data-tab="datos-cliente">📋 Datos del cliente</button>
+                <button class="browser-tab" data-tab="codigos-acceso">🔑 Códigos de acceso</button>
+                <button class="browser-tab" data-tab="historico-cliente">📜 Histórico de la piscina</button>
+            </div>
             
-            <div class="row-flex">
-                <div class="grupo">
-                    <select id="selectorPiscinaCodigo">
+            <!-- PESTAÑA 1: DATOS DEL CLIENTE -->
+            <div id="tabDatosCliente" class="browser-content">
+                <div class="tecnico-selector">
+                    <select id="selectorClientePiscina">
                         <option value="">Selecciona una piscina...</option>
                     </select>
+                    <button id="btnCargarCliente" class="btn-info">📊 Cargar datos</button>
+                    <button id="btnGuardarCliente" class="btn-success" style="background:#2c7a4d;">💾 Guardar cambios</button>
                 </div>
-                <div class="grupo">
-                    <input type="text" id="nuevoCodigo" placeholder="Nuevo código (dejar vacío = autogenerar)">
+                
+                <div id="formDatosCliente" style="display: none;">
+                    <div class="row-flex">
+                        <div class="grupo">
+                            <label>🏊 Nombre de la piscina</label>
+                            <input type="text" id="clienteNombrePiscina" placeholder="Nombre">
+                        </div>
+                        <div class="grupo">
+                            <label>📍 Localidad</label>
+                            <input type="text" id="clienteLocalidad" placeholder="Localidad">
+                        </div>
+                    </div>
+                    <div class="row-flex">
+                        <div class="grupo">
+                            <label>🏠 Dirección</label>
+                            <input type="text" id="clienteDireccion" placeholder="Dirección">
+                        </div>
+                        <div class="grupo">
+                            <label>📞 Teléfono contacto</label>
+                            <input type="text" id="clienteTelefono" placeholder="Teléfono">
+                        </div>
+                    </div>
+                    <div class="row-flex">
+                        <div class="grupo">
+                            <label>👥 Capacidad (personas)</label>
+                            <input type="number" id="clienteCapacidad" placeholder="Capacidad">
+                        </div>
+                        <div class="grupo">
+                            <label>📧 Email contacto</label>
+                            <input type="email" id="clienteEmail" placeholder="Email">
+                        </div>
+                    </div>
+                    <div class="row-flex">
+                        <div class="grupo">
+                            <label>🤵 Presidente comunidad</label>
+                            <input type="text" id="clientePresidente" placeholder="Nombre del presidente">
+                        </div>
+                        <div class="grupo">
+                            <label>📱 WhatsApp presidente</label>
+                            <input type="text" id="clienteWhatsapp" placeholder="Número con código país">
+                        </div>
+                    </div>
+                    <div class="row-flex">
+                        <div class="grupo">
+                            <label>🔗 Telegram ID presidente</label>
+                            <input type="text" id="clienteTelegramId" placeholder="Ej: 123456789">
+                        </div>
+                        <div class="grupo">
+                            <label>💰 Estado de pago</label>
+                            <select id="clienteEstadoPago">
+                                <option value="AL_DIA">✅ Al día</option>
+                                <option value="PENDIENTE">⚠️ Pendiente</option>
+                                <option value="MOROSO">❌ Moroso</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row-flex">
+                        <div class="grupo">
+                            <label>📝 Horario de verano</label>
+                            <input type="text" id="clienteHorarioVerano" placeholder="Ej: 10:00 - 21:00">
+                        </div>
+                        <div class="grupo">
+                            <label>📝 Horario de invierno</label>
+                            <input type="text" id="clienteHorarioInvierno" placeholder="Ej: 10:00 - 18:00">
+                        </div>
+                    </div>
+                    <div class="row-flex">
+                        <div class="grupo">
+                            <label>⚠️ Normas especiales</label>
+                            <input type="text" id="clienteNormas" placeholder="Normas importantes">
+                        </div>
+                        <div class="grupo">
+                            <label>📅 Fecha última factura</label>
+                            <input type="date" id="clienteUltimaFactura">
+                        </div>
+                    </div>
+                    <div id="estadoPagoAlerta" style="display: none;"></div>
                 </div>
-                <button id="btnRegenerarCodigo" class="btn-warning">🔄 Regenerar código</button>
+                <div id="datosClienteCargando" class="loading oculto">🔄 Cargando datos del cliente...</div>
             </div>
             
-            <div id="listaCodigosPiscinas" class="resultados-area" style="margin-top:16px;">
-                <div class="medicion-card">📋 Cargando códigos de acceso...</div>
+            <!-- PESTAÑA 2: CÓDIGOS DE ACCESO -->
+            <div id="tabCodigosAcceso" class="browser-content oculto">
+                <div class="row-flex">
+                    <div class="grupo">
+                        <select id="selectorPiscinaCodigo">
+                            <option value="">Selecciona una piscina...</option>
+                        </select>
+                    </div>
+                    <div class="grupo">
+                        <input type="text" id="nuevoCodigo" placeholder="Nuevo código (dejar vacío = autogenerar)">
+                    </div>
+                    <button id="btnRegenerarCodigo" class="btn-warning">🔄 Regenerar código</button>
+                </div>
+                
+                <div id="listaCodigosPiscinas" class="resultados-area" style="margin-top:16px;">
+                    <div class="medicion-card">📋 Cargando códigos de acceso...</div>
+                </div>
+                
+                <div class="codigo-info" style="margin-top:12px;">
+                    💡 <strong>¿Cómo funciona?</strong><br>
+                    Cada piscina tiene un código único. Comparte este código con los propietarios de la comunidad.<br>
+                    Ellos entrarán en <strong>cliente.html</strong> e introducirán el código para ver SOLO su piscina.
+                </div>
             </div>
             
-            <div class="codigo-info" style="margin-top:12px;">
-                💡 <strong>¿Cómo funciona?</strong><br>
-                Cada piscina tiene un código único. Comparte este código con los propietarios de la comunidad.<br>
-                Ellos entrarán en <strong>cliente.html</strong> e introducirán el código para ver SOLO su piscina.
+            <!-- PESTAÑA 3: HISTÓRICO DE LA PISCINA -->
+            <div id="tabHistoricoCliente" class="browser-content oculto">
+                <div class="tecnico-selector">
+                    <select id="selectorHistoricoPiscina">
+                        <option value="">Selecciona una piscina...</option>
+                    </select>
+                    <button id="btnCargarHistorico" class="btn-info">📜 Cargar histórico</button>
+                    <button id="btnExportarHistorico" class="btn-pdf">📄 Exportar PDF</button>
+                </div>
+                <div class="filtros-mensajes" style="margin-top:16px;">
+                    <input type="date" id="historicoFechaDesde" placeholder="Desde">
+                    <input type="date" id="historicoFechaHasta" placeholder="Hasta">
+                    <select id="filtroHistoricoTipo">
+                        <option value="todos">📋 Todo</option>
+                        <option value="mediciones">🧪 Mediciones</option>
+                        <option value="incidencias">🚨 Incidencias</option>
+                        <option value="informes">📨 Informes IA</option>
+                    </select>
+                    <button id="btnFiltrarHistorico" class="btn-buscar">🔍 Filtrar</button>
+                </div>
+                <div id="historicoClienteList" class="resultados-area" style="max-height: 500px;">
+                    <div class="medicion-card">📋 Selecciona una piscina para ver su histórico</div>
+                </div>
             </div>
         </div>
 
@@ -627,7 +765,7 @@
         perfiles?.forEach(p => cachePerfiles[p.id] = { nick: p.nick, nombre: p.nombre, rol: p.rol });
         await cargarSelectoresTecnicos();
         await cargarFiltroPiscinasMensajes();
-        await cargarSelectoresIncidencias();
+        await cargarSelectoresClientes();
     }
 
     async function cargarSelectoresTecnicos() {
@@ -651,55 +789,460 @@
         }
     }
 
-    async function cargarSelectoresIncidencias() {
-        const { data: piscinas } = await sb.from('piscinas').select('id, nombre');
-        const select = document.getElementById('filtroIncidenciasPiscina');
-        if (select && piscinas) {
-            select.innerHTML = '<option value="">Todas las piscinas</option>';
-            piscinas.forEach(p => select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`);
+    // ========== GESTIÓN DE CLIENTES - SELECTORES ==========
+    async function cargarSelectoresClientes() {
+        const { data: piscinas } = await sb.from('piscinas').select('id, nombre').order('nombre');
+        
+        const selectDatos = document.getElementById('selectorClientePiscina');
+        const selectCodigo = document.getElementById('selectorPiscinaCodigo');
+        const selectHistorico = document.getElementById('selectorHistoricoPiscina');
+        const selectIncidencias = document.getElementById('filtroIncidenciasPiscina');
+        
+        if (selectDatos && piscinas) {
+            selectDatos.innerHTML = '<option value="">Selecciona una piscina...</option>';
+            piscinas.forEach(p => selectDatos.innerHTML += `<option value="${p.id}">${p.nombre}</option>`);
+        }
+        
+        if (selectCodigo && piscinas) {
+            selectCodigo.innerHTML = '<option value="">Selecciona una piscina...</option>';
+            piscinas.forEach(p => selectCodigo.innerHTML += `<option value="${p.id}">${p.nombre}</option>`);
+        }
+        
+        if (selectHistorico && piscinas) {
+            selectHistorico.innerHTML = '<option value="">Selecciona una piscina...</option>';
+            piscinas.forEach(p => selectHistorico.innerHTML += `<option value="${p.id}">${p.nombre}</option>`);
+        }
+        
+        if (selectIncidencias && piscinas) {
+            selectIncidencias.innerHTML = '<option value="">Todas las piscinas</option>';
+            piscinas.forEach(p => selectIncidencias.innerHTML += `<option value="${p.id}">${p.nombre}</option>`);
         }
     }
 
-    // ========== FUNCIONES MODAL CIERRE ==========
-    function abrirModalCierre(id) {
-        incidenciaACerrar = id;
-        document.getElementById('modalCierre').style.display = 'flex';
+    // ========== PESTAÑA 1: DATOS DEL CLIENTE ==========
+    async function cargarDatosCliente() {
+        const piscinaId = document.getElementById('selectorClientePiscina').value;
+        const formDiv = document.getElementById('formDatosCliente');
+        const cargandoDiv = document.getElementById('datosClienteCargando');
+        
+        if (!piscinaId) {
+            formDiv.style.display = 'none';
+            return;
+        }
+        
+        formDiv.style.display = 'none';
+        cargandoDiv.classList.remove('oculto');
+        
+        const { data: piscina, error } = await sb
+            .from('piscinas')
+            .select('*')
+            .eq('id', parseInt(piscinaId))
+            .single();
+        
+        cargandoDiv.classList.add('oculto');
+        
+        if (error) {
+            alert("❌ Error al cargar datos: " + error.message);
+            return;
+        }
+        
+        document.getElementById('clienteNombrePiscina').value = piscina.nombre || '';
+        document.getElementById('clienteLocalidad').value = piscina.localidad || '';
+        document.getElementById('clienteDireccion').value = piscina.direccion || '';
+        document.getElementById('clienteTelefono').value = piscina.telefono_contacto || '';
+        document.getElementById('clienteCapacidad').value = piscina.capacidad || '';
+        document.getElementById('clienteEmail').value = piscina.email || '';
+        document.getElementById('clientePresidente').value = piscina.presidente_nombre || '';
+        document.getElementById('clienteWhatsapp').value = piscina.presidente_telefono || '';
+        document.getElementById('clienteTelegramId').value = piscina.telegram_chat_id || '';
+        document.getElementById('clienteEstadoPago').value = piscina.estado_pago || 'AL_DIA';
+        document.getElementById('clienteHorarioVerano').value = piscina.horario_verano || '';
+        document.getElementById('clienteHorarioInvierno').value = piscina.horario_invierno || '';
+        document.getElementById('clienteNormas').value = piscina.normas_especiales || '';
+        document.getElementById('clienteUltimaFactura').value = piscina.ultima_factura || '';
+        
+        // Mostrar alerta según estado de pago
+        const estadoPago = piscina.estado_pago || 'AL_DIA';
+        const alertaDiv = document.getElementById('estadoPagoAlerta');
+        let alertaClass = '', alertaTexto = '';
+        
+        if (estadoPago === 'AL_DIA') {
+            alertaClass = 'pago-al-dia';
+            alertaTexto = '✅ Cliente al día con los pagos';
+        } else if (estadoPago === 'PENDIENTE') {
+            alertaClass = 'pago-pendiente';
+            alertaTexto = '⚠️ ATENCIÓN: El cliente tiene pagos pendientes';
+        } else {
+            alertaClass = 'pago-moroso';
+            alertaTexto = '❌ ALERTA: Cliente moroso. Considere suspender servicio';
+        }
+        
+        alertaDiv.className = `pago-alerta ${alertaClass}`;
+        alertaDiv.innerHTML = alertaTexto;
+        alertaDiv.style.display = 'block';
+        
+        formDiv.style.display = 'block';
+    }
+    
+    async function guardarDatosCliente() {
+        const piscinaId = document.getElementById('selectorClientePiscina').value;
+        
+        if (!piscinaId) {
+            alert("❌ Selecciona una piscina");
+            return;
+        }
+        
+        const datosActualizados = {
+            nombre: document.getElementById('clienteNombrePiscina').value,
+            localidad: document.getElementById('clienteLocalidad').value,
+            direccion: document.getElementById('clienteDireccion').value,
+            telefono_contacto: document.getElementById('clienteTelefono').value,
+            capacidad: parseInt(document.getElementById('clienteCapacidad').value) || null,
+            email: document.getElementById('clienteEmail').value,
+            presidente_nombre: document.getElementById('clientePresidente').value,
+            presidente_telefono: document.getElementById('clienteWhatsapp').value,
+            telegram_chat_id: document.getElementById('clienteTelegramId').value,
+            estado_pago: document.getElementById('clienteEstadoPago').value,
+            horario_verano: document.getElementById('clienteHorarioVerano').value,
+            horario_invierno: document.getElementById('clienteHorarioInvierno').value,
+            normas_especiales: document.getElementById('clienteNormas').value,
+            ultima_factura: document.getElementById('clienteUltimaFactura').value || null
+        };
+        
+        const { error } = await sb
+            .from('piscinas')
+            .update(datosActualizados)
+            .eq('id', parseInt(piscinaId));
+        
+        if (error) {
+            alert("❌ Error al guardar: " + error.message);
+        } else {
+            alert("✅ Datos guardados correctamente");
+            await cargarDatosCliente();
+            await cargarSelectoresClientes();
+        }
     }
 
-    function cerrarModal() {
-        document.getElementById('modalCierre').style.display = 'none';
-        document.getElementById('comentarioCierre').value = '';
-        incidenciaACerrar = null;
+    // ========== PESTAÑA 2: CÓDIGOS DE ACCESO ==========
+    async function cargarListaCodigosPiscinas() {
+        const { data: piscinasRaw, error } = await sb.from('piscinas').select('id, nombre, direccion, codigo_acceso').order('nombre');
+        
+        if (error) {
+            document.getElementById('listaCodigosPiscinas').innerHTML = `<div class="medicion-card">❌ Error: ${error.message}</div>`;
+            return;
+        }
+        
+        const piscinas = [];
+        const nombresVistos = new Set();
+        for (const p of piscinasRaw) {
+            if (!nombresVistos.has(p.nombre)) {
+                nombresVistos.add(p.nombre);
+                piscinas.push(p);
+            }
+        }
+        
+        const lista = document.getElementById('listaCodigosPiscinas');
+        
+        if (lista && piscinas) {
+            if (piscinas.length === 0) {
+                lista.innerHTML = '<div class="medicion-card">📋 No hay piscinas registradas</div>';
+                return;
+            }
+            
+            lista.innerHTML = '<div class="medicion-card" style="font-weight:bold; background:#e0f2e9;">📋 CÓDIGOS DE ACCESO POR PISCINA</div>';
+            
+            const enlaceCliente = `${window.location.origin}${window.location.pathname.replace('gerente.html', 'cliente.html')}`;
+            
+            for (const p of piscinas) {
+                lista.innerHTML += `
+                    <div class="medicion-card" style="border-left-color: #e67e22;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <strong>🏊 ${p.nombre}</strong>
+                            <span style="background: #1e4663; color: white; padding: 4px 12px; border-radius: 20px; font-family: monospace; font-weight: bold; font-size: 1rem;">${p.codigo_acceso || 'Sin código'}</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #5b6e8c; margin-top: 4px;">${p.direccion || ''}</div>
+                        <div style="font-size: 0.7rem; margin-top: 8px; background: #f8fafc; padding: 8px; border-radius: 12px;">
+                            🔗 <strong>Enlace para clientes:</strong><br>
+                            <code style="font-size: 0.65rem; word-break: break-all;">${enlaceCliente}</code><br>
+                            📝 <strong>Código:</strong> <span style="font-family: monospace;">${p.codigo_acceso || 'Sin código'}</span>
+                            <button class="copiar-enlace" data-piscina="${p.nombre.replace(/'/g, "\\'")}" data-codigo="${p.codigo_acceso}" data-enlace="${enlaceCliente}" style="margin-top:6px; background:#475569; width:auto; padding:4px 12px; font-size:0.7rem;">📋 Copiar enlace + código</button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.querySelectorAll('.copiar-enlace').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const piscinaNombre = btn.dataset.piscina;
+                    const codigo = btn.dataset.codigo;
+                    const enlace = btn.dataset.enlace;
+                    const textoCompleto = `🔑 ACCESO PISCINA ${piscinaNombre}\n\n🔗 Enlace: ${enlace}\n🔐 Código: ${codigo}\n\nIntroduce el código en la página para ver el estado de la piscina.`;
+                    try {
+                        await navigator.clipboard.writeText(textoCompleto);
+                        btn.innerHTML = '✅ Copiado!';
+                        setTimeout(() => { btn.innerHTML = '📋 Copiar enlace + código'; }, 2000);
+                    } catch (err) {
+                        alert('No se pudo copiar. Copia manualmente.');
+                    }
+                });
+            });
+        }
+    }
+    
+    async function regenerarCodigoPiscina() {
+        const piscinaId = document.getElementById('selectorPiscinaCodigo').value;
+        const nuevoCodigoManual = document.getElementById('nuevoCodigo').value.trim().toUpperCase();
+        
+        if (!piscinaId) {
+            alert("❌ Selecciona una piscina");
+            return;
+        }
+        
+        const idNumerico = parseInt(piscinaId);
+        
+        let nuevoCodigo;
+        if (nuevoCodigoManual) {
+            if (!/^[A-Z0-9]{6,12}$/.test(nuevoCodigoManual)) {
+                alert("❌ El código debe tener entre 6 y 12 caracteres, solo letras mayúsculas y números");
+                return;
+            }
+            nuevoCodigo = nuevoCodigoManual;
+        } else {
+            const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let resultado = '';
+            for (let i = 0; i < 6; i++) {
+                resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+            }
+            nuevoCodigo = resultado;
+        }
+        
+        const { data: existe, error: errorExiste } = await sb
+            .from('piscinas')
+            .select('id, nombre')
+            .eq('codigo_acceso', nuevoCodigo)
+            .neq('id', idNumerico);
+        
+        if (errorExiste) {
+            alert("❌ Error al verificar disponibilidad del código");
+            return;
+        }
+        
+        if (existe && existe.length > 0) {
+            alert(`❌ El código "${nuevoCodigo}" ya está en uso en la piscina: ${existe[0].nombre}`);
+            return;
+        }
+        
+        const btn = document.getElementById('btnRegenerarCodigo');
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '⏳ Actualizando...';
+        btn.disabled = true;
+        
+        try {
+            const { error } = await sb
+                .from('piscinas')
+                .update({ codigo_acceso: nuevoCodigo })
+                .eq('id', idNumerico);
+            
+            if (error) throw new Error(error.message);
+            
+            alert(`✅ Código actualizado exitosamente a: ${nuevoCodigo}`);
+            document.getElementById('nuevoCodigo').value = '';
+            await cargarListaCodigosPiscinas();
+            
+        } catch (error) {
+            alert(`❌ Error al actualizar: ${error.message}`);
+        } finally {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+        }
     }
 
-   async function confirmarCierre() {
-    const comentario = document.getElementById('comentarioCierre').value.trim();
-    
-    if (!comentario) {
-        alert("❌ Por favor, describe cómo se solucionó la incidencia");
-        return;
+    // ========== PESTAÑA 3: HISTÓRICO DE LA PISCINA ==========
+    async function cargarHistoricoPiscina() {
+        const piscinaId = document.getElementById('selectorHistoricoPiscina').value;
+        const tipo = document.getElementById('filtroHistoricoTipo').value;
+        let desde = document.getElementById('historicoFechaDesde').value;
+        let hasta = document.getElementById('historicoFechaHasta').value;
+        const contenedor = document.getElementById('historicoClienteList');
+        
+        if (!piscinaId) {
+            contenedor.innerHTML = '<div class="medicion-card">📋 Selecciona una piscina para ver su histórico</div>';
+            return;
+        }
+        
+        if (!desde || !hasta) {
+            const hoy = new Date();
+            const hace365 = new Date(); hace365.setDate(hoy.getDate() - 365);
+            desde = formatDateYMD(hace365);
+            hasta = formatDateYMD(hoy);
+            document.getElementById('historicoFechaDesde').value = desde;
+            document.getElementById('historicoFechaHasta').value = hasta;
+        }
+        
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        
+        contenedor.innerHTML = '<div class="loading">📊 Cargando histórico...</div>';
+        
+        let historico = [];
+        
+        // Cargar mediciones
+        if (tipo === 'todos' || tipo === 'mediciones') {
+            const { data: mediciones } = await sb
+                .from('mediciones')
+                .select('*, tecnico_id')
+                .eq('piscina_id', parseInt(piscinaId))
+                .gte('created_at', start)
+                .lte('created_at', end)
+                .order('created_at', { ascending: false });
+            
+            if (mediciones && mediciones.length > 0) {
+                mediciones.forEach(m => {
+                    historico.push({
+                        tipo: 'medicion',
+                        fecha: m.created_at,
+                        data: m,
+                        tecnico_id: m.tecnico_id
+                    });
+                });
+            }
+        }
+        
+        // Cargar incidencias
+        if (tipo === 'todos' || tipo === 'incidencias') {
+            const { data: incidencias } = await sb
+                .from('incidencias_clientes')
+                .select('*')
+                .eq('piscina_id', parseInt(piscinaId))
+                .gte('created_at', start)
+                .lte('created_at', end)
+                .order('created_at', { ascending: false });
+            
+            if (incidencias && incidencias.length > 0) {
+                incidencias.forEach(i => {
+                    historico.push({
+                        tipo: 'incidencia',
+                        fecha: i.created_at,
+                        data: i
+                    });
+                });
+            }
+        }
+        
+        // Cargar informes IA
+        if (tipo === 'todos' || tipo === 'informes') {
+            const { data: informes } = await sb
+                .from('informes_cliente')
+                .select('*')
+                .eq('piscina_id', parseInt(piscinaId))
+                .gte('created_at', start)
+                .lte('created_at', end)
+                .order('created_at', { ascending: false });
+            
+            if (informes && informes.length > 0) {
+                informes.forEach(inf => {
+                    historico.push({
+                        tipo: 'informe',
+                        fecha: inf.created_at,
+                        data: inf
+                    });
+                });
+            }
+        }
+        
+        // Ordenar por fecha (más reciente primero)
+        historico.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        
+        if (historico.length === 0) {
+            contenedor.innerHTML = '<div class="medicion-card">📋 No hay registros en el período seleccionado</div>';
+            return;
+        }
+        
+        contenedor.innerHTML = `<div class="medicion-card" style="background:#e0f2e9;font-weight:bold;">📊 TOTAL: ${historico.length} registros encontrados</div>`;
+        
+        for (const item of historico) {
+            let html = '';
+            
+            if (item.tipo === 'medicion') {
+                const m = item.data;
+                const tecnico = cachePerfiles[m.tecnico_id];
+                html = `
+                    <div class="medicion-card" style="border-left-color: #0284c7;">
+                        <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
+                            <strong>🧪 MEDICIÓN</strong>
+                            <span class="badge" style="background:#0284c7; color:white;">📅 ${formatDate(m.created_at)}</span>
+                        </div>
+                        <div style="margin-top:8px;">
+                            🧪 Cloro: ${m.cloro} ppm | ⚗️ pH: ${m.ph} | 🌡️ ${m.temperatura}°C
+                        </div>
+                        <div style="font-size:0.75rem; color:#5b6e8c; margin-top:4px;">
+                            👤 Técnico: ${tecnico?.nick || '?'}
+                        </div>
+                        ${m.observaciones ? `<div style="margin-top:6px; font-size:0.8rem;">📝 ${m.observaciones}</div>` : ''}
+                    </div>
+                `;
+            } else if (item.tipo === 'incidencia') {
+                const i = item.data;
+                let badgeUrgencia = '';
+                if (i.nivel_urgencia === 'GRAVE') badgeUrgencia = '<span style="background:#dc2626; color:white; padding:2px 8px; border-radius:20px; font-size:0.65rem;">🚨 GRAVE</span>';
+                else if (i.nivel_urgencia === 'URGENTE') badgeUrgencia = '<span style="background:#f39c12; color:white; padding:2px 8px; border-radius:20px; font-size:0.65rem;">⚠️ URGENTE</span>';
+                else if (i.nivel_urgencia === 'NORMAL') badgeUrgencia = '<span style="background:#2c7a4d; color:white; padding:2px 8px; border-radius:20px; font-size:0.65rem;">✅ NORMAL</span>';
+                else badgeUrgencia = '<span style="background:#0284c7; color:white; padding:2px 8px; border-radius:20px; font-size:0.65rem;">📝 INFO</span>';
+                
+                html = `
+                    <div class="medicion-card" style="border-left-color: #dc2626;">
+                        <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
+                            <strong>🚨 INCIDENCIA ${badgeUrgencia}</strong>
+                            <span class="badge" style="background:#0284c7; color:white;">📅 ${formatDate(i.created_at)}</span>
+                        </div>
+                        <div style="margin-top:8px;">
+                            <strong>👤 Cliente:</strong> ${i.cliente_nombre || 'Anónimo'}<br>
+                            <strong>📝 Mensaje:</strong> "${i.mensaje}"
+                        </div>
+                        ${i.sugerencia ? `<div style="margin-top:6px; font-size:0.8rem; color:#2c7a4d;">🔧 Sugerencia: ${i.sugerencia}</div>` : ''}
+                        ${i.estado === 'CERRADA' ? `<div style="margin-top:6px; font-size:0.75rem; color:#64748b;">✅ Cerrada por ${i.cerrada_por || 'Gerente'} el ${formatDate(i.fecha_cierre)}</div>` : ''}
+                    </div>
+                `;
+            } else if (item.tipo === 'informe') {
+                const inf = item.data;
+                html = `
+                    <div class="medicion-card" style="border-left-color: #2c7a4d;">
+                        <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
+                            <strong>📨 INFORME IA</strong>
+                            <span class="badge" style="background:#2c7a4d; color:white;">📅 ${formatDate(inf.created_at)}</span>
+                        </div>
+                        <div style="margin-top:8px; background:#f0fdf4; padding:8px; border-radius:12px;">
+                            ${inf.mensaje.substring(0, 200)}${inf.mensaje.length > 200 ? '...' : ''}
+                        </div>
+                        ${inf.tiempo_espera > 0 ? `<div style="margin-top:6px; font-size:0.75rem;">⏰ Espera recomendada: ${inf.tiempo_espera}h</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            contenedor.innerHTML += html;
+        }
     }
     
-    const { error } = await sb
-        .from('incidencias_clientes')
-        .update({
-            estado: 'CERRADA',
-            leida: true,           // ← AÑADIR ESTO
-            fecha_cierre: new Date().toISOString(),
-            cerrada_por: currentUserNombre,
-            comentario_cierre: comentario
-        })
-        .eq('id', incidenciaACerrar);
-    
-    if (error) {
-        console.error("Error:", error);
-        alert("❌ Error al cerrar: " + error.message);
-    } else {
-        alert("✅ Incidencia cerrada correctamente");
-        cerrarModal();
-        await cargarIncidenciasClientes();
+    async function exportarHistoricoPDF() {
+        const contenedor = document.getElementById('historicoClienteList');
+        const piscinaId = document.getElementById('selectorHistoricoPiscina').value;
+        const selectElement = document.getElementById('selectorHistoricoPiscina');
+        const piscinaNombre = selectElement.options[selectElement.selectedIndex]?.text || 'Piscina';
+        
+        if (contenedor.innerHTML.includes('Selecciona una piscina') || contenedor.innerHTML.includes('No hay registros')) {
+            alert("No hay datos para exportar");
+            return;
+        }
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `
+            <h2>Histórico de ${piscinaNombre} - Aqua Garden</h2>
+            <p>Fecha de exportación: ${new Date().toLocaleDateString('es-ES')}</p>
+            <hr>
+            ${contenedor.innerHTML}
+        `;
+        html2pdf().set({ filename: `historico_${piscinaNombre}_${getFechaActual()}.pdf`, margin: 10 }).from(tempDiv).save();
     }
-}
 
     // ========== TAB: INCIDENCIAS DE CLIENTES ==========
     async function cargarIncidenciasClientes() {
@@ -725,17 +1268,9 @@
             .lte('created_at', end)
             .order('created_at', { ascending: false });
         
-        if (urgencia && urgencia !== '') {
-            query = query.eq('nivel_urgencia', urgencia);
-        }
-        
-        if (estado && estado !== '') {
-            query = query.eq('estado', estado);
-        }
-        
-        if (piscinaId && piscinaId !== '') {
-            query = query.eq('piscina_id', parseInt(piscinaId));
-        }
+        if (urgencia && urgencia !== '') query = query.eq('nivel_urgencia', urgencia);
+        if (estado && estado !== '') query = query.eq('estado', estado);
+        if (piscinaId && piscinaId !== '') query = query.eq('piscina_id', parseInt(piscinaId));
         
         const { data: incidencias, error } = await query;
         const contenedor = document.getElementById('incidenciasList');
@@ -752,7 +1287,6 @@
         
         contenedor.innerHTML = '';
         
-        // Resumen de pendientes
         const pendientes = incidencias.filter(i => i.estado !== 'CERRADA').length;
         if (pendientes > 0) {
             contenedor.innerHTML += `<div class="medicion-card" style="background:#e0f2e9;font-weight:bold;">📊 ${pendientes} incidencias pendientes de resolver</div>`;
@@ -841,9 +1375,48 @@
             .eq('id', id);
         
         if (error) {
-            console.error("Error:", error);
             alert("❌ Error al marcar como leída");
         } else {
+            await cargarIncidenciasClientes();
+        }
+    }
+
+    // ========== MODAL CIERRE ==========
+    function abrirModalCierre(id) {
+        incidenciaACerrar = id;
+        document.getElementById('modalCierre').style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalCierre').style.display = 'none';
+        document.getElementById('comentarioCierre').value = '';
+        incidenciaACerrar = null;
+    }
+
+    async function confirmarCierre() {
+        const comentario = document.getElementById('comentarioCierre').value.trim();
+        
+        if (!comentario) {
+            alert("❌ Por favor, describe cómo se solucionó la incidencia");
+            return;
+        }
+        
+        const { error } = await sb
+            .from('incidencias_clientes')
+            .update({
+                estado: 'CERRADA',
+                leida: true,
+                fecha_cierre: new Date().toISOString(),
+                cerrada_por: currentUserNombre,
+                comentario_cierre: comentario
+            })
+            .eq('id', incidenciaACerrar);
+        
+        if (error) {
+            alert("❌ Error al cerrar: " + error.message);
+        } else {
+            alert("✅ Incidencia cerrada correctamente");
+            cerrarModal();
             await cargarIncidenciasClientes();
         }
     }
@@ -892,7 +1465,7 @@
         }
     }
 
-    // ========== FUNCIONES DE SUPERVISIÓN (resumidas por espacio) ==========
+    // ========== FUNCIONES DE SUPERVISIÓN (resumidas) ==========
     async function cargarResumenCompacto() {
         const hoy = getFechaActual();
         const startHoy = hoy + 'T00:00:00';
@@ -1007,7 +1580,7 @@
         await cargarMensajesClientes();
     }
 
-    // ========== GESTIÓN DE PERSONAL (resumido) ==========
+    // ========== GESTIÓN DE PERSONAL ==========
     async function cargarDatosTecnicoHoy() {
         const tecnicoId = document.getElementById('selectorTecnicoPersonal').value;
         if (!tecnicoId) { document.getElementById('datosTecnicoHoy').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico</div>'; return; }
@@ -1209,156 +1782,6 @@
         else { const totalHorasT = Math.floor(totalTrabajo/3600); const totalMinT = Math.floor((totalTrabajo%3600)/60); const totalHorasD = Math.floor(totalDesplazamiento/3600); const totalMinD = Math.floor((totalDesplazamiento%3600)/60); contenedor.innerHTML += `<div class="medicion-card" style="background:#e0f2e9;"><strong>📊 RESUMEN</strong><br>🏊 Trabajo: ${totalHorasT}h ${totalMinT}m<br>🚗 Desplazamientos: ${totalHorasD}h ${totalMinD}m</div>`; }
     }
 
-    // ========== GESTIÓN DE CÓDIGOS DE ACCESO ==========
-    async function cargarListaCodigosPiscinas() {
-        const { data: piscinasRaw, error } = await sb.from('piscinas').select('id, nombre, direccion, codigo_acceso').order('nombre');
-        
-        if (error) {
-            document.getElementById('listaCodigosPiscinas').innerHTML = `<div class="medicion-card">❌ Error: ${error.message}</div>`;
-            return;
-        }
-        
-        const piscinas = [];
-        const nombresVistos = new Set();
-        for (const p of piscinasRaw) {
-            if (!nombresVistos.has(p.nombre)) {
-                nombresVistos.add(p.nombre);
-                piscinas.push(p);
-            }
-        }
-        
-        const select = document.getElementById('selectorPiscinaCodigo');
-        const lista = document.getElementById('listaCodigosPiscinas');
-        
-        if (select && piscinas) {
-            select.innerHTML = '<option value="">Selecciona una piscina...</option>';
-            piscinas.forEach(p => {
-                select.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
-            });
-        }
-        
-        if (lista && piscinas) {
-            if (piscinas.length === 0) {
-                lista.innerHTML = '<div class="medicion-card">📋 No hay piscinas registradas</div>';
-                return;
-            }
-            
-            lista.innerHTML = '<div class="medicion-card" style="font-weight:bold; background:#e0f2e9;">📋 CÓDIGOS DE ACCESO POR PISCINA</div>';
-            
-            const enlaceCliente = `${window.location.origin}${window.location.pathname.replace('gerente.html', 'cliente.html')}`;
-            
-            for (const p of piscinas) {
-                lista.innerHTML += `
-                    <div class="medicion-card" style="border-left-color: #e67e22;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                            <strong>🏊 ${p.nombre}</strong>
-                            <span style="background: #1e4663; color: white; padding: 4px 12px; border-radius: 20px; font-family: monospace; font-weight: bold; font-size: 1rem;">${p.codigo_acceso || 'Sin código'}</span>
-                        </div>
-                        <div style="font-size: 0.7rem; color: #5b6e8c; margin-top: 4px;">${p.direccion || ''}</div>
-                        <div style="font-size: 0.7rem; margin-top: 8px; background: #f8fafc; padding: 8px; border-radius: 12px;">
-                            🔗 <strong>Enlace para clientes:</strong><br>
-                            <code style="font-size: 0.65rem; word-break: break-all;">${enlaceCliente}</code><br>
-                            📝 <strong>Código:</strong> <span style="font-family: monospace;">${p.codigo_acceso || 'Sin código'}</span>
-                            <button class="copiar-enlace" data-piscina="${p.nombre.replace(/'/g, "\\'")}" data-codigo="${p.codigo_acceso}" data-enlace="${enlaceCliente}" style="margin-top:6px; background:#475569; width:auto; padding:4px 12px; font-size:0.7rem;">📋 Copiar enlace + código</button>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            document.querySelectorAll('.copiar-enlace').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const piscinaNombre = btn.dataset.piscina;
-                    const codigo = btn.dataset.codigo;
-                    const enlace = btn.dataset.enlace;
-                    const textoCompleto = `🔑 ACCESO PISCINA ${piscinaNombre}\n\n🔗 Enlace: ${enlace}\n🔐 Código: ${codigo}\n\nIntroduce el código en la página para ver el estado de la piscina.`;
-                    try {
-                        await navigator.clipboard.writeText(textoCompleto);
-                        btn.innerHTML = '✅ Copiado!';
-                        setTimeout(() => { btn.innerHTML = '📋 Copiar enlace + código'; }, 2000);
-                    } catch (err) {
-                        alert('No se pudo copiar. Copia manualmente.');
-                    }
-                });
-            });
-        }
-    }
-    
-    async function regenerarCodigoPiscina() {
-        const piscinaId = document.getElementById('selectorPiscinaCodigo').value;
-        const nuevoCodigoManual = document.getElementById('nuevoCodigo').value.trim().toUpperCase();
-        
-        if (!piscinaId) {
-            alert("❌ Selecciona una piscina");
-            return;
-        }
-        
-        const idNumerico = parseInt(piscinaId);
-        
-        let nuevoCodigo;
-        if (nuevoCodigoManual) {
-            if (!/^[A-Z0-9]{6,12}$/.test(nuevoCodigoManual)) {
-                alert("❌ El código debe tener entre 6 y 12 caracteres, solo letras mayúsculas y números");
-                return;
-            }
-            nuevoCodigo = nuevoCodigoManual;
-        } else {
-            const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let resultado = '';
-            for (let i = 0; i < 6; i++) {
-                resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-            }
-            nuevoCodigo = resultado;
-        }
-        
-        const { data: existe, error: errorExiste } = await sb
-            .from('piscinas')
-            .select('id, nombre')
-            .eq('codigo_acceso', nuevoCodigo)
-            .neq('id', idNumerico);
-        
-        if (errorExiste) {
-            console.error("Error al verificar código:", errorExiste);
-            alert("❌ Error al verificar disponibilidad del código");
-            return;
-        }
-        
-        if (existe && existe.length > 0) {
-            alert(`❌ El código "${nuevoCodigo}" ya está en uso en la piscina: ${existe[0].nombre}`);
-            return;
-        }
-        
-        const btn = document.getElementById('btnRegenerarCodigo');
-        const textoOriginal = btn.innerHTML;
-        btn.innerHTML = '⏳ Actualizando...';
-        btn.disabled = true;
-        
-        try {
-            const { data, error } = await sb
-                .from('piscinas')
-                .update({ codigo_acceso: nuevoCodigo })
-                .eq('id', idNumerico)
-                .select();
-            
-            if (error) {
-                console.error("Error detallado:", error);
-                throw new Error(error.message);
-            }
-            
-            console.log("✅ Actualización exitosa:", data);
-            alert(`✅ Código actualizado exitosamente a: ${nuevoCodigo}`);
-            
-            document.getElementById('nuevoCodigo').value = '';
-            await cargarListaCodigosPiscinas();
-            
-        } catch (error) {
-            console.error("❌ Error:", error);
-            alert(`❌ Error al actualizar: ${error.message}`);
-        } finally {
-            btn.innerHTML = textoOriginal;
-            btn.disabled = false;
-        }
-    }
-    
     async function recargarTodosLosDatos() {
         const btn = document.getElementById('btnRecargarTodo');
         btn.innerHTML = '⏳ Cargando...'; btn.disabled = true;
@@ -1427,18 +1850,25 @@
     
     document.getElementById('btnRegenerarCodigo').onclick = regenerarCodigoPiscina;
     
+    // Eventos nueva gestión de clientes
+    document.getElementById('selectorClientePiscina')?.addEventListener('change', cargarDatosCliente);
+    document.getElementById('btnCargarCliente')?.addEventListener('click', cargarDatosCliente);
+    document.getElementById('btnGuardarCliente')?.addEventListener('click', guardarDatosCliente);
+    document.getElementById('btnCargarHistorico')?.addEventListener('click', cargarHistoricoPiscina);
+    document.getElementById('btnFiltrarHistorico')?.addEventListener('click', cargarHistoricoPiscina);
+    document.getElementById('btnExportarHistorico')?.addEventListener('click', exportarHistoricoPDF);
+    
     // Eventos de incidencias
     document.getElementById('btnFiltrarIncidencias')?.addEventListener('click', cargarIncidenciasClientes);
     document.getElementById('btnActualizarIncidencias')?.addEventListener('click', cargarIncidenciasClientes);
     
     document.getElementById('btnLogout').onclick = async () => { if (intervaloActualizacion) clearInterval(intervaloActualizacion); await sb.auth.signOut(); location.reload(); };
 
-    // Exponer funciones globales para los modales
+    // Exponer funciones globales
     window.abrirModalCierre = abrirModalCierre;
     window.cerrarModal = cerrarModal;
     window.confirmarCierre = confirmarCierre;
     window.marcarIncidenciaLeida = marcarIncidenciaLeida;
-    window.cargarIncidenciasClientes = cargarIncidenciasClientes;
 
     // Inicializar navegación
     function initTabs() {
@@ -1469,6 +1899,19 @@
             tab.classList.add('active');
             Object.values(personalContents).forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('oculto'); });
             if (personalContents[tab.dataset.tab]) document.getElementById(personalContents[tab.dataset.tab]).classList.remove('oculto');
+        }); });
+        
+        const clientesTabs = document.querySelectorAll('#clientesTabs .browser-tab');
+        const clientesContents = { 
+            'datos-cliente': 'tabDatosCliente', 
+            'codigos-acceso': 'tabCodigosAcceso', 
+            'historico-cliente': 'tabHistoricoCliente' 
+        };
+        clientesTabs.forEach(tab => { tab.addEventListener('click', () => {
+            clientesTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            Object.values(clientesContents).forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('oculto'); });
+            if (clientesContents[tab.dataset.tab]) document.getElementById(clientesContents[tab.dataset.tab]).classList.remove('oculto');
         }); });
         
         document.querySelectorAll('.tab-btn').forEach(btn => { btn.addEventListener('click', () => {
