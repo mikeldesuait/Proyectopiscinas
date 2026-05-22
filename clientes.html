@@ -433,6 +433,7 @@
     }
 
     // ========== VERIFICAR INCIDENCIAS ACTIVAS ==========
+    // CORREGIDO: Excluye incidencias cerradas (estado = 'CERRADA')
     async function verificarIncidenciasActivas(piscinaId) {
         try {
             const hace7Dias = new Date();
@@ -443,7 +444,7 @@
                 .select('*')
                 .eq('piscina_id', piscinaId)
                 .in('nivel_urgencia', ['GRAVE', 'URGENTE'])
-                .eq('leida', false)
+                .neq('estado', 'CERRADA')      // ← CLAVE: excluir incidencias cerradas
                 .gte('created_at', hace7Dias.toISOString())
                 .order('created_at', { ascending: false });
             
@@ -603,7 +604,7 @@
         
         piscinaActual = piscina;
         
-        // Verificar incidencias activas
+        // Verificar incidencias activas (ahora excluye cerradas)
         const incidenciaActiva = await verificarIncidenciasActivas(piscina.id);
         
         let alertaHtml = '';
