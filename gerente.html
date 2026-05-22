@@ -747,116 +747,116 @@
     }
 
     // ========== FUNCIÓN PARA CARGAR INCIDENCIAS CLIENTE ==========
-    async function cargarIncidenciasClientes() {
-        console.log("🔄 Cargando incidencias de clientes...");
-        
-        const urgencia = document.getElementById('filtroIncidenciasUrgencia')?.value || '';
-        const estado = document.getElementById('filtroIncidenciasEstado')?.value || '';
-        const piscinaId = document.getElementById('filtroIncidenciasPiscina')?.value || '';
-        let desde = document.getElementById('filtroIncidenciasDesde')?.value || '';
-        let hasta = document.getElementById('filtroIncidenciasHasta')?.value || '';
-        
-        if (!desde || !hasta) {
-            const hoy = new Date();
-            const hace30Dias = new Date();
-            hace30Dias.setDate(hoy.getDate() - 30);
-            desde = formatDateYMD(hace30Dias);
-            hasta = formatDateYMD(hoy);
-            if (document.getElementById('filtroIncidenciasDesde')) document.getElementById('filtroIncidenciasDesde').value = desde;
-            if (document.getElementById('filtroIncidenciasHasta')) document.getElementById('filtroIncidenciasHasta').value = hasta;
-        }
-        
-        const start = new Date(`${desde}T00:00:00`).toISOString();
-        const end = new Date(`${hasta}T23:59:59`).toISOString();
-        
-        let query = sb.from('incidencias_clientes').select('*').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false });
-        if (urgencia && urgencia !== '') query = query.eq('nivel_urgencia', urgencia);
-        if (estado && estado !== '') query = query.eq('estado', estado);
-        if (piscinaId && piscinaId !== '') query = query.eq('piscina_id', parseInt(piscinaId));
-        
-        const { data: incidencias, error } = await query;
-        const contenedor = document.getElementById('incidenciasList');
-        
-        if (error) {
-            console.error("❌ Error cargando incidencias:", error);
-            if (contenedor) contenedor.innerHTML = `<div class="medicion-card">❌ Error: ${error.message}</div>`;
-            return;
-        }
-        
-        if (!incidencias || incidencias.length === 0) {
-            if (contenedor) contenedor.innerHTML = '<div class="medicion-card">✅ No hay incidencias de clientes en este período</div>';
-            document.getElementById('resumenAveriasPendientes').innerText = '0';
-            return;
-        }
-        
-        // Contar pendientes no cerradas
-        const pendientes = incidencias.filter(i => i.estado !== 'CERRADA' && i.estado !== 'CANCELADA').length;
-        document.getElementById('resumenAveriasPendientes').innerText = pendientes;
-        
-        if (contenedor) contenedor.innerHTML = '';
-        
-        for (const inc of incidencias) {
-            const esCerrada = inc.estado === 'CERRADA';
-            let claseUrgencia = 'incidencia-normal';
-            let badgeClase = 'badge-normal';
-            let textoUrgencia = 'NORMAL';
-            
-            if (esCerrada) {
-                claseUrgencia = 'incidencia-cerrada';
-                badgeClase = 'badge-cerrada';
-                textoUrgencia = '✅ CERRADA';
-            } else if (inc.nivel_urgencia === 'GRAVE') {
-                claseUrgencia = 'incidencia-grave';
-                badgeClase = 'badge-grave';
-                textoUrgencia = '🚨 GRAVE';
-            } else if (inc.nivel_urgencia === 'URGENTE') {
-                claseUrgencia = 'incidencia-urgente';
-                badgeClase = 'badge-urgente';
-                textoUrgencia = '⚠️ URGENTE';
-            }
-            
-            const div = document.createElement('div');
-            div.className = `incidencia-card ${claseUrgencia}`;
-            
-            let botonesHtml = '';
-            if (!esCerrada) {
-                botonesHtml = `
-                    <div style="display:flex; gap:8px; margin-top:10px; justify-content:flex-end;">
-                        <button class="btn-cerrar-incidencia" onclick="abrirModalCierre(${inc.id})" style="background:#2c7a4d; color:white; border:none; padding:6px 12px; border-radius:20px;">🔧 Cerrar incidencia</button>
-                    </div>
-                `;
-            } else {
-                botonesHtml = `
-                    <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e2e8f0;">
-                        <div style="font-size:0.75rem; color:#2c7a4d;">
-                            ✅ Cerrada por ${inc.cerrada_por || 'Gerente'} el ${formatDate(inc.fecha_cierre)}
-                        </div>
-                        ${inc.mensaje_cierre_ia ? `<div style="font-size:0.7rem; color:#5b6e8c; margin-top:4px;">📝 ${inc.mensaje_cierre_ia}</div>` : ''}
-                    </div>
-                `;
-            }
-            
-            div.innerHTML = `
-                <div class="incidencia-titulo">
-                    <div>
-                        <strong>🏊 ${inc.piscina_nombre || 'Piscina'}</strong>
-                        <span class="badge-urgencia ${badgeClase}" style="margin-left:8px;">${textoUrgencia}</span>
-                        ${!inc.leida && !esCerrada ? '<span style="background:#dc2626; color:white; padding:2px 8px; border-radius:20px; margin-left:8px; font-size:0.6rem;">🆕 NUEVA</span>' : ''}
-                    </div>
-                    <div class="incidencia-fecha">📅 ${formatDate(inc.created_at)}</div>
-                </div>
-                <div class="incidencia-mensaje">
-                    <strong>👤 Cliente:</strong> ${inc.cliente_nombre || 'Anónimo'}<br>
-                    <strong>📝 Mensaje:</strong> "${inc.mensaje}"
-                </div>
-                ${inc.sugerencia && !esCerrada ? `<div style="font-size:0.8rem; color:#2c7a4d; margin-top:6px;">🔧 Sugerencia: ${inc.sugerencia}</div>` : ''}
-                ${botonesHtml}
-            `;
-            if (contenedor) contenedor.appendChild(div);
-        }
-        console.log(`✅ Mostradas ${incidencias.length} incidencias`);
+  // ========== CARGAR INCIDENCIAS CLIENTE ==========
+async function cargarIncidenciasClientes() {
+    console.log("🔄 Cargando incidencias de clientes...");
+    
+    const urgencia = document.getElementById('filtroIncidenciasUrgencia')?.value || '';
+    const estado = document.getElementById('filtroIncidenciasEstado')?.value || '';
+    const piscinaId = document.getElementById('filtroIncidenciasPiscina')?.value || '';
+    let desde = document.getElementById('filtroIncidenciasDesde')?.value || '';
+    let hasta = document.getElementById('filtroIncidenciasHasta')?.value || '';
+    
+    if (!desde || !hasta) {
+        const hoy = new Date();
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hoy.getDate() - 30);
+        desde = formatDateYMD(hace30Dias);
+        hasta = formatDateYMD(hoy);
+        if (document.getElementById('filtroIncidenciasDesde')) document.getElementById('filtroIncidenciasDesde').value = desde;
+        if (document.getElementById('filtroIncidenciasHasta')) document.getElementById('filtroIncidenciasHasta').value = hasta;
     }
-
+    
+    const start = new Date(`${desde}T00:00:00`).toISOString();
+    const end = new Date(`${hasta}T23:59:59`).toISOString();
+    
+    let query = sb.from('incidencias_clientes').select('*').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false });
+    if (urgencia && urgencia !== '') query = query.eq('nivel_urgencia', urgencia);
+    if (estado && estado !== '') query = query.eq('estado', estado);
+    if (piscinaId && piscinaId !== '') query = query.eq('piscina_id', parseInt(piscinaId));
+    
+    const { data: incidencias, error } = await query;
+    const contenedor = document.getElementById('incidenciasList');
+    
+    if (error) {
+        console.error("❌ Error cargando incidencias:", error);
+        if (contenedor) contenedor.innerHTML = `<div class="medicion-card">❌ Error: ${error.message}</div>`;
+        return;
+    }
+    
+    if (!incidencias || incidencias.length === 0) {
+        if (contenedor) contenedor.innerHTML = '<div class="medicion-card">✅ No hay incidencias de clientes en este período</div>';
+        document.getElementById('resumenAveriasPendientes').innerText = '0';
+        return;
+    }
+    
+    // Contar pendientes
+    const pendientes = incidencias.filter(i => i.estado !== 'CERRADA' && i.estado !== 'CANCELADA').length;
+    document.getElementById('resumenAveriasPendientes').innerText = pendientes;
+    
+    if (contenedor) contenedor.innerHTML = '';
+    
+    for (const inc of incidencias) {
+        const esCerrada = inc.estado === 'CERRADA';
+        let claseUrgencia = 'incidencia-normal';
+        let badgeClase = 'badge-normal';
+        let textoUrgencia = 'NORMAL';
+        
+        if (esCerrada) {
+            claseUrgencia = 'incidencia-cerrada';
+            badgeClase = 'badge-cerrada';
+            textoUrgencia = '✅ CERRADA';
+        } else if (inc.nivel_urgencia === 'GRAVE') {
+            claseUrgencia = 'incidencia-grave';
+            badgeClase = 'badge-grave';
+            textoUrgencia = '🚨 GRAVE';
+        } else if (inc.nivel_urgencia === 'URGENTE') {
+            claseUrgencia = 'incidencia-urgente';
+            badgeClase = 'badge-urgente';
+            textoUrgencia = '⚠️ URGENTE';
+        }
+        
+        const div = document.createElement('div');
+        div.className = `incidencia-card ${claseUrgencia}`;
+        
+        let botonesHtml = '';
+        if (!esCerrada) {
+            botonesHtml = `
+                <div style="display:flex; gap:8px; margin-top:10px; justify-content:flex-end;">
+                    <button class="btn-cerrar-incidencia" onclick="abrirModalCierre(${inc.id})" style="background:#2c7a4d; color:white; border:none; padding:6px 12px; border-radius:20px;">🔧 Cerrar incidencia</button>
+                </div>
+            `;
+        } else {
+            botonesHtml = `
+                <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e2e8f0;">
+                    <div style="font-size:0.75rem; color:#2c7a4d;">
+                        ✅ Cerrada por ${inc.cerrada_por || 'Gerente'} el ${formatDate(inc.fecha_cierre)}
+                    </div>
+                    ${inc.mensaje_cierre_ia ? `<div style="font-size:0.7rem; color:#5b6e8c; margin-top:4px;">📝 ${inc.mensaje_cierre_ia}</div>` : ''}
+                </div>
+            `;
+        }
+        
+        div.innerHTML = `
+            <div class="incidencia-titulo">
+                <div>
+                    <strong>🏊 ${inc.piscina_nombre || 'Piscina'}</strong>
+                    <span class="badge-urgencia ${badgeClase}" style="margin-left:8px;">${textoUrgencia}</span>
+                    ${!inc.leida && !esCerrada ? '<span style="background:#dc2626; color:white; padding:2px 8px; border-radius:20px; margin-left:8px; font-size:0.6rem;">🆕 NUEVA</span>' : ''}
+                </div>
+                <div class="incidencia-fecha">📅 ${formatDate(inc.created_at)}</div>
+            </div>
+            <div class="incidencia-mensaje">
+                <strong>👤 Cliente:</strong> ${inc.cliente_nombre || 'Anónimo'}<br>
+                <strong>📝 Mensaje:</strong> "${inc.mensaje}"
+            </div>
+            ${inc.sugerencia && !esCerrada ? `<div style="font-size:0.8rem; color:#2c7a4d; margin-top:6px;">🔧 Sugerencia: ${inc.sugerencia}</div>` : ''}
+            ${botonesHtml}
+        `;
+        if (contenedor) contenedor.appendChild(div);
+    }
+    console.log(`✅ Mostradas ${incidencias.length} incidencias`);
+}
     // ========== FUNCIONES PARA TABS MOVIBLES ==========
   function makeTabsMovible(containerId, tabsConfig) {
     const container = document.getElementById(containerId);
