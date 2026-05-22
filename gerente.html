@@ -858,89 +858,87 @@
     }
 
     // ========== FUNCIONES PARA TABS MOVIBLES ==========
-    function makeTabsMovible(containerId, tabsConfig) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        tabsConfig.forEach((tab, index) => {
-            const tabButton = document.createElement('button');
-            tabButton.className = `browser-tab ${index === 0 ? 'active' : ''}`;
-            tabButton.setAttribute('data-tab-id', tab.id);
-            tabButton.innerHTML = `${tab.icon} ${tab.nombre}`;
-            tabButton.onclick = () => {
-                document.querySelectorAll(`#${containerId} .browser-tab`).forEach(t => t.classList.remove('active'));
-                tabButton.classList.add('active');
-                tabsConfig.forEach(t => {
-                    const content = document.getElementById(t.contentId);
-                    if (content) content.classList.add('oculto');
-                });
-                const activeContent = document.getElementById(tab.contentId);
-                if (activeContent) activeContent.classList.remove('oculto');
+  function makeTabsMovible(containerId, tabsConfig) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    tabsConfig.forEach((tab, index) => {
+        const tabButton = document.createElement('button');
+        tabButton.className = `browser-tab ${index === 0 ? 'active' : ''}`;
+        tabButton.setAttribute('data-tab-id', tab.id);
+        // CORREGIDO: usar solo nombre (que ya tiene el emoji)
+        tabButton.innerHTML = tab.nombre;
+        tabButton.onclick = () => {
+            document.querySelectorAll(`#${containerId} .browser-tab`).forEach(t => t.classList.remove('active'));
+            tabButton.classList.add('active');
+            tabsConfig.forEach(t => {
+                const content = document.getElementById(t.contentId);
+                if (content) content.classList.add('oculto');
+            });
+            const activeContent = document.getElementById(tab.contentId);
+            if (activeContent) activeContent.classList.remove('oculto');
+            
+            if (tab.id === 'incidenciasCliente') cargarIncidenciasClientes();
+            if (tab.id === 'averias') cargarAverias();
+            if (tab.id === 'alertasTecnicos') cargarMensajesUrgentes();
+            if (tab.id === 'mensajesCliente') cargarMensajesClientes();
+        };
+        container.appendChild(tabButton);
+    });
+    
+    // Drag & drop igual...
+    let draggedTab = null;
+    const tabs = container.querySelectorAll('.browser-tab');
+    
+    tabs.forEach(tab => {
+        tab.setAttribute('draggable', 'true');
+        tab.addEventListener('dragstart', (e) => {
+            draggedTab = tab;
+            tab.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        tab.addEventListener('dragend', () => {
+            tab.classList.remove('dragging');
+            draggedTab = null;
+        });
+        tab.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+        tab.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            if (draggedTab !== tab) tab.classList.add('drag-over');
+        });
+        tab.addEventListener('dragleave', () => {
+            tab.classList.remove('drag-over');
+        });
+        tab.addEventListener('drop', (e) => {
+            e.preventDefault();
+            tab.classList.remove('drag-over');
+            if (draggedTab && draggedTab !== tab) {
+                const rect = tab.getBoundingClientRect();
+                const mouseX = e.clientX;
+                const dropPosition = mouseX < rect.left + rect.width / 2 ? 'before' : 'after';
                 
-                // Cargar datos específicos al cambiar de tab
-                if (tab.id === 'incidenciasCliente') cargarIncidenciasClientes();
-                if (tab.id === 'averias') cargarAverias();
-                if (tab.id === 'alertasTecnicos') cargarMensajesUrgentes();
-                if (tab.id === 'mensajesCliente') cargarMensajesClientes();
-            };
-            container.appendChild(tabButton);
-        });
-        
-        // Hacer tabs movibles con drag & drop
-        let draggedTab = null;
-        const tabs = container.querySelectorAll('.browser-tab');
-        
-        tabs.forEach(tab => {
-            tab.setAttribute('draggable', 'true');
-            tab.addEventListener('dragstart', (e) => {
-                draggedTab = tab;
-                tab.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
-            });
-            tab.addEventListener('dragend', () => {
-                tab.classList.remove('dragging');
-                draggedTab = null;
-            });
-            tab.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            });
-            tab.addEventListener('dragenter', (e) => {
-                e.preventDefault();
-                if (draggedTab !== tab) tab.classList.add('drag-over');
-            });
-            tab.addEventListener('dragleave', () => {
-                tab.classList.remove('drag-over');
-            });
-            tab.addEventListener('drop', (e) => {
-                e.preventDefault();
-                tab.classList.remove('drag-over');
-                if (draggedTab && draggedTab !== tab) {
-                    const rect = tab.getBoundingClientRect();
-                    const mouseX = e.clientX;
-                    const dropPosition = mouseX < rect.left + rect.width / 2 ? 'before' : 'after';
-                    
-                    if (dropPosition === 'before') {
-                        container.insertBefore(draggedTab, tab);
-                    } else {
-                        container.insertBefore(draggedTab, tab.nextSibling);
-                    }
-                    
-                    // Reordenar tabsConfig
-                    const newOrder = [];
-                    container.querySelectorAll('.browser-tab').forEach(t => {
-                        const tabId = t.getAttribute('data-tab-id');
-                        const config = tabsConfig.find(c => c.id === tabId);
-                        if (config) newOrder.push(config);
-                    });
-                    Object.assign(tabsConfig, newOrder);
+                if (dropPosition === 'before') {
+                    container.insertBefore(draggedTab, tab);
+                } else {
+                    container.insertBefore(draggedTab, tab.nextSibling);
                 }
-            });
+                
+                const newOrder = [];
+                container.querySelectorAll('.browser-tab').forEach(t => {
+                    const tabId = t.getAttribute('data-tab-id');
+                    const config = tabsConfig.find(c => c.id === tabId);
+                    if (config) newOrder.push(config);
+                });
+                Object.assign(tabsConfig, newOrder);
+            }
         });
-    }
-
+    });
+}
     // ========== CARGA DE DATOS BÁSICOS ==========
     async function cargarInfoGerente() {
         const { data: { user } } = await sb.auth.getUser();
@@ -1613,61 +1611,67 @@
         return true;
     }
 
-    // ========== INICIALIZACIÓN DE TABS MOVIBLES ==========
-    function initTabs() {
-        // Tabs de supervisión
-        makeTabsMovible('supervisionTabsContainer', [
-            { id: 'activos', nombre: '👥 Técnicos activos', icon: '👥', contentId: 'tabActivos' },
-            { id: 'piscinas', nombre: '🏊 Piscinas en trabajo', icon: '🏊', contentId: 'tabPiscinas' },
-            { id: 'cerradas', nombre: '📋 Actividades cerradas', icon: '📋', contentId: 'tabCerradas' },
-            { id: 'quimicos', nombre: '🧪 Químicos gastados', icon: '🧪', contentId: 'tabQuimicos' },
-            { id: 'alertasTecnicos', nombre: '⚠️ Alertas Técnicos', icon: '⚠️', contentId: 'tabAlertasTecnicos' },
-            { id: 'averias', nombre: '🔧 Averías', icon: '🔧', contentId: 'tabAverias' },
-            { id: 'mensajesCliente', nombre: '📨 Mensajes Cliente', icon: '📨', contentId: 'tabMensajesCliente' },
-            { id: 'incidenciasCliente', nombre: '🚨 Alertas Cliente', icon: '🚨', contentId: 'tabIncidenciasCliente' }
-        ]);
-        
-        // Tabs de planificación
-        makeTabsMovible('planificacionTabsContainer', [
-            { id: 'rutas', nombre: '📋 Gestión de rutas', icon: '📋', contentId: 'planTabRutas' },
-            { id: 'urgencias', nombre: '🚨 Urgencias', icon: '🚨', contentId: 'planTabUrgencias' },
-            { id: 'calendario', nombre: '📅 Calendario semanal', icon: '📅', contentId: 'planTabCalendario' }
-        ]);
-        
-        // Tabs de personal
-        makeTabsMovible('personalTabsContainer', [
-            { id: 'tecnicos', nombre: '👥 Datos del técnico', icon: '👥', contentId: 'tabPersonalTecnicos' },
-            { id: 'disponibilidad', nombre: '📅 Disponibilidad semanal', icon: '📅', contentId: 'tabPersonalDisponibilidad' },
-            { id: 'vacaciones', nombre: '🏖️ Vacaciones', icon: '🏖️', contentId: 'tabPersonalVacaciones' }
-        ]);
-        
-        // Tabs de clientes
-        makeTabsMovible('clientesTabsContainer', [
-            { id: 'datos', nombre: '📋 Datos del cliente', icon: '📋', contentId: 'tabDatosCliente' },
-            { id: 'codigos', nombre: '🔑 Códigos de acceso', icon: '🔑', contentId: 'tabCodigosAcceso' },
-            { id: 'historico', nombre: '📜 Histórico', icon: '📜', contentId: 'tabHistoricoCliente' }
-        ]);
-        
-        // Tabs de históricos
-        makeTabsMovible('historicosTabsContainer', [
-            { id: 'jornadas', nombre: '📋 Jornadas', icon: '📋', contentId: 'tabJornadas' },
-            { id: 'mediciones', nombre: '📊 Mediciones', icon: '📊', contentId: 'tabMediciones' },
-            { id: 'tiempos', nombre: '⏱️ Tiempos', icon: '⏱️', contentId: 'tabTiempos' }
-        ]);
-        
-        // Toggles
-        document.getElementById('togglePlanificacion')?.addEventListener('click', () => {
-            const content = document.getElementById('planificacionContent');
-            const flecha = document.querySelector('#togglePlanificacion .flecha');
-            if (content && flecha) { content.classList.toggle('oculto'); flecha.innerHTML = content.classList.contains('oculto') ? '▶' : '▼'; }
-        });
-        
-        document.getElementById('toggleHistorico')?.addEventListener('click', () => {
-            const content = document.getElementById('historicoContent');
-            const flecha = document.querySelector('#toggleHistorico .flecha');
-            if (content && flecha) { content.classList.toggle('oculto'); flecha.innerHTML = content.classList.contains('oculto') ? '▶' : '▼'; }
-        });
-    }
+  // ========== INICIALIZACIÓN DE TABS MOVIBLES ==========
+function initTabs() {
+    // Tabs de supervisión (sin icon duplicado)
+    makeTabsMovible('supervisionTabsContainer', [
+        { id: 'activos', nombre: '👥 Técnicos activos', contentId: 'tabActivos' },
+        { id: 'piscinas', nombre: '🏊 Piscinas en trabajo', contentId: 'tabPiscinas' },
+        { id: 'cerradas', nombre: '📋 Actividades cerradas', contentId: 'tabCerradas' },
+        { id: 'quimicos', nombre: '🧪 Químicos gastados', contentId: 'tabQuimicos' },
+        { id: 'alertasTecnicos', nombre: '⚠️ Alertas Técnicos', contentId: 'tabAlertasTecnicos' },
+        { id: 'averias', nombre: '🔧 Averías', contentId: 'tabAverias' },
+        { id: 'mensajesCliente', nombre: '📨 Mensajes Cliente', contentId: 'tabMensajesCliente' },
+        { id: 'incidenciasCliente', nombre: '🚨 Alertas Cliente', contentId: 'tabIncidenciasCliente' }
+    ]);
+    
+    // Tabs de planificación
+    makeTabsMovible('planificacionTabsContainer', [
+        { id: 'rutas', nombre: '📋 Gestión de rutas', contentId: 'planTabRutas' },
+        { id: 'urgencias', nombre: '🚨 Urgencias', contentId: 'planTabUrgencias' },
+        { id: 'calendario', nombre: '📅 Calendario semanal', contentId: 'planTabCalendario' }
+    ]);
+    
+    // Tabs de personal
+    makeTabsMovible('personalTabsContainer', [
+        { id: 'tecnicos', nombre: '👥 Datos del técnico', contentId: 'tabPersonalTecnicos' },
+        { id: 'disponibilidad', nombre: '📅 Disponibilidad semanal', contentId: 'tabPersonalDisponibilidad' },
+        { id: 'vacaciones', nombre: '🏖️ Vacaciones', contentId: 'tabPersonalVacaciones' }
+    ]);
+    
+    // Tabs de clientes
+    makeTabsMovible('clientesTabsContainer', [
+        { id: 'datos', nombre: '📋 Datos del cliente', contentId: 'tabDatosCliente' },
+        { id: 'codigos', nombre: '🔑 Códigos de acceso', contentId: 'tabCodigosAcceso' },
+        { id: 'historico', nombre: '📜 Histórico', contentId: 'tabHistoricoCliente' }
+    ]);
+    
+    // Tabs de históricos
+    makeTabsMovible('historicosTabsContainer', [
+        { id: 'jornadas', nombre: '📋 Jornadas', contentId: 'tabJornadas' },
+        { id: 'mediciones', nombre: '📊 Mediciones', contentId: 'tabMediciones' },
+        { id: 'tiempos', nombre: '⏱️ Tiempos', contentId: 'tabTiempos' }
+    ]);
+    
+    // Toggles
+    document.getElementById('togglePlanificacion')?.addEventListener('click', () => {
+        const content = document.getElementById('planificacionContent');
+        const flecha = document.querySelector('#togglePlanificacion .flecha');
+        if (content && flecha) { 
+            content.classList.toggle('oculto'); 
+            flecha.innerHTML = content.classList.contains('oculto') ? '▶' : '▼'; 
+        }
+    });
+    
+    document.getElementById('toggleHistorico')?.addEventListener('click', () => {
+        const content = document.getElementById('historicoContent');
+        const flecha = document.querySelector('#toggleHistorico .flecha');
+        if (content && flecha) { 
+            content.classList.toggle('oculto'); 
+            flecha.innerHTML = content.classList.contains('oculto') ? '▶' : '▼'; 
+        }
+    });
+}
 
     // ========== EVENTOS PRINCIPALES ==========
     document.getElementById('btnLogin').onclick = async () => {
