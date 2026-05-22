@@ -435,7 +435,6 @@
     // ========== VERIFICAR INCIDENCIAS ACTIVAS ==========
     async function verificarIncidenciasActivas(piscinaId) {
         try {
-            // Buscar incidencias no leídas de los últimos 7 días
             const hace7Dias = new Date();
             hace7Dias.setDate(hace7Dias.getDate() - 7);
             
@@ -454,7 +453,7 @@
             }
             
             if (incidencias && incidencias.length > 0) {
-                return incidencias[0]; // Devolver la más reciente
+                return incidencias[0];
             }
             return null;
         } catch (error) {
@@ -526,10 +525,8 @@
             if (resultado.success) {
                 const respuestaDiv = document.getElementById('incidenciaRespuesta');
                 
-                // Limpiar clases anteriores
                 respuestaDiv.classList.remove('respuesta-grave', 'respuesta-urgente', 'respuesta-normal', 'respuesta-info');
                 
-                // Aplicar clase según gravedad
                 let claseRespuesta = 'respuesta-normal';
                 let tituloRespuesta = '✅ INCIDENCIA REGISTRADA';
                 
@@ -549,7 +546,6 @@
                 
                 respuestaDiv.classList.add(claseRespuesta);
                 
-                // Formatear el mensaje
                 let mensajeFormateado = resultado.respuesta_cliente;
                 mensajeFormateado = mensajeFormateado.replace(/\n/g, '<br>');
                 mensajeFormateado = mensajeFormateado.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -563,14 +559,11 @@
                 respuestaDiv.style.display = 'block';
                 cerrarFormularioIncidencia();
                 
-                // Limpiar el textarea del mensaje
                 document.getElementById('mensajeIncidencia').value = '';
                 document.getElementById('nombreCliente').value = '';
                 
-                // Scroll suave hacia la respuesta
                 respuestaDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 
-                // Recargar los datos para actualizar la alerta si es GRAVE o URGENTE
                 if (resultado.nivel_urgencia === 'GRAVE' || resultado.nivel_urgencia === 'URGENTE') {
                     setTimeout(() => {
                         recargarDatos();
@@ -590,65 +583,25 @@
     }
 
     async function cargarDatosPiscina(codigo) {
-    const panelDiv = document.getElementById('panelPiscina');
-    panelDiv.innerHTML = '<div class="loading">🔍 Verificando código de acceso...</div>';
-    
-    const { data: piscina, error } = await sb
-        .from('piscinas')
-        .select('*')
-        .eq('codigo_acceso', codigo.toUpperCase())
-        .single();
-    
-    if (error || !piscina) {
-        panelDiv.innerHTML = '';
-        document.getElementById('loginView').style.display = 'block';
-        const errorDiv = document.getElementById('errorMsg');
-        errorDiv.style.display = 'block';
-        errorDiv.innerHTML = '❌ Código de acceso incorrecto. Verifica e intenta de nuevo.';
-        return false;
-    }
-    
-    piscinaActual = piscina;
-    
-    // Verificar incidencias activas
-    const incidenciaActiva = await verificarIncidenciasActivas(piscina.id);
-    
-    let alertaHtml = '';
-    if (incidenciaActiva) {
-        const esGrave = incidenciaActiva.nivel_urgencia === 'GRAVE';
-        const alertaClass = esGrave ? 'alerta-incidencia' : 'alerta-incidencia alerta-incidencia-urgente';
-        const icono = esGrave ? '🚨' : '⚠️';
-        const titulo = esGrave ? '¡ALERTA GRAVE!' : 'ATENCIÓN - INCIDENCIA URGENTE';
+        const panelDiv = document.getElementById('panelPiscina');
+        panelDiv.innerHTML = '<div class="loading">🔍 Verificando código de acceso...</div>';
         
-        // Usar la sugerencia de la IA (mensaje profesional)
-        let mensajeAlerta = '';
-        if (esGrave) {
-            mensajeAlerta = incidenciaActiva.sugerencia || '⛔ NO BAÑARSE. Se ha detectado un problema grave. Espere instrucciones del técnico.';
-        } else {
-            mensajeAlerta = incidenciaActiva.sugerencia || '⚠️ Se recomienda precaución. El equipo está trabajando para solucionarlo.';
+        const { data: piscina, error } = await sb
+            .from('piscinas')
+            .select('*')
+            .eq('codigo_acceso', codigo.toUpperCase())
+            .single();
+        
+        if (error || !piscina) {
+            panelDiv.innerHTML = '';
+            document.getElementById('loginView').style.display = 'block';
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = '❌ Código de acceso incorrecto. Verifica e intenta de nuevo.';
+            return false;
         }
         
-        // Motivos detectados por IA (limpios y profesionales)
-        let motivosTexto = '';
-        if (incidenciaActiva.motivos && incidenciaActiva.motivos.length > 0) {
-            motivosTexto = `<div class="alerta-descripcion" style="margin-top: 8px;">🔍 Motivo: ${incidenciaActiva.motivos.join(', ')}</div>`;
-        }
-        
-        alertaHtml = `
-            <div class="${alertaClass}">
-                <div class="alerta-icono">${icono}</div>
-                <div class="alerta-contenido">
-                    <div class="alerta-titulo">${titulo}</div>
-                    <div class="alerta-descripcion">${mensajeAlerta}</div>
-                    ${motivosTexto}
-                    <div class="alerta-fecha">📅 Reportado: ${formatearFechaIncidencia(incidenciaActiva.created_at)}</div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // ... resto del código (mediciones, informes, etc.) ...
-}
+        piscinaActual = piscina;
         
         // Verificar incidencias activas
         const incidenciaActiva = await verificarIncidenciasActivas(piscina.id);
@@ -659,9 +612,20 @@
             const alertaClass = esGrave ? 'alerta-incidencia' : 'alerta-incidencia alerta-incidencia-urgente';
             const icono = esGrave ? '🚨' : '⚠️';
             const titulo = esGrave ? '¡ALERTA GRAVE!' : 'ATENCIÓN - INCIDENCIA URGENTE';
-            const mensajeAlerta = esGrave 
-                ? 'Se ha reportado un problema GRAVE en esta piscina. Por favor, NO USE LA PISCINA hasta nuevo aviso.'
-                : 'Se ha reportado una incidencia URGENTE. Se recomienda precaución.';
+            
+            // Usar la sugerencia de la IA (mensaje profesional)
+            let mensajeAlerta = '';
+            if (esGrave) {
+                mensajeAlerta = incidenciaActiva.sugerencia || '⛔ NO BAÑARSE. Se ha detectado un problema grave. Espere instrucciones del técnico.';
+            } else {
+                mensajeAlerta = incidenciaActiva.sugerencia || '⚠️ Se recomienda precaución. El equipo está trabajando para solucionarlo.';
+            }
+            
+            // Motivos detectados por IA
+            let motivosTexto = '';
+            if (incidenciaActiva.motivos && incidenciaActiva.motivos.length > 0) {
+                motivosTexto = `<div class="alerta-descripcion" style="margin-top: 8px;">🔍 Motivo: ${incidenciaActiva.motivos.join(', ')}</div>`;
+            }
             
             alertaHtml = `
                 <div class="${alertaClass}">
@@ -669,9 +633,7 @@
                     <div class="alerta-contenido">
                         <div class="alerta-titulo">${titulo}</div>
                         <div class="alerta-descripcion">${mensajeAlerta}</div>
-                        <div class="alerta-descripcion" style="margin-top: 8px;">
-                            📝 "${incidenciaActiva.mensaje.substring(0, 100)}${incidenciaActiva.mensaje.length > 100 ? '...' : ''}"
-                        </div>
+                        ${motivosTexto}
                         <div class="alerta-fecha">📅 Reportado: ${formatearFechaIncidencia(incidenciaActiva.created_at)}</div>
                     </div>
                 </div>
@@ -724,12 +686,10 @@
         const estadoPh = typeof ph === 'number' ? getEstadoParametro(ph, 'ph') : { clase: 'estado-ok', texto: '—' };
         const estadoTemp = typeof temperatura === 'number' ? getEstadoParametro(temperatura, 'temp') : { clase: 'estado-ok', texto: '—' };
         
-        // Mensaje por defecto mejorado
         const mensajeIA = ultimoInforme?.mensaje || '¡Buenas noticias! Su piscina está en excelentes condiciones. Puede bañarse sin ninguna preocupación. Seguimos trabajando para mantenerla siempre perfecta.';
         
         const tieneInforme = ultimoInforme !== null;
         
-        // Histórico
         let historicoHtml = '';
         if (historicoInformes && historicoInformes.length > 1) {
             const historicoItems = historicoInformes.slice(1).map(info => `
@@ -796,7 +756,6 @@
                 <div style="white-space: pre-wrap;">${mensajeIA}</div>
             </div>
             
-            <!-- Formulario para reportar incidencias -->
             <div class="card">
                 <div class="card-header" style="cursor:default;">📢 ¿Problemas en la piscina?</div>
                 
@@ -825,7 +784,6 @@
         
         panelDiv.innerHTML = html;
         
-        // Registrar eventos del formulario de incidencias
         setTimeout(() => {
             const btnAbrir = document.getElementById('btnAbrirFormIncidencia');
             const btnCancelar = document.getElementById('btnCancelarIncidencia');
@@ -899,7 +857,6 @@
         btn.disabled = false;
     }
     
-    // Exponer funciones globalmente
     window.toggleHistorico = toggleHistorico;
     window.recargarDatos = recargarDatos;
     window.volverALogin = volverALogin;
@@ -908,7 +865,6 @@
     window.enviarIncidencia = enviarIncidencia;
     window.cerrarRespuesta = cerrarRespuesta;
     
-    // ========== CARGA AUTOMÁTICA SI HAY CÓDIGO EN LA URL ==========
     const codigoUrl = getParameterByName('codigo');
     if (codigoUrl) {
         document.getElementById('codigoAcceso').value = codigoUrl;
