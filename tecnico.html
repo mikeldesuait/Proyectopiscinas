@@ -1208,7 +1208,14 @@
             }
             
             // Enviar notificación a Telegram
-            await enviarAlertaTelegram(trabajoActivo.piscina_id, piscinaSeleccionadaData?.nombre, cloro, ph, temperatura, notasTecnico);
+            await enviarAlertaTelegram(
+                trabajoActivo.piscina_id,
+                piscinaSeleccionadaData?.nombre || 'Piscina',
+                cloro,
+                ph,
+                temperatura,
+                notasTecnico
+            );
             
         } catch (error) {
             console.error("Error gestionando incidencia urgente:", error);
@@ -1237,26 +1244,30 @@
     }
 }
 
-// Función auxiliar para enviar alerta a Telegram
+// ========== ENVIAR ALERTA A TELEGRAM ==========
 async function enviarAlertaTelegram(piscinaId, piscinaNombre, cloro, ph, temperatura, notas) {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
-    
     try {
-        await fetch(`${SUPABASE_URL}/functions/v1/reportar-incidencia`, {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/enviar-alerta-telegram`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${session.access_token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                accion: "reportar",
-                codigo_acceso: "INTERNO",
-                mensaje: `⚠️ ALERTA TÉCNICO - PISCINA ${piscinaNombre}\n\n📊 Mediciones:\n- Cloro: ${cloro} ppm\n- pH: ${ph}\n- Temperatura: ${temperatura}°C\n\n📝 Notas: ${notas}\n\n🔧 El técnico ha determinado que la piscina debe permanecer CERRADA.`,
-                nombre_cliente: "Sistema"
+                piscina_nombre: piscinaNombre,
+                cloro: cloro,
+                ph: ph,
+                temperatura: temperatura,
+                notas: notas,
+                tecnico: currentUserNombre
             })
         });
-        console.log("Alerta Telegram enviada");
+        
+        const resultado = await response.json();
+        if (resultado.success) {
+            console.log("✅ Alerta Telegram enviada al gerente");
+        } else {
+            console.error("Error enviando alerta Telegram:", resultado.error);
+        }
     } catch (error) {
         console.error("Error enviando alerta Telegram:", error);
     }
