@@ -1207,7 +1207,7 @@
                 mostrarMensaje("✅ Alerta URGENTE creada. Los clientes verán la advertencia en rojo.", 'exito');
             }
             
-            // Enviar notificación a Telegram
+            // Enviar notificación a Telegram (incluyendo el piscina_id)
             await enviarAlertaTelegram(
                 trabajoActivo.piscina_id,
                 piscinaSeleccionadaData?.nombre || 'Piscina',
@@ -1258,13 +1258,14 @@ async function enviarAlertaTelegram(piscinaId, piscinaNombre, cloro, ph, tempera
                 ph: ph,
                 temperatura: temperatura,
                 notas: notas,
-                tecnico: currentUserNombre
+                tecnico: currentUserNombre,
+                piscina_id: piscinaId  // ← CLAVE: enviamos el ID de la piscina
             })
         });
         
         const resultado = await response.json();
         if (resultado.success) {
-            console.log("✅ Alerta Telegram enviada al gerente");
+            console.log("✅ Alertas Telegram enviadas:", resultado.resultados);
         } else {
             console.error("Error enviando alerta Telegram:", resultado.error);
         }
