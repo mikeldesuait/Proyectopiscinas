@@ -63,6 +63,8 @@
         .btn-warning { background: #e67e22; }
         .btn-danger { background: #c2410c; }
         .btn-info { background: #0284c7; }
+        .btn-cerrar-incidencia { background: #2c7a4d; width: auto; padding: 4px 12px; font-size: 0.7rem; margin: 0; }
+        .btn-cerrar-incidencia:hover { background: #1e5a3a; }
         .oculto { display: none; }
         
         .gerente-header {
@@ -271,6 +273,7 @@
         .incidencia-urgente { border-left-color: #f39c12; background: #fffbeb; }
         .incidencia-normal { border-left-color: #2c7a4d; background: #f0fdf4; }
         .incidencia-info { border-left-color: #0284c7; background: #f0f9ff; }
+        .incidencia-cerrada { border-left-color: #94a3b8; background: #f1f5f9; opacity: 0.7; }
         .incidencia-titulo {
             display: flex;
             justify-content: space-between;
@@ -306,12 +309,9 @@
         .badge-urgente { background: #f39c12; color: white; }
         .badge-normal { background: #2c7a4d; color: white; }
         .badge-info { background: #0284c7; color: white; }
-        .leida-true {
-            opacity: 0.7;
-        }
-        .leida-false {
-            opacity: 1;
-        }
+        .badge-cerrada { background: #64748b; color: white; }
+        .leida-true { opacity: 0.7; }
+        .leida-false { opacity: 1; }
         .btn-marcar-leida {
             background: #475569;
             width: auto;
@@ -319,8 +319,37 @@
             font-size: 0.7rem;
             margin: 0;
         }
-        .btn-marcar-leida:hover {
-            background: #2c7a4d;
+        .btn-marcar-leida:hover { background: #2c7a4d; }
+        
+        /* Modal para cierre de incidencia */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            margin: 20px;
+        }
+        .modal-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1e4663;
+        }
+        .modal textarea {
+            border-radius: 16px;
         }
         
         #dashboardPanel { display: none; }
@@ -406,6 +435,11 @@
                         <option value="URGENTE">⚠️ URGENTE</option>
                         <option value="NORMAL">✅ NORMAL</option>
                         <option value="INFO">📝 INFO</option>
+                    </select>
+                    <select id="filtroIncidenciasEstado">
+                        <option value="">Todos los estados</option>
+                        <option value="PENDIENTE">⏳ Pendientes</option>
+                        <option value="CERRADA">✅ Cerradas</option>
                     </select>
                     <select id="filtroIncidenciasPiscina">
                         <option value="">Todas las piscinas</option>
@@ -537,6 +571,19 @@
     </div>
 </div>
 
+<!-- Modal para cierre de incidencia -->
+<div id="modalCierre" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">🔧 Cerrar incidencia</div>
+        <p>Describe cómo se solucionó el problema:</p>
+        <textarea id="comentarioCierre" rows="4" placeholder="Ej: Se aplicó tratamiento de choque con cloro, se ajustó el pH y se limpiaron los filtros. El agua ya está cristalina." style="width:100%; border-radius:16px;"></textarea>
+        <div style="display: flex; gap: 12px; margin-top: 16px;">
+            <button onclick="confirmarCierre()" style="background:#2c7a4d;">✅ Cerrar incidencia</button>
+            <button onclick="cerrarModal()" style="background:#475569;">Cancelar</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const SUPABASE_URL = "https://vvdyofbapqttcvczokiw.supabase.co";
     const SUPABASE_KEY = "sb_publishable_MwuazhcxSJGc04eS2vttZA_SEcGjhVT";
@@ -544,10 +591,12 @@
     const DOMINIO = "@mipiscina.com";
 
     let currentUser = null;
+    let currentUserNombre = "";
     let cachePiscinas = {};
     let cachePerfiles = {};
     let disponibilidadActual = {};
     let intervaloActualizacion = null;
+    let incidenciaACerrar = null;
 
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
     function formatDateShort(iso) { return iso ? new Date(iso).toLocaleDateString() : '—'; }
@@ -560,10 +609,12 @@
         if (user) {
             const { data: perfil } = await sb.from('perfiles').select('nick, nombre').eq('id', user.id).single();
             if (perfil) {
-                document.getElementById('nombreGerente').innerHTML = `${perfil.nombre || perfil.nick} 👋`;
+                currentUserNombre = perfil.nombre || perfil.nick;
+                document.getElementById('nombreGerente').innerHTML = `${currentUserNombre} 👋`;
                 document.getElementById('emailGerente').innerHTML = user.email;
             } else {
-                document.getElementById('nombreGerente').innerHTML = user.email.split('@')[0];
+                currentUserNombre = user.email.split('@')[0];
+                document.getElementById('nombreGerente').innerHTML = currentUserNombre;
                 document.getElementById('emailGerente').innerHTML = user.email;
             }
         }
@@ -609,14 +660,54 @@
         }
     }
 
+    // ========== FUNCIONES MODAL CIERRE ==========
+    function abrirModalCierre(id) {
+        incidenciaACerrar = id;
+        document.getElementById('modalCierre').style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalCierre').style.display = 'none';
+        document.getElementById('comentarioCierre').value = '';
+        incidenciaACerrar = null;
+    }
+
+    async function confirmarCierre() {
+        const comentario = document.getElementById('comentarioCierre').value.trim();
+        
+        if (!comentario) {
+            alert("❌ Por favor, describe cómo se solucionó la incidencia");
+            return;
+        }
+        
+        const { error } = await sb
+            .from('incidencias_clientes')
+            .update({
+                estado: 'CERRADA',
+                fecha_cierre: new Date().toISOString(),
+                cerrada_por: currentUserNombre,
+                comentario_cierre: comentario
+            })
+            .eq('id', incidenciaACerrar);
+        
+        if (error) {
+            console.error("Error:", error);
+            alert("❌ Error al cerrar: " + error.message);
+        } else {
+            alert("✅ Incidencia cerrada correctamente");
+            cerrarModal();
+            await cargarIncidenciasClientes();
+        }
+    }
+
     // ========== TAB: INCIDENCIAS DE CLIENTES ==========
     async function cargarIncidenciasClientes() {
         const urgencia = document.getElementById('filtroIncidenciasUrgencia').value;
+        const estado = document.getElementById('filtroIncidenciasEstado').value;
         const piscinaId = document.getElementById('filtroIncidenciasPiscina').value;
         let desde = document.getElementById('filtroIncidenciasDesde').value;
         let hasta = document.getElementById('filtroIncidenciasHasta').value;
         
-        // Si no hay fechas, mostrar desde 2020 hasta hoy
         if (!desde || !hasta) {
             desde = '2020-01-01';
             hasta = getFechaActual();
@@ -635,6 +726,10 @@
         
         if (urgencia && urgencia !== '') {
             query = query.eq('nivel_urgencia', urgencia);
+        }
+        
+        if (estado && estado !== '') {
+            query = query.eq('estado', estado);
         }
         
         if (piscinaId && piscinaId !== '') {
@@ -656,18 +751,23 @@
         
         contenedor.innerHTML = '';
         
-        // Actualizar resumen de incidencias no leídas
-        const noLeidas = incidencias.filter(i => !i.leida).length;
-        if (noLeidas > 0) {
-            contenedor.innerHTML += `<div class="medicion-card" style="background:#e0f2e9;font-weight:bold;">📊 ${noLeidas} incidencias sin leer</div>`;
+        // Resumen de pendientes
+        const pendientes = incidencias.filter(i => i.estado !== 'CERRADA').length;
+        if (pendientes > 0) {
+            contenedor.innerHTML += `<div class="medicion-card" style="background:#e0f2e9;font-weight:bold;">📊 ${pendientes} incidencias pendientes de resolver</div>`;
         }
         
         for (const inc of incidencias) {
+            const esCerrada = inc.estado === 'CERRADA';
             let claseUrgencia = 'incidencia-normal';
             let badgeClase = 'badge-normal';
             let textoUrgencia = 'NORMAL';
             
-            if (inc.nivel_urgencia === 'GRAVE') {
+            if (esCerrada) {
+                claseUrgencia = 'incidencia-cerrada';
+                badgeClase = 'badge-cerrada';
+                textoUrgencia = '✅ CERRADA';
+            } else if (inc.nivel_urgencia === 'GRAVE') {
                 claseUrgencia = 'incidencia-grave';
                 badgeClase = 'badge-grave';
                 textoUrgencia = '🚨 GRAVE';
@@ -686,12 +786,31 @@
             }
             
             const div = document.createElement('div');
-            div.className = `incidencia-card ${claseUrgencia} ${inc.leida ? 'leida-true' : 'leida-false'}`;
+            div.className = `incidencia-card ${claseUrgencia}`;
             div.id = `incidencia-${inc.id}`;
             
             let motivosHtml = '';
-            if (inc.motivos && inc.motivos.length > 0) {
+            if (inc.motivos && inc.motivos.length > 0 && !esCerrada) {
                 motivosHtml = `<div class="incidencia-motivos">${inc.motivos.map(m => `<span class="badge" style="background:#e2e8f0;">${m}</span>`).join('')}</div>`;
+            }
+            
+            let botonesHtml = '';
+            if (!esCerrada) {
+                botonesHtml = `
+                    <div style="display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end;">
+                        ${!inc.leida ? `<button class="btn-marcar-leida" onclick="marcarIncidenciaLeida(${inc.id})">✓ Marcar como leída</button>` : ''}
+                        <button class="btn-cerrar-incidencia" onclick="abrirModalCierre(${inc.id})">🔧 Cerrar incidencia</button>
+                    </div>
+                `;
+            } else {
+                botonesHtml = `
+                    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0;">
+                        <div style="font-size:0.75rem; color:#2c7a4d;">
+                            ✅ Cerrada por ${inc.cerrada_por || 'Gerente'} el ${formatDate(inc.fecha_cierre)}
+                        </div>
+                        ${inc.comentario_cierre ? `<div style="font-size:0.7rem; color:#5b6e8c; margin-top:4px;">📝 ${inc.comentario_cierre}</div>` : ''}
+                    </div>
+                `;
             }
             
             div.innerHTML = `
@@ -707,11 +826,8 @@
                     <strong>📝 Mensaje:</strong> "${inc.mensaje}"
                 </div>
                 ${motivosHtml}
-                ${inc.sugerencia ? `<div style="font-size:0.8rem; color:#2c7a4d; margin-top:6px;">🔧 <strong>Sugerencia IA:</strong> ${inc.sugerencia}</div>` : ''}
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                    <span style="font-size:0.7rem; color:#5b6e8c;">🆔 ID: ${inc.id}</span>
-                    ${!inc.leida ? `<button class="btn-marcar-leida" onclick="marcarIncidenciaLeida(${inc.id})">✓ Marcar como leída</button>` : '<span style="font-size:0.7rem;">✅ Leída</span>'}
-                </div>
+                ${inc.sugerencia && !esCerrada ? `<div style="font-size:0.8rem; color:#2c7a4d; margin-top:6px;">🔧 <strong>Sugerencia IA:</strong> ${inc.sugerencia}</div>` : ''}
+                ${botonesHtml}
             `;
             contenedor.appendChild(div);
         }
@@ -727,7 +843,6 @@
             console.error("Error:", error);
             alert("❌ Error al marcar como leída");
         } else {
-            // Recargar la lista
             await cargarIncidenciasClientes();
         }
     }
@@ -776,7 +891,7 @@
         }
     }
 
-    // ========== FUNCIONES DE SUPERVISIÓN ==========
+    // ========== FUNCIONES DE SUPERVISIÓN (resumidas por espacio) ==========
     async function cargarResumenCompacto() {
         const hoy = getFechaActual();
         const startHoy = hoy + 'T00:00:00';
@@ -891,7 +1006,7 @@
         await cargarMensajesClientes();
     }
 
-    // ========== GESTIÓN DE PERSONAL ==========
+    // ========== GESTIÓN DE PERSONAL (resumido) ==========
     async function cargarDatosTecnicoHoy() {
         const tecnicoId = document.getElementById('selectorTecnicoPersonal').value;
         if (!tecnicoId) { document.getElementById('datosTecnicoHoy').innerHTML = '<div class="medicion-card">👈 Selecciona un técnico</div>'; return; }
@@ -1316,6 +1431,13 @@
     document.getElementById('btnActualizarIncidencias')?.addEventListener('click', cargarIncidenciasClientes);
     
     document.getElementById('btnLogout').onclick = async () => { if (intervaloActualizacion) clearInterval(intervaloActualizacion); await sb.auth.signOut(); location.reload(); };
+
+    // Exponer funciones globales para los modales
+    window.abrirModalCierre = abrirModalCierre;
+    window.cerrarModal = cerrarModal;
+    window.confirmarCierre = confirmarCierre;
+    window.marcarIncidenciaLeida = marcarIncidenciaLeida;
+    window.cargarIncidenciasClientes = cargarIncidenciasClientes;
 
     // Inicializar navegación
     function initTabs() {
