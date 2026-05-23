@@ -1128,21 +1128,61 @@ async function cargarIncidenciasClientes() {
     }
 
     async function crearUrgencia(piscinaId = null, descripcionPre = null) {
-        let piscinaIdFinal = piscinaId || document.getElementById('urgPiscina').value;
-        let descripcionFinal = descripcionPre || document.getElementById('urgDescripcion').value.trim();
-        const tecnicoId = document.getElementById('urgTecnico').value;
-        const fecha = document.getElementById('urgFecha').value;
-        const nivel = document.getElementById('urgNivel').value;
-        const cliente = document.getElementById('urgCliente').value;
-        if (!piscinaIdFinal || !tecnicoId || !descripcionFinal) { alert("❌ Completa todos los campos"); return; }
-        const piscina = piscinasList.find(p => p.id == piscinaIdFinal);
-        const { error } = await sb.from('urgencias_programadas').insert({ piscina_id: parseInt(piscinaIdFinal), piscina_nombre: piscina?.nombre || 'Piscina', cliente_nombre: cliente || null, descripcion: descripcionFinal, nivel_urgencia: nivel || 'MEDIA', creada_por: currentUser?.id, asignada_a: tecnicoId, fecha_asignacion: fecha || getFechaActual(), estado: 'PENDIENTE' });
-        if (error) { alert("❌ Error: " + error.message); return; }
-        alert("✅ Urgencia creada");
-        document.getElementById('urgDescripcion').value = '';
-        await cargarUrgencias();
-        await cargarAverias();
+    let piscinaIdFinal = piscinaId || document.getElementById('urgPiscina').value;
+    let descripcionFinal = descripcionPre || document.getElementById('urgDescripcion').value.trim();
+    const tecnicoId = document.getElementById('urgTecnico').value;
+    const fecha = document.getElementById('urgFecha').value;
+    const nivel = document.getElementById('urgNivel').value;
+    const cliente = document.getElementById('urgCliente').value;
+    
+    if (!piscinaIdFinal || !tecnicoId || !descripcionFinal) { 
+        alert("❌ Completa todos los campos"); 
+        return; 
     }
+    
+    const piscina = piscinasList.find(p => p.id == piscinaIdFinal);
+    
+    // 1. Crear la urgencia
+    const { data: urgencia, error: urgError } = await sb.from('urgencias_programadas').insert({ 
+        piscina_id: parseInt(piscinaIdFinal), 
+        piscina_nombre: piscina?.nombre || 'Piscina', 
+        cliente_nombre: cliente || null, 
+        descripcion: descripcionFinal, 
+        nivel_urgencia: nivel || 'MEDIA', 
+        creada_por: currentUser?.id, 
+        asignada_a: tecnicoId, 
+        fecha_asignacion: fecha || getFechaActual(), 
+        estado: 'PENDIENTE' 
+    }).select().single();
+    
+    if (urgError) { 
+        alert("❌ Error: " + urgError.message); 
+        return; 
+    }
+    
+    // 2. Crear la tarea en asignaciones_diarias para que el técnico la vea
+    const { error: tareaError } = await sb.from('asignaciones_diarias').insert({
+        urgencia_id: urgencia.id,
+        fecha: fecha || getFechaActual(),
+        tecnico_id: tecnicoId,
+        piscina_id: parseInt(piscinaIdFinal),
+        tipo: 'URGENCIA',
+        estado: 'PENDIENTE',
+        es_equipo: false,
+        creada_en: new Date().toISOString()
+    });
+    
+    if (tareaError) {
+        console.error("Error creando tarea en asignaciones_diarias:", tareaError);
+        alert("⚠️ Urgencia creada pero hubo un error al asignar la tarea al técnico.");
+    } else {
+        alert("✅ Urgencia creada y tarea asignada al técnico");
+    }
+    
+    document.getElementById('urgDescripcion').value = '';
+    await cargarUrgencias();
+    await cargarAverias();
+}
 
     // ========== AVERÍAS ==========
     async function cargarAverias() {
