@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Técnico · Aqua Garden · Panel de Trabajo</title>
+    <title>Panel Técnico · Aqua Garden</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -12,7 +13,7 @@
             background: #eef2ff;
             padding: 20px;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1000px; margin: 0 auto; }
         .card {
             background: white;
             border-radius: 24px;
@@ -67,6 +68,7 @@
         
         .row-flex { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
         .grupo { flex: 1; min-width: 130px; }
+        label { font-size: 0.7rem; font-weight: 600; color: #475569; margin-bottom: 3px; display: block; }
         
         .tarea-card {
             background: #f8fafc;
@@ -93,7 +95,7 @@
         .badge-grave { background: #dc2626; color: white; }
         .badge-urgente { background: #f39c12; color: white; }
         .badge-normal { background: #2c7a4d; color: white; }
-        .badge-baja { background: #94a3b8; color: white; }
+        .badge-baja { background: #64748b; color: white; }
         
         .consola-trabajo {
             background: #f0f9ff;
@@ -119,6 +121,16 @@
             margin-bottom: 16px;
         }
         
+        .medicion-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            border-left: 3px solid #0077b6;
+            font-size: 0.85rem;
+        }
+        .resultados-area { margin-top: 12px; max-height: 400px; overflow-y: auto; }
+        
         #dashboardPanel { display: none; }
         .spinner {
             display: inline-block;
@@ -130,13 +142,69 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .producto-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #f9f9f9;
+            padding: 8px 12px;
+            border-radius: 40px;
+            margin-bottom: 8px;
+        }
+        .quitar-producto { background: #c2410c; width: auto; padding: 6px 12px; margin: 0; }
+        .informe-preview {
+            background: #e8f4f8;
+            border-radius: 16px;
+            padding: 12px;
+            margin: 12px 0;
+            display: none;
+            white-space: pre-wrap;
+        }
+        .hora-actual {
+            background: #e8f4f8;
+            border-radius: 20px;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        .separador {
+            height: 2px;
+            background: linear-gradient(90deg, #0077b6, transparent);
+            margin: 20px 0;
+        }
+        .badge-interno { background: #6c757d; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; display: inline-block; margin-left: 10px; }
+        .badge-cliente { background: #2c7a4d; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; display: inline-block; margin-left: 10px; }
+        .btn-ia { background: #6c5ce7; }
+        .btn-ia:hover { background: #5b4bc4; }
+        
+        .mensaje-flotante {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2c7a4d;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            z-index: 9999;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            animation: fadeOut 3s ease forwards;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <!-- Login -->
     <div id="loginPanel" class="card">
-        <div class="card-header" style="cursor:default;">🔧 Acceso Técnico · Aqua Garden</div>
+        <div class="card-header" style="cursor:default;">🔐 Acceso Técnico · Aqua Garden</div>
         <input type="text" id="nick" placeholder="Nombre del técnico">
         <input type="password" id="password" placeholder="Contraseña">
         <button id="btnLogin">Iniciar sesión</button>
@@ -169,14 +237,14 @@
             </div>
         </div>
 
-        <!-- Pizarra de trabajo -->
+        <!-- PIZARRA DE TRABAJO -->
         <div class="card">
             <div class="card-header">
                 📋 Pizarra de trabajo · <span id="fechaPizarra"></span>
                 <button id="btnRefrescarPizarra" class="btn-sm" style="background:#475569;">🔄 Refrescar</button>
             </div>
             
-            <!-- Información del equipo (si está en uno) -->
+            <!-- Información del equipo -->
             <div id="equipoInfo" class="equipo-info oculto">
                 <strong>👥 Trabajando en equipo: <span id="equipoNombre"></span></strong>
                 <div id="miembrosEquipo" style="font-size: 0.8rem; margin-top: 5px;"></div>
@@ -220,8 +288,37 @@
                     <label for="urgenteCheckbox" style="margin-left:8px;">⚠️ Marcar como urgente</label>
                 </div>
                 <textarea id="notasTecnico" rows="3" placeholder="Notas internas..."></textarea>
+                <button id="btnGenerarIA" class="btn-ia" style="background:#6c5ce7;">✨ Generar mensaje IA</button>
+                <div id="informePreview" class="informe-preview"></div>
+                <div id="iaStatus" style="font-size:0.75rem; color:#6c5ce7; margin:5px 0;"></div>
                 <button id="btnGuardarMedicion" class="btn-success">💾 Guardar medición</button>
                 <button id="btnFinalizarActividad" class="btn-danger oculto" style="margin-top:12px;">🏁 Finalizar actividad</button>
+            </div>
+        </div>
+
+        <!-- Mediciones de la jornada -->
+        <div class="card">
+            <div class="card-header" style="cursor:default;">📜 Mediciones de esta jornada</div>
+            <div id="listaMediciones" class="resultados-area"></div>
+        </div>
+
+        <!-- Histórico de jornadas -->
+        <div class="card">
+            <div class="card-header" id="toggleHistorico">
+                📋 Histórico de jornadas
+                <span class="flecha">▼</span>
+            </div>
+            <div id="historicoContent" class="card-content oculto">
+                <div class="row-flex">
+                    <input type="date" id="fechaJornada" class="date-input">
+                    <button id="btnJornadasPorFecha">Ver jornadas</button>
+                </div>
+                <div class="row-flex">
+                    <input type="date" id="fechaJornadaDesde" class="date-input" placeholder="Desde">
+                    <input type="date" id="fechaJornadaHasta" class="date-input" placeholder="Hasta">
+                    <button id="btnJornadasPDF" class="btn-pdf">📄 Descargar PDF</button>
+                </div>
+                <div id="listaJornadas" class="resultados-area"></div>
             </div>
         </div>
 
@@ -244,7 +341,13 @@
     let desplazamientoActivo = null;
     let equipoActual = null;
     let productosTemp = [];
+    let ultimoInformeIA = null;
     let intervalHora = null;
+
+    const productosPredefinidos = [
+        "Cloro granulado", "Cloro pastillas", "Cloro de choque (shock)", "pH+ (aumentador)", "pH- (disminuidor)",
+        "Floculante", "Alguicida", "Aclarante", "Anticalcáreo", "Oxígeno activo", "Otro"
+    ];
 
     // ========== FUNCIONES AUXILIARES ==========
     function formatDate(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
@@ -255,8 +358,15 @@
         const el = document.getElementById('horaActualDisplay');
         if (el) el.innerHTML = `⏰ Hora del mantenimiento: ${getHoraActual()}`;
     }
-    if (intervalHora) clearInterval(intervalHora);
-    intervalHora = setInterval(actualizarHoraDisplay, 60000);
+    
+    function mostrarMensaje(texto, tipo = 'exito') {
+        const toast = document.createElement('div');
+        toast.className = 'mensaje-flotante';
+        toast.style.background = tipo === 'exito' ? '#2c7a4d' : '#c2410c';
+        toast.innerHTML = texto;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
 
     // ========== LOGIN ==========
     async function hacerLogin() {
@@ -275,141 +385,183 @@
     }
 
     // ========== CARGAR PIZARRA DE TRABAJO ==========
-    async function cargarPizarraTrabajo() {
-        if (!currentUserId || !jornadaActiva) return;
+  async function cargarPizarraTrabajo() {
+    if (!currentUserId || !jornadaActiva) return;
+    
+    const hoy = getFechaActual();
+    document.getElementById('fechaPizarra').innerHTML = hoy;
+    
+    // Verificar equipo
+    const { data: miEquipo } = await sb
+        .from('equipo_miembros')
+        .select('equipo_id, equipos_trabajo!inner(nombre)')
+        .eq('tecnico_id', currentUserId)
+        .maybeSingle();
+    
+    const equipoId = miEquipo?.equipo_id;
+    
+    if (equipoId) {
+        equipoActual = equipoId;
+        document.getElementById('equipoInfo').classList.remove('oculto');
+        document.getElementById('equipoNombre').innerHTML = miEquipo.equipos_trabajo.nombre;
         
-        document.getElementById('fechaPizarra').innerHTML = getFechaActual();
-        
-        // 1. Verificar si el técnico está en algún equipo
-        const { data: miEquipo } = await sb
+        const { data: miembros } = await sb
             .from('equipo_miembros')
-            .select('equipo_id, equipos_trabajo!inner(nombre)')
-            .eq('tecnico_id', currentUserId)
-            .maybeSingle();
+            .select('tecnico_id, perfiles!inner(nombre, nick)')
+            .eq('equipo_id', equipoId);
         
-        const equipoId = miEquipo?.equipo_id;
-        
-        if (equipoId) {
-            equipoActual = equipoId;
-            document.getElementById('equipoInfo').classList.remove('oculto');
-            document.getElementById('equipoNombre').innerHTML = miEquipo.equipos_trabajo.nombre;
-            
-            const { data: miembros } = await sb
-                .from('equipo_miembros')
-                .select('tecnico_id, perfiles!inner(nombre, nick)')
-                .eq('equipo_id', equipoId);
-            
-            const nombres = miembros?.map(m => m.perfiles.nombre || m.perfiles.nick).join(', ') || '';
-            document.getElementById('miembrosEquipo').innerHTML = `👥 Miembros: ${nombres}`;
-        } else {
-            equipoActual = null;
-            document.getElementById('equipoInfo').classList.add('oculto');
-        }
-        
-        // 2. Cargar tareas (individuales o del equipo)
-        // Una tarea es visible si:
-        // - es_equipo = false Y tecnico_id = currentUserId
-        // - es_equipo = true Y equipo_id = equipoActual
-        let query = sb.from('asignaciones_diarias')
-            .select('*, piscina:piscina_id(id, nombre, direccion, localidad, telefono_contacto)')
-            .eq('fecha', getFechaActual())
-            .in('estado', ['PENDIENTE', 'EN_CURSO']);
-        
-        if (equipoActual) {
-            // Ver tareas del equipo O tareas individuales suyas
-            query = query.or(`and(es_equipo.eq.true,equipo_id.eq.${equipoActual}),and(es_equipo.eq.false,tecnico_id.eq.${currentUserId})`);
-        } else {
-            query = query.eq('tecnico_id', currentUserId).eq('es_equipo', false);
-        }
-        
-        const { data: tareas, error } = await query;
-        
-        if (error) {
-            console.error("Error cargando tareas:", error);
-            return;
-        }
-        
-        // Separar tarea en curso
-        const tareaEnCurso = tareas?.find(t => t.estado === 'EN_CURSO');
-        const tareasPendientes = tareas?.filter(t => t.estado === 'PENDIENTE') || [];
-        
-        // Obtener prioridades
-        const prioridadMap = { 'GRAVE': 1, 'URGENTE': 2, 'ALTA': 1, 'MEDIA': 2, 'BAJA': 3, 'NORMAL': 3 };
-        
-        const tareasConPrioridad = await Promise.all(tareasPendientes.map(async (tarea) => {
-            let prioridad = 4;
-            if (tarea.tipo === 'URGENCIA' && tarea.urgencia_id) {
-                const { data: urgencia } = await sb
-                    .from('urgencias_programadas')
-                    .select('nivel_urgencia')
-                    .eq('id', tarea.urgencia_id)
-                    .single();
-                prioridad = prioridadMap[urgencia?.nivel_urgencia] || 3;
-            } else if (tarea.tipo === 'RUTA') {
-                prioridad = 4;
-            }
-            return { ...tarea, prioridad };
-        }));
-        
-        tareasConPrioridad.sort((a, b) => a.prioridad - b.prioridad);
-        
-        renderizarTareasPendientes(tareasConPrioridad);
-        
-        if (tareaEnCurso) {
-            tareaActiva = tareaEnCurso;
-            mostrarTareaEnCurso(tareaEnCurso);
-            if (tareaEnCurso.estado === 'EN_CURSO' && !trabajoActivo) {
-                await iniciarActividadDesdeTarea(tareaEnCurso);
-            }
-        } else {
-            document.getElementById('tareaEnCursoSection').classList.add('oculto');
-            tareaActiva = null;
-        }
+        const nombres = miembros?.map(m => m.perfiles.nombre || m.perfiles.nick).join(', ') || '';
+        document.getElementById('miembrosEquipo').innerHTML = `👥 Miembros: ${nombres}`;
+    } else {
+        equipoActual = null;
+        document.getElementById('equipoInfo').classList.add('oculto');
     }
     
+    // Consulta de tareas
+    let query = sb.from('asignaciones_diarias')
+        .select('*, piscina:piscina_id(id, nombre, direccion, localidad, telefono_contacto)')
+        .eq('fecha', hoy)
+        .in('estado', ['PENDIENTE', 'EN_CURSO']);
+    
+    if (equipoActual) {
+        query = query.or(`equipo_id.eq.${equipoActual},tecnico_id.eq.${currentUserId}`);
+    } else {
+        query = query.eq('tecnico_id', currentUserId);
+    }
+    
+    const { data: tareas, error } = await query;
+    
+    if (error) {
+        console.error("Error cargando tareas:", error);
+        return;
+    }
+    
+    console.log("Tareas encontradas en cargarPizarraTrabajo:", tareas?.length);
+    
+    // Separar tarea en curso
+    const tareaEnCurso = tareas?.find(t => t.estado === 'EN_CURSO');
+    const tareasPendientes = tareas?.filter(t => t.estado === 'PENDIENTE') || [];
+    
+    // Ordenar por prioridad
+    const prioridadMap = { 'GRAVE': 1, 'URGENTE': 2, 'ALTA': 1, 'MEDIA': 2, 'BAJA': 3, 'NORMAL': 3 };
+    
+    const tareasConPrioridad = await Promise.all(tareasPendientes.map(async (tarea) => {
+        let prioridad = 4;
+        if (tarea.tipo === 'URGENCIA' && tarea.urgencia_id) {
+            const { data: urgencia } = await sb
+                .from('urgencias_programadas')
+                .select('nivel_urgencia')
+                .eq('id', tarea.urgencia_id)
+                .single();
+            prioridad = prioridadMap[urgencia?.nivel_urgencia] || 3;
+        } else if (tarea.tipo === 'RUTA') {
+            prioridad = 4;
+        }
+        return { ...tarea, prioridad };
+    }));
+    
+    tareasConPrioridad.sort((a, b) => a.prioridad - b.prioridad);
+    
+    // Renderizar usando la función corregida
+    renderizarTareasPendientes(tareasConPrioridad);
+    
+    if (tareaEnCurso) {
+        // Añadir prioridad a la tarea en curso
+        let prioridad = 4;
+        if (tareaEnCurso.tipo === 'URGENCIA' && tareaEnCurso.urgencia_id) {
+            const { data: urgencia } = await sb
+                .from('urgencias_programadas')
+                .select('nivel_urgencia')
+                .eq('id', tareaEnCurso.urgencia_id)
+                .single();
+            prioridad = prioridadMap[urgencia?.nivel_urgencia] || 3;
+        }
+        tareaEnCurso.prioridad = prioridad;
+        tareaActiva = tareaEnCurso;
+        mostrarTareaEnCurso(tareaEnCurso);
+        if (tareaEnCurso.estado === 'EN_CURSO' && !trabajoActivo) {
+            await iniciarActividadDesdeTarea(tareaEnCurso);
+        }
+    } else {
+        document.getElementById('tareaEnCursoSection').classList.add('oculto');
+        tareaActiva = null;
+        trabajoActivo = null;
+        desplazamientoActivo = null;
+        document.getElementById('consolaTrabajo').classList.add('oculto');
+    }
+}
     function renderizarTareasPendientes(tareas) {
-        const container = document.getElementById('tareasPendientesList');
-        if (!tareas.length) {
-            container.innerHTML = '<div style="padding:16px; text-align:center; color:#5b6e8c;">✅ No hay tareas pendientes</div>';
-            return;
-        }
-        
-        container.innerHTML = '';
-        for (const tarea of tareas) {
-            let prioridadClass = 'tarea-normal';
-            let prioridadTexto = 'NORMAL';
-            
-            if (tarea.prioridad === 1) { prioridadClass = 'tarea-grave'; prioridadTexto = '🚨 GRAVE'; }
-            else if (tarea.prioridad === 2) { prioridadClass = 'tarea-urgente'; prioridadTexto = '⚠️ URGENTE'; }
-            else if (tarea.prioridad === 3) { prioridadClass = 'tarea-normal'; prioridadTexto = '✅ NORMAL'; }
-            else { prioridadClass = 'tarea-baja'; prioridadTexto = '📋 MANTENIMIENTO'; }
-            
-            const div = document.createElement('div');
-            div.className = `tarea-card ${prioridadClass}`;
-            div.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-                    <div>
-                        <strong>🏊 ${tarea.piscina?.nombre || 'Cargando...'}</strong>
-                        <span class="badge-prioridad ${prioridadClass.replace('tarea-', 'badge-')}">${prioridadTexto}</span>
-                        ${tarea.es_equipo ? '<span style="background:#0284c7; color:white; padding:2px 8px; border-radius:20px; font-size:0.6rem; margin-left:8px;">👥 EQUIPO</span>' : ''}
-                    </div>
-                    <button class="btn-sm btn-success iniciar-tarea" data-tarea='${JSON.stringify(tarea)}' style="margin-top:5px;">▶ Iniciar</button>
-                </div>
-                <div style="font-size:0.75rem; color:#5b6e8c; margin-top:6px;">
-                    📍 ${tarea.piscina?.direccion || ''} ${tarea.piscina?.localidad || ''}
-                </div>
-            `;
-            container.appendChild(div);
-        }
-        
-        document.querySelectorAll('.iniciar-tarea').forEach(btn => {
-            btn.onclick = () => {
-                const tarea = JSON.parse(btn.dataset.tarea);
-                iniciarTarea(tarea);
-            };
-        });
+    const container = document.getElementById('tareasPendientesList');
+    
+    if (!container) {
+        console.error("Contenedor no encontrado");
+        return;
     }
     
+    if (!tareas || tareas.length === 0) {
+        container.innerHTML = '<div style="padding:16px; text-align:center; color:#5b6e8c;">✅ No hay tareas pendientes</div>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    for (const tarea of tareas) {
+        let prioridadClass = 'tarea-normal';
+        let prioridadTexto = 'NORMAL';
+        let borderColor = '#2c7a4d';
+        let bgColor = '#f0fdf4';
+        
+        if (tarea.prioridad === 1) { 
+            prioridadClass = 'tarea-grave'; 
+            prioridadTexto = '🚨 GRAVE'; 
+            borderColor = '#dc2626';
+            bgColor = '#fef2f2';
+        } else if (tarea.prioridad === 2) { 
+            prioridadClass = 'tarea-urgente'; 
+            prioridadTexto = '⚠️ URGENTE';
+            borderColor = '#f39c12';
+            bgColor = '#fffbeb';
+        } else if (tarea.prioridad === 3) { 
+            prioridadClass = 'tarea-normal'; 
+            prioridadTexto = '✅ NORMAL';
+        } else { 
+            prioridadClass = 'tarea-baja'; 
+            prioridadTexto = '📋 MANTENIMIENTO';
+            borderColor = '#94a3b8';
+            bgColor = '#f1f5f9';
+        }
+        
+        const div = document.createElement('div');
+        div.className = `tarea-card ${prioridadClass}`;
+        div.style.borderLeftColor = borderColor;
+        div.style.background = bgColor;
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                <div>
+                    <strong>🏊 ${tarea.piscina?.nombre || 'Cargando...'}</strong>
+                    <span class="badge-prioridad" style="background:${borderColor}; color:white; padding:2px 10px; border-radius:20px; font-size:0.65rem; margin-left:8px;">${prioridadTexto}</span>
+                    ${tarea.es_equipo ? '<span style="background:#0284c7; color:white; padding:2px 8px; border-radius:20px; font-size:0.6rem; margin-left:8px;">👥 EQUIPO</span>' : ''}
+                </div>
+                <button class="btn-sm btn-success iniciar-tarea" data-id="${tarea.id}" data-tarea='${JSON.stringify(tarea)}' style="margin-top:5px;">▶ Iniciar</button>
+            </div>
+            <div style="font-size:0.75rem; color:#5b6e8c; margin-top:6px;">
+                📍 ${tarea.piscina?.direccion || ''} ${tarea.piscina?.localidad || ''}
+            </div>
+        `;
+        container.appendChild(div);
+    }
+    
+    // Re-asignar eventos
+    document.querySelectorAll('.iniciar-tarea').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const tarea = JSON.parse(btn.dataset.tarea);
+            iniciarTarea(tarea);
+        };
+    });
+    
+    console.log(`✅ Renderizadas ${tareas.length} tareas pendientes`);
+}    
     function mostrarTareaEnCurso(tarea) {
         const container = document.getElementById('tareaEnCursoCard');
         const section = document.getElementById('tareaEnCursoSection');
@@ -434,11 +586,10 @@
     
     async function iniciarTarea(tarea) {
         if (trabajoActivo) {
-            alert("⚠️ Ya tienes una actividad en curso. Finalízala primero.");
+            mostrarMensaje("⚠️ Ya tienes una actividad en curso. Finalízala primero.", 'error');
             return;
         }
         
-        // Marcar tarea como EN_CURSO
         await sb.from('asignaciones_diarias')
             .update({ estado: 'EN_CURSO', iniciada_en: new Date().toISOString() })
             .eq('id', tarea.id);
@@ -501,6 +652,8 @@
         } else if (trabajoActivo) {
             estadoDiv.innerHTML = `🏊 TRABAJANDO EN ${tareaActiva?.piscina?.nombre}`;
             formularioMed.classList.remove('oculto');
+            if (intervalHora) clearInterval(intervalHora);
+            intervalHora = setInterval(actualizarHoraDisplay, 60000);
             actualizarHoraDisplay();
         } else {
             estadoDiv.innerHTML = `📍 EN PISCINA: ${tareaActiva?.piscina?.nombre}`;
@@ -528,10 +681,10 @@
             inicio: new Date().toISOString()
         }).select();
         
-        if (error) { alert(error.message); return; }
+        if (error) { mostrarMensaje(error.message, 'error'); return; }
         desplazamientoActivo = data[0];
         actualizarBotonesConsola();
-        alert(`🚗 Desplazamiento hacia ${tareaActiva.piscina?.nombre} iniciado`);
+        mostrarMensaje(`🚗 Desplazamiento hacia ${tareaActiva.piscina?.nombre} iniciado`, 'exito');
     }
     
     async function llegadaPiscina() {
@@ -547,10 +700,10 @@
             inicio: new Date().toISOString()
         }).select();
         
-        if (error) { alert(error.message); return; }
+        if (error) { mostrarMensaje(error.message, 'error'); return; }
         trabajoActivo = trabajo[0];
         actualizarBotonesConsola();
-        alert("📍 Llegada registrada. Actividad iniciada.");
+        mostrarMensaje("📍 Llegada registrada. Actividad iniciada.", 'exito');
         await cargarMedicionesDeJornadaActiva();
     }
     
@@ -564,10 +717,10 @@
             inicio: new Date().toISOString()
         }).select();
         
-        if (error) { alert(error.message); return; }
+        if (error) { mostrarMensaje(error.message, 'error'); return; }
         trabajoActivo = data[0];
         actualizarBotonesConsola();
-        alert("🏊 Actividad iniciada");
+        mostrarMensaje("🏊 Actividad iniciada", 'exito');
         await cargarMedicionesDeJornadaActiva();
     }
     
@@ -575,7 +728,7 @@
     async function iniciarJornada() {
         if (jornadaActiva) return;
         const { data, error } = await sb.from('jornadas').insert({ tecnico_id: currentUserId, inicio: new Date().toISOString() }).select();
-        if (error) { alert(error.message); return; }
+        if (error) { mostrarMensaje(error.message, 'error'); return; }
         jornadaActiva = data[0];
         document.getElementById('estadoJornada').innerHTML = `✅ Jornada activa desde ${formatDate(jornadaActiva.inicio)}`;
         document.getElementById('estadoJornada').style.background = "#d4edda";
@@ -586,7 +739,7 @@
     
     async function finalizarJornada() {
         if (!jornadaActiva) return;
-        if (trabajoActivo) { alert("Finaliza la actividad actual primero"); return; }
+        if (trabajoActivo) { mostrarMensaje("Finaliza la actividad actual primero", 'error'); return; }
         await sb.from('jornadas').update({ fin: new Date().toISOString() }).eq('id', jornadaActiva.id);
         jornadaActiva = null;
         document.getElementById('estadoJornada').innerHTML = "⚠️ Jornada no iniciada";
@@ -596,60 +749,96 @@
         location.reload();
     }
     
-    async function finalizarActividad() {
-        if (!trabajoActivo) return;
+ async function finalizarActividad() {
+    if (!trabajoActivo) {
+        mostrarMensaje("No hay actividad activa", 'error');
+        return;
+    }
+    
+    console.log("🔧 Finalizando actividad...");
+    
+    try {
+        // Cerrar TODAS las tareas activas del técnico hoy
+        const { data: tareasActivas } = await sb
+            .from('asignaciones_diarias')
+            .select('id, estado')
+            .eq('tecnico_id', currentUserId)
+            .eq('fecha', getFechaActual())
+            .in('estado', ['PENDIENTE', 'EN_CURSO']);
         
-        // Marcar tarea como COMPLETADA
-        if (tareaActiva) {
-            await sb.from('asignaciones_diarias')
+        console.log(`📋 Cerrando ${tareasActivas?.length || 0} tarea(s)`);
+        
+        for (const tarea of tareasActivas || []) {
+            await sb
+                .from('asignaciones_diarias')
                 .update({ 
                     estado: 'COMPLETADA', 
                     completada_en: new Date().toISOString(),
                     completada_por: currentUserId
                 })
-                .eq('id', tareaActiva.id);
-            
-            if (tareaActiva.urgencia_id) {
-                await sb.from('urgencias_programadas')
-                    .update({ estado: 'COMPLETADA', completada_en: new Date().toISOString() })
-                    .eq('id', tareaActiva.urgencia_id);
-            }
+                .eq('id', tarea.id);
+            console.log(`✅ Tarea ${tarea.id.substring(0,8)} completada`);
         }
         
+        // Finalizar trabajo
         const observaciones = document.getElementById('notasTecnico').value.trim() || "Actividad finalizada";
-        await sb.from('trabajos_piscina').update({ fin: new Date().toISOString(), observaciones }).eq('id', trabajoActivo.id);
+        await sb
+            .from('trabajos_piscina')
+            .update({ fin: new Date().toISOString(), observaciones })
+            .eq('id', trabajoActivo.id);
         
+        // Limpiar todo
         trabajoActivo = null;
         tareaActiva = null;
         desplazamientoActivo = null;
         
         document.getElementById('consolaTrabajo').classList.add('oculto');
         document.getElementById('formularioMedicion').classList.add('oculto');
-        document.getElementById('cloro').value = '';
-        document.getElementById('ph').value = '';
-        document.getElementById('temp').value = '';
-        document.getElementById('notasTecnico').value = '';
-        productosTemp = [];
-        renderizarProductos();
         
+        if (intervalHora) clearInterval(intervalHora);
+        
+        // Recargar pizarra
         await cargarPizarraTrabajo();
-        alert("✅ Actividad finalizada");
+        
+        mostrarMensaje("✅ Actividad finalizada. La tarea ha sido completada.", 'exito');
+        
+    } catch (error) {
+        console.error("Error:", error);
+        mostrarMensaje("Error al finalizar", 'error');
     }
-    
+}
     // ========== MEDICIONES ==========
     async function cargarMedicionesDeJornadaActiva() {
         if (!jornadaActiva) return;
-        const { data } = await sb.from('mediciones').select('*').eq('jornada_id', jornadaActiva.id).order('created_at', { ascending: false });
+        const { data, error } = await sb.from('mediciones').select('*').eq('jornada_id', jornadaActiva.id).order('created_at', { ascending: false });
+        if (error) return;
+        const contenedor = document.getElementById('listaMediciones');
+        contenedor.innerHTML = '';
+        if (!data || data.length === 0) {
+            contenedor.innerHTML = '<div class="medicion-card">No hay mediciones en esta jornada</div>';
+            return;
+        }
+        for (const m of data) {
+            const div = document.createElement('div');
+            div.className = 'medicion-card';
+            div.innerHTML = `<strong>🏊 ${cachePiscinas?.[m.piscina_id] || m.piscina_id}</strong><br>🧪 Cloro: ${m.cloro} ppm | ⚗️ pH: ${m.ph} | 🌡️ ${m.temperatura}°C<br>📝 ${m.observaciones || ''}<br>📅 ${formatDate(m.created_at)}`;
+            contenedor.appendChild(div);
+        }
+    }
+    
+    // Cache para nombres de piscinas
+    let cachePiscinas = {};
+    async function cargarCachePiscinas() {
+        const { data } = await sb.from('piscinas').select('id, nombre');
+        data?.forEach(p => cachePiscinas[p.id] = p.nombre);
     }
     
     function renderizarProductos() {
         const container = document.getElementById('productosContainer');
         container.innerHTML = '';
-        const productosPredefinidos = ["Cloro granulado", "Cloro pastillas", "pH+", "pH-", "Floculante", "Alguicida", "Aclarante", "Otro"];
         productosTemp.forEach((prod, idx) => {
             const div = document.createElement('div');
-            div.className = 'row-flex';
-            div.style.marginBottom = '8px';
+            div.className = 'producto-item';
             div.innerHTML = `
                 <select class="prod-nombre" style="flex:2;">
                     ${productosPredefinidos.map(p => `<option value="${p}" ${prod.nombre === p ? 'selected' : ''}>${p}</option>`).join('')}
@@ -671,28 +860,99 @@
         renderizarProductos();
     };
     
-    async function guardarMedicion() {
-        if (!trabajoActivo) { alert("No hay actividad activa"); return; }
+    async function generarInformeIA() {
         const cloro = parseFloat(document.getElementById('cloro').value);
         const ph = parseFloat(document.getElementById('ph').value);
-        const temperatura = parseInt(document.getElementById('temp').value);
-        if (isNaN(cloro) || isNaN(ph) || isNaN(temperatura)) { alert("Rellena cloro, pH y temperatura"); return; }
+        const temp = parseFloat(document.getElementById('temp').value);
         
+        if (isNaN(cloro) || isNaN(ph) || isNaN(temp)) {
+            mostrarMensaje("⚠️ Ingresa cloro, pH y temperatura", 'error');
+            return;
+        }
+        
+        document.getElementById('iaStatus').innerHTML = '🤖 Generando...';
+        
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) { document.getElementById('iaStatus').innerHTML = '❌ Sesión expirada'; return; }
+        
+        try {
+            const response = await fetch(`${SUPABASE_URL}/functions/v1/mejorar-texto`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    accion: "generar",
+                    cloro, ph, temperatura: temp,
+                    productos: productosTemp.filter(p => p.cantidad > 0),
+                    texto: document.getElementById('notasTecnico').value || "Mantenimiento realizado",
+                    tecnico_nombre: currentUserNombre,
+                    fecha: new Date().toLocaleDateString('es-ES')
+                })
+            });
+            
+            const resultado = await response.json();
+            if (resultado.success && resultado.textoMejorado) {
+                document.getElementById('informePreview').innerHTML = resultado.textoMejorado;
+                document.getElementById('informePreview').style.display = 'block';
+                ultimoInformeIA = resultado;
+                document.getElementById('iaStatus').innerHTML = resultado.tiempoEspera > 0 ? `⏰ Espera: ${resultado.tiempoEspera}h` : '✅ Listo';
+            } else {
+                throw new Error(resultado.error);
+            }
+        } catch (error) {
+            document.getElementById('iaStatus').innerHTML = `❌ ${error.message}`;
+            mostrarMensaje(error.message, 'error');
+        }
+    }
+    
+   async function guardarMedicion() {
+    if (!trabajoActivo) {
+        mostrarMensaje("No hay actividad activa", 'error');
+        return;
+    }
+    
+    const cloro = parseFloat(document.getElementById('cloro').value);
+    const ph = parseFloat(document.getElementById('ph').value);
+    const temperatura = parseInt(document.getElementById('temp').value);
+    const urgente = document.getElementById('urgenteCheckbox').checked;
+    const notasTecnico = document.getElementById('notasTecnico').value.trim() || "Sin notas";
+    const mensajeCliente = document.getElementById('informePreview').innerHTML;
+    
+    if (isNaN(cloro) || isNaN(ph) || isNaN(temperatura)) {
+        mostrarMensaje("Rellena cloro, pH y temperatura", 'error');
+        return;
+    }
+    
+    if (!mensajeCliente || mensajeCliente === "") {
+        mostrarMensaje("⚠️ Genera primero el mensaje para el cliente con IA", 'error');
+        return;
+    }
+    
+    // Mostrar loading
+    const btn = document.getElementById('btnGuardarMedicion');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '⏳ Guardando...';
+    btn.disabled = true;
+    
+    try {
+        // 1. Guardar medición
         const { data: medicion, error } = await sb.from('mediciones').insert({
             tecnico_id: currentUserId,
             piscina_id: trabajoActivo.piscina_id,
             jornada_id: jornadaActiva.id,
             cloro, ph, temperatura,
-            observaciones: document.getElementById('notasTecnico').value,
-            urgente: document.getElementById('urgenteCheckbox').checked
+            observaciones: notasTecnico,
+            urgente: urgente
         }).select();
         
-        if (error) { alert(error.message); return; }
+        if (error) throw error;
         
+        const medicionId = medicion[0].id;
+        
+        // 2. Guardar productos
         for (const prod of productosTemp) {
             if (prod.cantidad > 0) {
                 await sb.from('productos_utilizados').insert({
-                    medicion_id: medicion[0].id,
+                    medicion_id: medicionId,
                     producto_nombre: prod.nombre,
                     cantidad: prod.cantidad,
                     unidad: prod.unidad
@@ -700,23 +960,119 @@
             }
         }
         
-        alert("✅ Medición guardada");
+        // 3. Guardar informe para el cliente
+        if (ultimoInformeIA) {
+            await sb.from('informes_cliente').insert({
+                medicion_id: medicionId,
+                piscina_id: trabajoActivo.piscina_id,
+                tecnico_id: currentUserId,
+                jornada_id: jornadaActiva.id,
+                mensaje: mensajeCliente,
+                tiempo_espera: ultimoInformeIA.tiempoEspera || 0,
+                hora_recomendada: ultimoInformeIA.horaRecomendada || null,
+                fecha: getFechaActual(),
+                created_at: new Date().toISOString()
+            });
+        }
+        
+        // 4. Si es urgente, crear incidencia
+        if (urgente) {
+            const { data: piscina } = await sb
+                .from('piscinas')
+                .select('nombre')
+                .eq('id', trabajoActivo.piscina_id)
+                .single();
+            
+            await sb.from('incidencias_clientes').insert({
+                piscina_id: trabajoActivo.piscina_id,
+                piscina_nombre: piscina?.nombre || 'Piscina',
+                cliente_nombre: "Técnico - Detección automática",
+                mensaje: `⚠️ El técnico ha determinado que la piscina requiere atención URGENTE.\n\n📊 Datos de la medición:\n- Cloro: ${cloro} ppm\n- pH: ${ph}\n- Temperatura: ${temperatura}°C\n\n📝 Notas del técnico: ${notasTecnico}`,
+                nivel_urgencia: "GRAVE",
+                estado: "PENDIENTE",
+                created_at: new Date().toISOString()
+            });
+        }
+        
+        mostrarMensaje("✅ Medición guardada correctamente", 'exito');
+        
+        // LIMPIAR FORMULARIO PERO NO CERRAR ACTIVIDAD AÚN
         document.getElementById('cloro').value = '';
         document.getElementById('ph').value = '';
         document.getElementById('temp').value = '';
         document.getElementById('notasTecnico').value = '';
         document.getElementById('urgenteCheckbox').checked = false;
+        document.getElementById('informePreview').style.display = 'none';
         productosTemp = [];
         renderizarProductos();
+        ultimoInformeIA = null;
+        
+        await cargarMedicionesDeJornadaActiva();
+        
+        // PREGUNTAR SI DESEA FINALIZAR LA ACTIVIDAD
+        const finalizar = confirm("✅ Medición guardada. ¿Deseas finalizar la actividad en esta piscina?");
+        
+        if (finalizar) {
+            // LLAMAR A FINALIZAR ACTIVIDAD
+            await finalizarActividad();
+        } else {
+            mostrarMensaje("Puedes seguir registrando más mediciones o finalizar más tarde", 'exito');
+        }
+        
+    } catch (error) {
+        console.error("Error:", error);
+        mostrarMensaje("Error al guardar: " + error.message, 'error');
+    } finally {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
     }
-    
-    // ========== EVENTOS ==========
+}
+    // ========== HISTÓRICOS ==========
+    async function cargarJornadasPorFecha() {
+        const fecha = document.getElementById('fechaJornada').value;
+        if (!fecha) { alert("Selecciona fecha"); return; }
+        const start = new Date(`${fecha}T00:00:00`).toISOString();
+        const end = new Date(`${fecha}T23:59:59`).toISOString();
+        const { data } = await sb.from('jornadas').select('*').eq('tecnico_id', currentUserId).gte('inicio', start).lte('inicio', end).order('inicio', { ascending: false });
+        const contenedor = document.getElementById('listaJornadas');
+        contenedor.innerHTML = '';
+        if (!data || data.length === 0) { contenedor.innerHTML = '<div class="jornada-card">No hay jornadas</div>'; return; }
+        data.forEach(j => {
+            const inicio = new Date(j.inicio);
+            const fin = j.fin ? new Date(j.fin) : null;
+            let duracion = '';
+            if (fin) { const diff = fin - inicio; const horas = Math.floor(diff/3600000); const minutos = Math.floor((diff%3600000)/60000); duracion = ` (${horas}h ${minutos}m)`; }
+            contenedor.innerHTML += `<div class="jornada-card"><strong>📅 ${inicio.toLocaleDateString()}</strong><br>🕒 ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : '—'}${duracion}</div>`;
+        });
+    }
+
+    async function descargarJornadasPDF() {
+        const desde = document.getElementById('fechaJornadaDesde').value;
+        const hasta = document.getElementById('fechaJornadaHasta').value;
+        if (!desde || !hasta) { alert("Selecciona rango"); return; }
+        const start = new Date(`${desde}T00:00:00`).toISOString();
+        const end = new Date(`${hasta}T23:59:59`).toISOString();
+        const { data } = await sb.from('jornadas').select('*').eq('tecnico_id', currentUserId).gte('inicio', start).lte('inicio', end).order('inicio', { ascending: false });
+        if (!data || data.length === 0) { alert("No hay datos"); return; }
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `<h2>Jornadas (${desde} a ${hasta})</h2>`;
+        data.forEach(j => {
+            const inicio = new Date(j.inicio);
+            const fin = j.fin ? new Date(j.fin) : null;
+            tempDiv.innerHTML += `<div style="border-left:4px solid #0077b6; margin:10px 0; padding:10px;"><strong>📅 ${inicio.toLocaleDateString()}</strong><br>🕒 ${inicio.toLocaleTimeString()} → ${fin ? fin.toLocaleTimeString() : '—'}</div>`;
+        });
+        html2pdf().set({ filename: `jornadas_${desde}_a_${hasta}.pdf`, margin: 10 }).from(tempDiv).save();
+    }
+
+    // ========== EVENTOS PRINCIPALES ==========
     document.getElementById('btnLogin').onclick = async () => {
         if (await hacerLogin()) {
             document.getElementById('loginPanel').style.display = 'none';
             document.getElementById('dashboardPanel').style.display = 'block';
             document.getElementById('nombreTecnico').innerHTML = `${currentUserNombre} 👋`;
+            await cargarCachePiscinas();
             
+            // Recuperar jornada activa
             const { data: jornada } = await sb.from('jornadas').select('*').eq('tecnico_id', currentUserId).is('fin', null).maybeSingle();
             if (jornada) {
                 jornadaActiva = jornada;
@@ -728,7 +1084,7 @@
             }
         }
     };
-    
+
     document.getElementById('btnIniciarJornada').onclick = iniciarJornada;
     document.getElementById('btnFinalizarJornada').onclick = finalizarJornada;
     document.getElementById('btnRefrescarPizarra').onclick = cargarPizarraTrabajo;
@@ -746,16 +1102,30 @@
             desplazamientoActivo = null;
             document.getElementById('consolaTrabajo').classList.add('oculto');
             await cargarPizarraTrabajo();
-            alert("✅ Tarea cancelada");
+            mostrarMensaje("✅ Tarea cancelada", 'exito');
         }
     };
     
     document.getElementById('btnGuardarMedicion').onclick = guardarMedicion;
+    document.getElementById('btnGenerarIA').onclick = generarInformeIA;
     document.getElementById('btnFinalizarActividad').onclick = finalizarActividad;
+    document.getElementById('btnJornadasPorFecha').onclick = cargarJornadasPorFecha;
+    document.getElementById('btnJornadasPDF').onclick = descargarJornadasPDF;
+    
+    document.getElementById('toggleHistorico').addEventListener('click', () => {
+        const content = document.getElementById('historicoContent');
+        const flecha = document.querySelector('#toggleHistorico .flecha');
+        content.classList.toggle('oculto');
+        flecha.innerHTML = content.classList.contains('oculto') ? '▼' : '▲';
+    });
     
     document.getElementById('btnLogout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
     
     renderizarProductos();
+    
+    // Iniciar actualización de hora
+    actualizarHoraDisplay();
+    intervalHora = setInterval(actualizarHoraDisplay, 60000);
 </script>
 </body>
 </html>
