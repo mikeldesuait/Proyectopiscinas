@@ -434,34 +434,35 @@
 
     // ========== VERIFICAR INCIDENCIAS ACTIVAS ==========
     // CORREGIDO: Excluye incidencias cerradas (estado = 'CERRADA')
-    async function verificarIncidenciasActivas(piscinaId) {
-        try {
-            const hace7Dias = new Date();
-            hace7Dias.setDate(hace7Dias.getDate() - 7);
-            
-            const { data: incidencias, error } = await sb
-                .from('incidencias_clientes')
-                .select('*')
-                .eq('piscina_id', piscinaId)
-                .in('nivel_urgencia', ['GRAVE', 'URGENTE'])
-                .neq('estado', 'CERRADA')      // ← CLAVE: excluir incidencias cerradas
-                .gte('created_at', hace7Dias.toISOString())
-                .order('created_at', { ascending: false });
-            
-            if (error) {
-                console.error("Error al verificar incidencias:", error);
-                return null;
-            }
-            
-            if (incidencias && incidencias.length > 0) {
-                return incidencias[0];
-            }
-            return null;
-        } catch (error) {
-            console.error("Error:", error);
+    // En clientes.html, modifica la consulta de incidencias:
+async function verificarIncidenciasActivas(piscinaId) {
+    try {
+        const hace7Dias = new Date();
+        hace7Dias.setDate(hace7Dias.getDate() - 7);
+        
+        const { data: incidencias, error } = await sb
+            .from('incidencias_clientes')
+            .select('*')
+            .eq('piscina_id', piscinaId)
+            .in('nivel_urgencia', ['GRAVE', 'URGENTE'])
+            .not('estado', 'in', '(CERRADA,DERIVADA)')  // ← EXCLUIR DERIVADA también
+            .gte('created_at', hace7Dias.toISOString())
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error("Error al verificar incidencias:", error);
             return null;
         }
+        
+        if (incidencias && incidencias.length > 0) {
+            return incidencias[0];
+        }
+        return null;
+    } catch (error) {
+        console.error("Error:", error);
+        return null;
     }
+}
 
     function formatearFechaIncidencia(iso) {
         if (!iso) return '';
