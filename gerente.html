@@ -768,6 +768,7 @@ function getFechaActual() {
 
     // ========== FUNCIÓN PARA CARGAR INCIDENCIAS CLIENTE ==========
   // ========== CARGAR INCIDENCIAS CLIENTE ==========
+// ========== CARGAR INCIDENCIAS CLIENTE CON BOTÓN CREAR AVERÍA ==========
 async function cargarIncidenciasClientes() {
     console.log("🔄 Cargando incidencias de clientes...");
     
@@ -777,26 +778,19 @@ async function cargarIncidenciasClientes() {
     let desde = document.getElementById('filtroIncidenciasDesde')?.value || '';
     let hasta = document.getElementById('filtroIncidenciasHasta')?.value || '';
     
-    // Si no hay fechas seleccionadas, mostrar últimos 30 días (en zona España)
+    // Si no hay fechas seleccionadas, mostrar últimos 30 días
     if (!desde || !hasta) {
         const hoy = new Date();
         const hace30Dias = new Date();
         hace30Dias.setDate(hoy.getDate() - 30);
-        
-        // Usar formato local para las fechas
         desde = formatDateYMD(hace30Dias);
         hasta = formatDateYMD(hoy);
-        
         document.getElementById('filtroIncidenciasDesde').value = desde;
         document.getElementById('filtroIncidenciasHasta').value = hasta;
     }
     
-    // Para la consulta, usar el rango completo del día en UTC
-    const startDate = new Date(`${desde}T00:00:00+02:00`); // +02:00 para España
-    const endDate = new Date(`${hasta}T23:59:59+02:00`);
-    
-    const start = startDate.toISOString();
-    const end = endDate.toISOString();
+    const start = new Date(`${desde}T00:00:00+02:00`).toISOString();
+    const end = new Date(`${hasta}T23:59:59+02:00`).toISOString();
     
     let query = sb.from('incidencias_clientes')
         .select('*')
@@ -823,13 +817,14 @@ async function cargarIncidenciasClientes() {
         return;
     }
     
-    const pendientes = incidencias.filter(i => i.estado !== 'CERRADA' && i.estado !== 'CANCELADA').length;
+    const pendientes = incidencias.filter(i => i.estado !== 'CERRADA' && i.estado !== 'CANCELADA' && i.estado !== 'DERIVADA').length;
     document.getElementById('resumenAveriasPendientes').innerText = pendientes;
     
     if (contenedor) contenedor.innerHTML = '';
     
     for (const inc of incidencias) {
         const esCerrada = inc.estado === 'CERRADA';
+        const esDerivada = inc.estado === 'DERIVADA';
         let claseUrgencia = 'incidencia-normal';
         let badgeClase = 'badge-normal';
         let textoUrgencia = 'NORMAL';
@@ -838,6 +833,10 @@ async function cargarIncidenciasClientes() {
             claseUrgencia = 'incidencia-cerrada';
             badgeClase = 'badge-cerrada';
             textoUrgencia = '✅ CERRADA';
+        } else if (esDerivada) {
+            claseUrgencia = 'incidencia-normal';
+            badgeClase = 'badge-normal';
+            textoUrgencia = '📋 DERIVADA';
         } else if (inc.nivel_urgencia === 'GRAVE') {
             claseUrgencia = 'incidencia-grave';
             badgeClase = 'badge-grave';
@@ -848,17 +847,25 @@ async function cargarIncidenciasClientes() {
             textoUrgencia = '⚠️ URGENTE';
         }
         
-        // Mostrar fecha en hora local de España
         const fechaMostrar = new Date(inc.created_at).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
         
         const div = document.createElement('div');
         div.className = `incidencia-card ${claseUrgencia}`;
         
         let botonesHtml = '';
-        if (!esCerrada) {
+        if (!esCerrada && !esDerivada) {
             botonesHtml = `
                 <div style="display:flex; gap:8px; margin-top:10px; justify-content:flex-end;">
-                    <button class="btn-cerrar-incidencia" onclick="abrirModalCierre(${inc.id})" style="background:#2c7a4d; color:white; border:none; padding:6px 12px; border-radius:20px;">🔧 Cerrar incidencia</button>
+                    <button class="btn-crear-averia" data-id="${inc.id}" data-piscina="${inc.piscina_nombre.replace(/"/g, '&quot;')}" data-mensaje="${inc.mensaje.replace(/"/g, '&quot;')}" style="background:#e67e22; color:white; border:none; padding:6px 12px; border-radius:20px;">🔧 Crear avería</button>
+                    <button class="btn-cerrar-incidencia" onclick="abrirModalCierre(${inc.id})" style="background:#2c7a4d; color:white; border:none; padding:6px 12px; border-radius:20px;">✅ Cerrar</button>
+                </div>
+            `;
+        } else if (esDerivada) {
+            botonesHtml = `
+                <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e2e8f0;">
+                    <div style="font-size:0.75rem; color:#e67e22;">
+                        📋 Derivada a avería - ${inc.sugerencia || 'Pendiente de asignación'}
+                    </div>
                 </div>
             `;
         } else {
@@ -877,7 +884,7 @@ async function cargarIncidenciasClientes() {
                 <div>
                     <strong>🏊 ${inc.piscina_nombre || 'Piscina'}</strong>
                     <span class="badge-urgencia ${badgeClase}" style="margin-left:8px;">${textoUrgencia}</span>
-                    ${!inc.leida && !esCerrada ? '<span style="background:#dc2626; color:white; padding:2px 8px; border-radius:20px; margin-left:8px; font-size:0.6rem;">🆕 NUEVA</span>' : ''}
+                    ${!inc.leida && !esCerrada && !esDerivada ? '<span style="background:#dc2626; color:white; padding:2px 8px; border-radius:20px; margin-left:8px; font-size:0.6rem;">🆕 NUEVA</span>' : ''}
                 </div>
                 <div class="incidencia-fecha">📅 ${fechaMostrar}</div>
             </div>
@@ -885,9 +892,20 @@ async function cargarIncidenciasClientes() {
                 <strong>👤 Cliente:</strong> ${inc.cliente_nombre || 'Anónimo'}<br>
                 <strong>📝 Mensaje:</strong> "${inc.mensaje}"
             </div>
-            ${inc.sugerencia && !esCerrada ? `<div style="font-size:0.8rem; color:#2c7a4d; margin-top:6px;">🔧 Sugerencia: ${inc.sugerencia}</div>` : ''}
+            ${inc.sugerencia && !esCerrada && !esDerivada ? `<div style="font-size:0.8rem; color:#2c7a4d; margin-top:6px;">🔧 Sugerencia: ${inc.sugerencia}</div>` : ''}
             ${botonesHtml}
         `;
+        
+        // Event listener para el botón crear avería
+        const btnCrearAveria = div.querySelector('.btn-crear-averia');
+        if (btnCrearAveria) {
+            btnCrearAveria.onclick = () => abrirModalCrearAveria(
+                btnCrearAveria.dataset.id,
+                btnCrearAveria.dataset.piscina,
+                btnCrearAveria.dataset.mensaje
+            );
+        }
+        
         if (contenedor) contenedor.appendChild(div);
     }
     console.log(`✅ Mostradas ${incidencias.length} incidencias`);
@@ -1708,6 +1726,133 @@ function initTabs() {
     });
 }
 
+// ========== FUNCIONES PARA MANEJO DE AVERÍAS ==========
+let incidenciaOrigenId = null;
+
+function abrirModalCrearAveria(incidenciaId, piscinaNombre, mensaje) {
+    incidenciaOrigenId = incidenciaId;
+    
+    document.getElementById('averiaPiscinaNombre').innerText = piscinaNombre;
+    document.getElementById('averiaMensaje').innerText = mensaje.substring(0, 150);
+    document.getElementById('averiaDescripcion').value = mensaje;
+    document.getElementById('averiaCliente').value = '';
+    
+    const hoy = getFechaActual();
+    document.getElementById('averiaFecha').value = hoy;
+    
+    cargarTecnicosEnSelect('averiaTecnico');
+    
+    document.getElementById('modalCrearAveria').style.display = 'flex';
+}
+
+function cerrarModalAveria() {
+    document.getElementById('modalCrearAveria').style.display = 'none';
+    incidenciaOrigenId = null;
+    document.getElementById('averiaDescripcion').value = '';
+    document.getElementById('averiaCliente').value = '';
+}
+
+async function cargarTecnicosEnSelect(selectId) {
+    const { data: tecnicos, error } = await sb
+        .from('perfiles')
+        .select('id, nombre, nick')
+        .eq('rol', 'tecnico');
+    
+    const select = document.getElementById(selectId);
+    if (select && tecnicos) {
+        select.innerHTML = '<option value="">Selecciona un técnico...</option>';
+        tecnicos.forEach(t => {
+            select.innerHTML += `<option value="${t.id}">${t.nombre || t.nick}</option>`;
+        });
+    }
+}
+
+async function crearAveriaDesdeIncidencia() {
+    const tecnicoId = document.getElementById('averiaTecnico').value;
+    const nivel = document.getElementById('averiaNivel').value;
+    const fecha = document.getElementById('averiaFecha').value;
+    const cliente = document.getElementById('averiaCliente').value;
+    const descripcion = document.getElementById('averiaDescripcion').value.trim();
+    const piscinaNombre = document.getElementById('averiaPiscinaNombre').innerText;
+    
+    if (!tecnicoId) {
+        alert("❌ Selecciona un técnico");
+        return;
+    }
+    
+    if (!descripcion) {
+        alert("❌ Describe la avería");
+        return;
+    }
+    
+    const btn = document.getElementById('btnGuardarAveria');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '⏳ Creando...';
+    btn.disabled = true;
+    
+    try {
+        let piscinaId = null;
+        const { data: piscina } = await sb
+            .from('piscinas')
+            .select('id')
+            .ilike('nombre', piscinaNombre)
+            .maybeSingle();
+        if (piscina) piscinaId = piscina.id;
+        
+        const { data: urgencia, error: urgError } = await sb
+            .from('urgencias_programadas')
+            .insert({
+                piscina_id: piscinaId,
+                piscina_nombre: piscinaNombre,
+                cliente_nombre: cliente || null,
+                descripcion: descripcion,
+                nivel_urgencia: nivel,
+                asignada_a: tecnicoId,
+                fecha_asignacion: fecha || getFechaActual(),
+                estado: 'PENDIENTE',
+                creada_por: currentUser?.id,
+                creada_en: new Date().toISOString()
+            })
+            .select()
+            .single();
+        
+        if (urgError) throw urgError;
+        
+        await sb.from('asignaciones_diarias').insert({
+            urgencia_id: urgencia.id,
+            fecha: fecha || getFechaActual(),
+            tecnico_id: tecnicoId,
+            piscina_id: piscinaId,
+            tipo: 'URGENCIA',
+            estado: 'PENDIENTE',
+            creada_en: new Date().toISOString()
+        });
+        
+        if (incidenciaOrigenId) {
+            await sb
+                .from('incidencias_clientes')
+                .update({ 
+                    estado: 'DERIVADA',
+                    sugerencia: `Derivada como avería #${urgencia.id}`,
+                    leida: true
+                })
+                .eq('id', incidenciaOrigenId);
+        }
+        
+        alert(`✅ Avería creada y asignada al técnico.`);
+        cerrarModalAveria();
+        await cargarIncidenciasClientes();
+        await cargarAverias();
+        
+    } catch (error) {
+        console.error("Error creando avería:", error);
+        alert("❌ Error al crear la avería: " + error.message);
+    } finally {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+    }
+}
+
     // ========== EVENTOS PRINCIPALES ==========
     document.getElementById('btnLogin').onclick = async () => {
         if (await hacerLogin()) {
@@ -1783,7 +1928,7 @@ function initTabs() {
             document.getElementById('btnCrearUrgencia')?.addEventListener('click', () => crearUrgencia());
             document.getElementById('btnCargarSemana')?.addEventListener('click', cargarCalendarioSemanal);
             document.getElementById('btnAplicarSemana')?.addEventListener('click', aplicarTodasRutasSemana);
-            
+            document.getElementById('btnGuardarAveria')?.addEventListener('click', crearAveriaDesdeIncidencia);
             initTabs();
         }
     };
@@ -1794,6 +1939,53 @@ function initTabs() {
     window.abrirModalCierre = abrirModalCierre;
     window.cerrarModal = cerrarModal;
     window.confirmarCierre = confirmarCierre;
+    window.cerrarModalAveria = cerrarModalAveria;
 </script>
+<!-- Modal para crear avería desde incidencia -->
+<div id="modalCrearAveria" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">🔧 Crear avería / urgencia</div>
+        
+        <div id="averiaInfo" style="margin-bottom: 16px; padding: 12px; background: #f0f9ff; border-radius: 16px;">
+            <strong>🏊 Piscina:</strong> <span id="averiaPiscinaNombre"></span><br>
+            <strong>📝 Incidencia:</strong> <span id="averiaMensaje"></span>
+        </div>
+        
+        <div class="row-flex">
+            <div class="grupo">
+                <label>👤 Asignar a técnico</label>
+                <select id="averiaTecnico">
+                    <option value="">Selecciona técnico</option>
+                </select>
+            </div>
+            <div class="grupo">
+                <label>⚠️ Nivel de urgencia</label>
+                <select id="averiaNivel">
+                    <option value="ALTA">🔴 ALTA - Inmediato</option>
+                    <option value="MEDIA">🟠 MEDIA - Hoy</option>
+                    <option value="BAJA">🟢 BAJA - Esta semana</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="row-flex">
+            <div class="grupo">
+                <label>📅 Fecha asignación</label>
+                <input type="date" id="averiaFecha">
+            </div>
+            <div class="grupo">
+                <label>👤 Cliente</label>
+                <input type="text" id="averiaCliente" placeholder="Nombre del cliente">
+            </div>
+        </div>
+        
+        <textarea id="averiaDescripcion" rows="3" placeholder="Descripción detallada de la avería..." style="border-radius: 16px;"></textarea>
+        
+        <div style="display: flex; gap: 12px; margin-top: 16px;">
+            <button id="btnGuardarAveria" class="btn-warning">🔧 Crear avería</button>
+            <button onclick="cerrarModalAveria()" class="btn-info">Cancelar</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
